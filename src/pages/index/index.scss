@@ -1,0 +1,75 @@
+.home-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  background: var(--color-bg);
+}
+
+.home-header {
+  text-align: center;
+  margin: 40px 0 48px;
+}
+
+.home-title {
+  font-size: calc(40px * var(--font-scale));
+  font-weight: bold;
+  color: var(--color-text);
+  display: block;
+}
+
+.home-subtitle {
+  font-size: calc(24px * var(--font-scale));
+  color: var(--color-text-muted);
+  margin-top: 8px;
+  display: block;
+}
+
+.home-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.home-button {
+  display: flex;
+  align-items: center;
+  background: var(--color-card-bg);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 8px var(--color-shadow);
+
+  &.primary {
+    background: var(--color-primary);
+
+    .home-button-title {
+      color: var(--color-primary-contrast);
+    }
+
+    .home-button-desc {
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
+}
+
+.home-button-icon {
+  font-size: calc(44px * var(--font-scale));
+  width: 64px;
+  text-align: center;
+  margin-right: 16px;
+}
+
+.home-button-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.home-button-title {
+  font-size: calc(30px * var(--font-scale));
+  font-weight: bold;
+  color: var(--color-text);
+}
+
+.home-button-desc {
+  font-size: calc(22px * var(--font-scale));
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
