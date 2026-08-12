@@ -3,6 +3,30 @@
   background: var(--color-bg);
 }
 
+.tab-bar {
+  display: flex;
+  background: var(--color-card-bg);
+  border-radius: 16px;
+  padding: 8px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px var(--color-shadow);
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 18px 0;
+  border-radius: 12px;
+  font-size: calc(28px * var(--font-scale));
+  color: var(--color-text-muted);
+
+  &.active {
+    background: var(--color-primary);
+    color: var(--color-primary-contrast);
+    font-weight: bold;
+  }
+}
+
 .search-input {
   background: var(--color-card-bg);
   color: var(--color-text);
@@ -84,4 +108,108 @@
   font-size: calc(26px * var(--font-scale));
   margin-top: 100px;
   display: block;
+}
+
+.rankings-header {
+  margin-bottom: 16px;
+}
+
+.rankings-event-name {
+  display: block;
+  font-size: calc(30px * var(--font-scale));
+  font-weight: bold;
+  color: var(--color-text);
+}
+
+.rankings-event-meta {
+  display: block;
+  font-size: calc(22px * var(--font-scale));
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+.rankings-weights {
+  display: block;
+  font-size: calc(20px * var(--font-scale));
+  color: var(--color-text-faint);
+  margin-top: 6px;
+}
+
+.team-card {
+  background: var(--color-card-bg);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px var(--color-shadow);
+}
+
+.team-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.team-composite-rank {
+  font-size: calc(28px * var(--font-scale));
+  font-weight: bold;
+  color: var(--color-text-faint);
+  min-width: 56px;
+}
+
+.team-header-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.team-title {
+  font-size: calc(28px * var(--font-scale));
+  font-weight: bold;
+  color: var(--color-text);
+}
+
+.team-meta {
+  font-size: calc(22px * var(--font-scale));
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.team-score {
+  font-size: calc(34px * var(--font-scale));
+  font-weight: bold;
+  color: var(--color-primary);
+}
+
+.team-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.breakdown-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.breakdown-label {
+  font-size: calc(20px * var(--font-scale));
+  color: var(--color-text-faint);
+  width: 130px;
+  flex-shrink: 0;
+}
+
+.breakdown-bar-track {
+  flex: 1;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--color-input-bg);
+  overflow: hidden;
+}
+
+.breakdown-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 6px;
 }
