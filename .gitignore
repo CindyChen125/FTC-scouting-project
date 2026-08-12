@@ -1,0 +1,8 @@
+dist/
+deploy_versions/
+.temp/
+node_modules/
+.DS_Store
+.swc
+*.local
+.claude/settings.local.json

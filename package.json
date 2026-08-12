@@ -1,0 +1,63 @@
+{
+  "name": "ftc-scouting-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FTC DECODE scouting and ranking app",
+  "templateInfo": {
+    "name": "default",
+    "typescript": true,
+    "css": "Sass",
+    "framework": "React"
+  },
+  "scripts": {
+    "build:weapp": "taro build --type weapp",
+    "build:h5": "taro build --type h5",
+    "dev:weapp": "npm run build:weapp -- --watch",
+    "dev:h5": "npm run build:h5 -- --watch"
+  },
+  "browserslist": [
+    "defaults and fully supports es6-module",
+    "maintained node versions"
+  ],
+  "author": "",
+  "dependencies": {
+    "@babel/runtime": "^7.24.4",
+    "@tarojs/components": "4.2.1",
+    "@tarojs/helper": "4.2.1",
+    "@tarojs/plugin-platform-weapp": "4.2.1",
+    "@tarojs/plugin-platform-h5": "4.2.1",
+    "@tarojs/runtime": "4.2.1",
+    "@tarojs/shared": "4.2.1",
+    "@tarojs/taro": "4.2.1",
+    "@tarojs/plugin-framework-react": "4.2.1",
+    "@tarojs/react": "4.2.1",
+    "react-dom": "^18.0.0",
+    "react": "^18.0.0"
+  },
+  "devDependencies": {
+    "@tarojs/plugin-generator": "4.2.1",
+    "@babel/core": "^7.24.4",
+    "@tarojs/cli": "4.2.1",
+    "@babel/plugin-transform-class-properties": "7.25.9",
+    "@types/webpack-env": "^1.13.6",
+    "@types/react": "^18.0.0",
+    "webpack": "5.91.0",
+    "@tarojs/taro-loader": "4.2.1",
+    "@tarojs/webpack5-runner": "4.2.1",
+    "sass": "^1.75.0",
+    "babel-preset-taro": "4.2.1",
+    "eslint-config-taro": "4.2.1",
+    "eslint": "^8.57.0",
+    "@pmmmwh/react-refresh-webpack-plugin": "^0.5.5",
+    "react-refresh": "^0.14.0",
+    "@babel/preset-react": "^7.24.1",
+    "eslint-plugin-react": "^7.34.1",
+    "eslint-plugin-react-hooks": "^4.4.0",
+    "stylelint": "^16.4.0",
+    "typescript": "^5.4.5",
+    "tsconfig-paths-webpack-plugin": "^4.1.0",
+    "postcss": "^8.5.6",
+    "@types/node": "^18",
+    "@types/minimatch": "^5"
+  }
+}
