@@ -2,18 +2,36 @@ import { useMemo, useState } from 'react'
 import { View, Text, Input } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import AppHeader from '../../components/AppHeader'
+import RangeSlider from '../../components/RangeSlider'
 import { MatchScoutEntry } from '../../types/scouting'
-import { computeRankings, RANKING_WEIGHTS } from '../../utils/ranking'
+import {
+  computeRankings,
+  RANKING_WEIGHTS,
+  RANKING_FACTORS,
+  RankingFactor,
+  RankingWeights
+} from '../../utils/ranking'
 import fperocResults from '../../data/fperocResults.json'
 import './index.scss'
 
 type MainTab = 'mine' | 'rankings'
+// 'overall' uses the weighted composite; the rest rank by that single factor.
+type RankMode = 'overall' | RankingFactor
+
+const WEIGHTS_STORAGE_KEY = 'rankingWeights'
+
+const loadStoredWeights = (): RankingWeights => {
+  const stored = Taro.getStorageSync(WEIGHTS_STORAGE_KEY)
+  return stored ? { ...RANKING_WEIGHTS, ...stored } : { ...RANKING_WEIGHTS }
+}
 
 export default function CurrentData() {
   const [mainTab, setMainTab] = useState<MainTab>('mine')
   const [entries, setEntries] = useState<MatchScoutEntry[]>([])
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const [rankMode, setRankMode] = useState<RankMode>('overall')
+  const [weights, setWeights] = useState<RankingWeights>(loadStoredWeights)
 
   const loadEntries = () => {
     const { keys } = Taro.getStorageInfoSync()
@@ -30,6 +48,19 @@ export default function CurrentData() {
     loadEntries()
   })
 
+  const updateWeight = (factor: RankingFactor, value: number) => {
+    setWeights((prev) => {
+      const next = { ...prev, [factor]: value }
+      Taro.setStorageSync(WEIGHTS_STORAGE_KEY, next)
+      return next
+    })
+  }
+
+  const resetWeights = () => {
+    setWeights({ ...RANKING_WEIGHTS })
+    Taro.setStorageSync(WEIGHTS_STORAGE_KEY, { ...RANKING_WEIGHTS })
+  }
+
   const visibleEntries = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return entries
@@ -38,7 +69,13 @@ export default function CurrentData() {
     )
   }, [entries, query])
 
-  const rankedTeams = useMemo(() => computeRankings(fperocResults.teams), [])
+  // Compute the weighted composite + per-factor breakdown, then order by the
+  // selected mode: overall = composite, otherwise by that single factor.
+  const rankedTeams = useMemo(() => {
+    const ranked = computeRankings(fperocResults.teams, weights)
+    if (rankMode === 'overall') return ranked
+    return [...ranked].sort((a, b) => b.breakdown[rankMode] - a.breakdown[rankMode])
+  }, [weights, rankMode])
 
   const visibleRankedTeams = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -47,6 +84,9 @@ export default function CurrentData() {
       (rt) => String(rt.team.number).includes(q) || rt.team.name.toLowerCase().includes(q)
     )
   }, [rankedTeams, query])
+
+  const scoreFor = (rt: typeof rankedTeams[number]) =>
+    rankMode === 'overall' ? rt.compositeScore : rt.breakdown[rankMode]
 
   return (
     <View className='data-page'>
@@ -118,12 +158,54 @@ export default function CurrentData() {
             <View className='rankings-header'>
               <Text className='rankings-event-name'>{fperocResults.eventName}</Text>
               <Text className='rankings-event-meta'>
-                Quals results · {fperocResults.teams.length} teams · custom weighted ranking
-              </Text>
-              <Text className='rankings-weights'>
-                Weights: Auto {RANKING_WEIGHTS.auto * 100}% · Teleop {RANKING_WEIGHTS.teleop * 100}% · Endgame {RANKING_WEIGHTS.endgame * 100}% · Consistency {RANKING_WEIGHTS.consistency * 100}% · Defense {RANKING_WEIGHTS.defense * 100}%
+                Quals results · {fperocResults.teams.length} teams
               </Text>
             </View>
+
+            <View className='mode-bar'>
+              <View
+                className={`mode-item ${rankMode === 'overall' ? 'active' : ''}`}
+                onClick={() => setRankMode('overall')}
+              >
+                Overall
+              </View>
+              {RANKING_FACTORS.map((f) => (
+                <View
+                  key={f.key}
+                  className={`mode-item ${rankMode === f.key ? 'active' : ''}`}
+                  onClick={() => setRankMode(f.key)}
+                >
+                  {f.label}
+                </View>
+              ))}
+            </View>
+
+            {rankMode === 'overall' && (
+              <View className='weights-panel'>
+                <View className='weights-panel-head'>
+                  <Text className='weights-panel-title'>Adjust weights</Text>
+                  <Text className='weights-reset' onClick={resetWeights}>Reset</Text>
+                </View>
+                {RANKING_FACTORS.map((f) => (
+                  <View className='weight-row' key={f.key}>
+                    <View className='weight-row-head'>
+                      <Text className='weight-label'>{f.label}</Text>
+                      <Text className='weight-value'>{Math.round(weights[f.key] * 100)}%</Text>
+                    </View>
+                    <RangeSlider
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={weights[f.key]}
+                      onChange={(v) => updateWeight(f.key, v)}
+                    />
+                  </View>
+                ))}
+                <Text className='weights-note'>
+                  Weights are relative — they're normalized automatically, so they don't need to add up to 100%.
+                </Text>
+              </View>
+            )}
 
             {visibleRankedTeams.length === 0 && (
               <Text className='empty-state'>No teams match your search.</Text>
@@ -139,40 +221,18 @@ export default function CurrentData() {
                       {rt.team.wins}-{rt.team.losses}-{rt.team.ties} · quals rank {rt.team.rank}
                     </Text>
                   </View>
-                  <Text className='team-score'>{rt.compositeScore.toFixed(1)}</Text>
+                  <Text className='team-score'>{scoreFor(rt).toFixed(1)}</Text>
                 </View>
 
                 <View className='team-breakdown'>
-                  <View className='breakdown-row'>
-                    <Text className='breakdown-label'>Auto</Text>
-                    <View className='breakdown-bar-track'>
-                      <View className='breakdown-bar-fill' style={{ width: `${rt.breakdown.auto}%` }} />
+                  {RANKING_FACTORS.map((f) => (
+                    <View className={`breakdown-row ${rankMode === f.key ? 'highlight' : ''}`} key={f.key}>
+                      <Text className='breakdown-label'>{f.label}</Text>
+                      <View className='breakdown-bar-track'>
+                        <View className='breakdown-bar-fill' style={{ width: `${rt.breakdown[f.key]}%` }} />
+                      </View>
                     </View>
-                  </View>
-                  <View className='breakdown-row'>
-                    <Text className='breakdown-label'>Teleop</Text>
-                    <View className='breakdown-bar-track'>
-                      <View className='breakdown-bar-fill' style={{ width: `${rt.breakdown.teleop}%` }} />
-                    </View>
-                  </View>
-                  <View className='breakdown-row'>
-                    <Text className='breakdown-label'>Endgame</Text>
-                    <View className='breakdown-bar-track'>
-                      <View className='breakdown-bar-fill' style={{ width: `${rt.breakdown.endgame}%` }} />
-                    </View>
-                  </View>
-                  <View className='breakdown-row'>
-                    <Text className='breakdown-label'>Consistency</Text>
-                    <View className='breakdown-bar-track'>
-                      <View className='breakdown-bar-fill' style={{ width: `${rt.breakdown.consistency}%` }} />
-                    </View>
-                  </View>
-                  <View className='breakdown-row'>
-                    <Text className='breakdown-label'>Defense</Text>
-                    <View className='breakdown-bar-track'>
-                      <View className='breakdown-bar-fill' style={{ width: `${rt.breakdown.defense}%` }} />
-                    </View>
-                  </View>
+                  ))}
                 </View>
               </View>
             ))}

@@ -128,11 +128,81 @@
   margin-top: 4px;
 }
 
-.rankings-weights {
+.mode-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.mode-item {
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-size: calc(22px * var(--font-scale));
+  color: var(--color-text-muted);
+  background: var(--color-card-bg);
+  box-shadow: 0 2px 8px var(--color-shadow);
+
+  &.active {
+    background: var(--color-primary);
+    color: var(--color-primary-contrast);
+    font-weight: bold;
+  }
+}
+
+.weights-panel {
+  background: var(--color-card-bg);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px var(--color-shadow);
+}
+
+.weights-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.weights-panel-title {
+  font-size: calc(26px * var(--font-scale));
+  font-weight: bold;
+  color: var(--color-text);
+}
+
+.weights-reset {
+  font-size: calc(22px * var(--font-scale));
+  color: var(--color-primary);
+}
+
+.weight-row {
+  margin-bottom: 16px;
+}
+
+.weight-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.weight-label {
+  font-size: calc(22px * var(--font-scale));
+  color: var(--color-label);
+}
+
+.weight-value {
+  font-size: calc(22px * var(--font-scale));
+  font-weight: bold;
+  color: var(--color-primary);
+}
+
+.weights-note {
   display: block;
   font-size: calc(20px * var(--font-scale));
   color: var(--color-text-faint);
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .team-card {
@@ -191,6 +261,11 @@
   display: flex;
   align-items: center;
   gap: 10px;
+
+  &.highlight .breakdown-label {
+    color: var(--color-primary);
+    font-weight: bold;
+  }
 }
 
 .breakdown-label {
