@@ -150,6 +150,13 @@
   }
 }
 
+.mode-hint {
+  display: block;
+  font-size: calc(20px * var(--font-scale));
+  color: var(--color-text-muted);
+  margin-bottom: 16px;
+}
+
 .weights-panel {
   background: var(--color-card-bg);
   border-radius: 16px;

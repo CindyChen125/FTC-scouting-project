@@ -15,10 +15,11 @@ import fperocResults from '../../data/fperocResults.json'
 import './index.scss'
 
 type MainTab = 'mine' | 'rankings'
-// 'overall' uses the weighted composite; the rest rank by that single factor.
-type RankMode = 'overall' | RankingFactor
 
 const WEIGHTS_STORAGE_KEY = 'rankingWeights'
+
+const meanOf = (breakdown: Record<RankingFactor, number>, factors: RankingFactor[]) =>
+  factors.reduce((sum, f) => sum + breakdown[f], 0) / factors.length
 
 const loadStoredWeights = (): RankingWeights => {
   const stored = Taro.getStorageSync(WEIGHTS_STORAGE_KEY)
@@ -30,8 +31,18 @@ export default function CurrentData() {
   const [entries, setEntries] = useState<MatchScoutEntry[]>([])
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const [rankMode, setRankMode] = useState<RankMode>('overall')
+  // Empty selection = Overall (weighted composite). One or more selected =
+  // rank by the average of those factors' scores.
+  const [selectedFactors, setSelectedFactors] = useState<RankingFactor[]>([])
   const [weights, setWeights] = useState<RankingWeights>(loadStoredWeights)
+
+  const isOverall = selectedFactors.length === 0
+
+  const toggleFactor = (factor: RankingFactor) => {
+    setSelectedFactors((prev) =>
+      prev.includes(factor) ? prev.filter((f) => f !== factor) : [...prev, factor]
+    )
+  }
 
   const loadEntries = () => {
     const { keys } = Taro.getStorageInfoSync()
@@ -70,12 +81,15 @@ export default function CurrentData() {
   }, [entries, query])
 
   // Compute the weighted composite + per-factor breakdown, then order by the
-  // selected mode: overall = composite, otherwise by that single factor.
+  // selected mode: Overall = composite, otherwise by the average of the
+  // chosen factors.
   const rankedTeams = useMemo(() => {
     const ranked = computeRankings(fperocResults.teams, weights)
-    if (rankMode === 'overall') return ranked
-    return [...ranked].sort((a, b) => b.breakdown[rankMode] - a.breakdown[rankMode])
-  }, [weights, rankMode])
+    if (selectedFactors.length === 0) return ranked
+    return [...ranked].sort(
+      (a, b) => meanOf(b.breakdown, selectedFactors) - meanOf(a.breakdown, selectedFactors)
+    )
+  }, [weights, selectedFactors])
 
   const visibleRankedTeams = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -86,7 +100,7 @@ export default function CurrentData() {
   }, [rankedTeams, query])
 
   const scoreFor = (rt: typeof rankedTeams[number]) =>
-    rankMode === 'overall' ? rt.compositeScore : rt.breakdown[rankMode]
+    isOverall ? rt.compositeScore : meanOf(rt.breakdown, selectedFactors)
 
   return (
     <View className='data-page'>
@@ -164,23 +178,29 @@ export default function CurrentData() {
 
             <View className='mode-bar'>
               <View
-                className={`mode-item ${rankMode === 'overall' ? 'active' : ''}`}
-                onClick={() => setRankMode('overall')}
+                className={`mode-item ${isOverall ? 'active' : ''}`}
+                onClick={() => setSelectedFactors([])}
               >
                 Overall
               </View>
               {RANKING_FACTORS.map((f) => (
                 <View
                   key={f.key}
-                  className={`mode-item ${rankMode === f.key ? 'active' : ''}`}
-                  onClick={() => setRankMode(f.key)}
+                  className={`mode-item ${selectedFactors.includes(f.key) ? 'active' : ''}`}
+                  onClick={() => toggleFactor(f.key)}
                 >
                   {f.label}
                 </View>
               ))}
             </View>
 
-            {rankMode === 'overall' && (
+            {!isOverall && (
+              <Text className='mode-hint'>
+                Ranking by average of: {selectedFactors.map((f) => RANKING_FACTORS.find((x) => x.key === f)!.label).join(' · ')}
+              </Text>
+            )}
+
+            {isOverall && (
               <View className='weights-panel'>
                 <View className='weights-panel-head'>
                   <Text className='weights-panel-title'>Adjust weights</Text>
@@ -226,7 +246,7 @@ export default function CurrentData() {
 
                 <View className='team-breakdown'>
                   {RANKING_FACTORS.map((f) => (
-                    <View className={`breakdown-row ${rankMode === f.key ? 'highlight' : ''}`} key={f.key}>
+                    <View className={`breakdown-row ${selectedFactors.includes(f.key) ? 'highlight' : ''}`} key={f.key}>
                       <Text className='breakdown-label'>{f.label}</Text>
                       <View className='breakdown-bar-track'>
                         <View className='breakdown-bar-fill' style={{ width: `${rt.breakdown[f.key]}%` }} />
