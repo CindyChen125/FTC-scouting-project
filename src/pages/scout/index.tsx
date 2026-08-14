@@ -141,9 +141,22 @@ export default function Index() {
         <View className='section-card'>
           <Text className='section-title'>Autonomous</Text>
 
-          <View className='switch-row'>
-            <Text className='field-label'>是否离开起始线 Left start line</Text>
-            <Switch checked={auto.leftStart} onChange={(e) => patchAuto({ leftStart: e.detail.value })} />
+          <View className='field-row'>
+            <Text className='field-label'>是否离开起始线 Left starting line</Text>
+            <View className='pill-row'>
+              <View
+                className={`pill ${auto.leftStart ? 'active' : ''}`}
+                onClick={() => patchAuto({ leftStart: true })}
+              >
+                Yes
+              </View>
+              <View
+                className={`pill ${!auto.leftStart ? 'active' : ''}`}
+                onClick={() => patchAuto({ leftStart: false })}
+              >
+                No
+              </View>
+            </View>
           </View>
 
           <View className='field-row'>
