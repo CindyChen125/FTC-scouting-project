@@ -142,3 +142,20 @@
   margin-top: 20px;
   display: block;
 }
+
+.submit-btn {
+  margin: 16px 0 40px;
+  padding: 20px 0;
+  border-radius: 14px;
+  text-align: center;
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  font-size: calc(30px * var(--font-scale));
+  font-weight: bold;
+  box-shadow: 0 2px 8px var(--color-shadow);
+
+  &.disabled {
+    background: var(--color-input-bg);
+    color: var(--color-text-faint);
+  }
+}

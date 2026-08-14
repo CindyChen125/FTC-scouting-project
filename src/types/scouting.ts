@@ -65,5 +65,10 @@ export const emptyEndgame = (): EndgameData => ({
   parkStatus: 'none'
 })
 
+// Submitted entries (shown in "My Scouting Data") use the `scout:` prefix.
 export const scoutEntryStorageKey = (matchId: string, teamNumber: string) =>
   `scout:${matchId}:${teamNumber}`
+
+// Auto-saved backups (offline-first safety net, never shown/uploaded) use `backup:`.
+export const scoutBackupKey = (matchId: string, teamNumber: string) =>
+  `backup:${matchId}:${teamNumber}`

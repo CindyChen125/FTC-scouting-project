@@ -12,6 +12,7 @@ import {
   emptyTeleop,
   emptyEndgame,
   scoutEntryStorageKey,
+  scoutBackupKey,
   NOTE_OPTIONS,
   NOTE_OTHER
 } from '../../types/scouting'
@@ -98,12 +99,13 @@ export default function Index() {
     console.log('Match scouting page loaded.')
   })
 
-  // Load any previously saved entry for this match+team so a scout can resume mid-match.
-  // Merge onto the empty defaults so entries saved under an older schema still fill in.
+  // Resume from the auto-saved backup (latest working copy); fall back to a
+  // previously submitted entry. Merge onto empty defaults so older saves fill in.
   useEffect(() => {
     if (!matchId || !teamNumber) return
-    const key = scoutEntryStorageKey(matchId, teamNumber)
-    const saved = Taro.getStorageSync(key)
+    const saved =
+      Taro.getStorageSync(scoutBackupKey(matchId, teamNumber)) ||
+      Taro.getStorageSync(scoutEntryStorageKey(matchId, teamNumber))
     if (saved) {
       setAlliance(saved.alliance ?? 'red')
       setScoutName(saved.scoutName ?? scoutName)
@@ -115,22 +117,45 @@ export default function Index() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matchId, teamNumber])
 
-  // Persist on every change so nothing is lost if the app closes mid-match (offline-first).
+  const currentEntry = () => ({
+    matchId,
+    teamNumber,
+    alliance,
+    scoutName,
+    auto,
+    teleop,
+    endgame,
+    overallNotes,
+    updatedAt: Date.now()
+  })
+
+  // Auto-save a backup on every change so nothing is lost if the app closes
+  // mid-match (offline-first). Backups are never shown or uploaded — only a
+  // submitted entry appears in "My Scouting Data".
   useEffect(() => {
     if (!matchId || !teamNumber) return
-    const key = scoutEntryStorageKey(matchId, teamNumber)
-    Taro.setStorageSync(key, {
-      matchId,
-      teamNumber,
-      alliance,
-      scoutName,
-      auto,
-      teleop,
-      endgame,
-      overallNotes,
-      updatedAt: Date.now()
-    })
+    Taro.setStorageSync(scoutBackupKey(matchId, teamNumber), currentEntry())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matchId, teamNumber, alliance, scoutName, auto, teleop, endgame, overallNotes])
+
+  const handleSubmit = () => {
+    if (!matchId || !teamNumber) {
+      Taro.showToast({ title: '请先填写场次和队号 Enter Match ID and Team #', icon: 'none' })
+      return
+    }
+    Taro.showModal({
+      title: '确认提交 Confirm submit',
+      content: `提交场次 ${matchId} · 队 ${teamNumber} 的侦查数据？Submit scouting data for match ${matchId}, team ${teamNumber}?`,
+      confirmText: '提交',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          Taro.setStorageSync(scoutEntryStorageKey(matchId, teamNumber), currentEntry())
+          Taro.showToast({ title: '已提交 Submitted ✓', icon: 'success' })
+        }
+      }
+    })
+  }
 
   const patchAuto = (patch: Partial<AutoData>) => setAuto((prev) => ({ ...prev, ...patch }))
   const patchTeleop = (patch: Partial<TeleopData>) => setTeleop((prev) => ({ ...prev, ...patch }))
@@ -248,8 +273,17 @@ export default function Index() {
       </View>
 
       <Text className='save-hint'>
-        {matchId && teamNumber ? 'Saved locally as you type ✓' : 'Enter Match ID and Team # to start saving'}
+        {matchId && teamNumber
+          ? '已自动备份 Auto-saved as backup ✓ · 提交后才会进入数据列表 submit to add to My Scouting Data'
+          : 'Enter Match ID and Team # to start'}
       </Text>
+
+      <View
+        className={`submit-btn ${matchId && teamNumber ? '' : 'disabled'}`}
+        onClick={handleSubmit}
+      >
+        提交 Submit
+      </View>
       </View>
     </View>
   )

@@ -16,7 +16,9 @@ export default function Settings() {
       success: (res) => {
         if (res.confirm) {
           const { keys } = Taro.getStorageInfoSync()
-          keys.filter((key) => key.startsWith('scout:')).forEach((key) => Taro.removeStorageSync(key))
+          keys
+            .filter((key) => key.startsWith('scout:') || key.startsWith('backup:'))
+            .forEach((key) => Taro.removeStorageSync(key))
           Taro.showToast({ title: 'Data cleared', icon: 'success' })
         }
       }
