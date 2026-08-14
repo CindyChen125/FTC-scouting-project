@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { View, Text, Input, Textarea, Picker } from '@tarojs/components'
+import { View, Text, Input, Textarea } from '@tarojs/components'
 import Taro, { useLoad } from '@tarojs/taro'
 import AppHeader from '../../components/AppHeader'
 import {
@@ -47,23 +47,28 @@ function TextField({ label, value, onChange, placeholder }: { label: string, val
   )
 }
 
-// Notes dropdown for Auto/Teleop: pick a preset, or "其他 Other" to type a custom note.
-function NoteSelectField({ tag, text, onChange }: { tag: string, text: string, onChange: (patch: { noteTag?: string, noteText?: string }) => void }) {
-  const index = Math.max(0, NOTE_OPTIONS.indexOf(tag))
-  const isOther = tag === NOTE_OTHER
+// Multi-select notes for Auto/Teleop: tap any number of presets; "其他 Other"
+// reveals a free-text input for a custom note.
+function NoteMultiField({ tags, text, onChange }: { tags: string[], text: string, onChange: (patch: { noteTags?: string[], noteText?: string }) => void }) {
+  const toggle = (opt: string) => {
+    const next = tags.includes(opt) ? tags.filter((t) => t !== opt) : [...tags, opt]
+    onChange({ noteTags: next })
+  }
+  const isOther = tags.includes(NOTE_OTHER)
   return (
     <View className='field-row'>
-      <Text className='field-label'>备注 Notes</Text>
-      <Picker
-        mode='selector'
-        range={NOTE_OPTIONS}
-        value={index}
-        onChange={(e) => onChange({ noteTag: NOTE_OPTIONS[Number(e.detail.value)] })}
-      >
-        <View className={`picker-display ${tag ? '' : 'placeholder'}`}>
-          {tag || '选择 Select…'}
-        </View>
-      </Picker>
+      <Text className='field-label'>备注 Notes (可多选 multi-select)</Text>
+      <View className='chip-row'>
+        {NOTE_OPTIONS.map((opt) => (
+          <View
+            key={opt}
+            className={`chip ${tags.includes(opt) ? 'active' : ''}`}
+            onClick={() => toggle(opt)}
+          >
+            {opt}
+          </View>
+        ))}
+      </View>
       {isOther && (
         <Input
           className='field-input note-other-input'
@@ -78,20 +83,6 @@ function NoteSelectField({ tag, text, onChange }: { tag: string, text: string, o
   )
 }
 
-function NotesField({ value, onChange }: { value: string, onChange: (s: string) => void }) {
-  return (
-    <View className='field-row'>
-      <Text className='field-label'>备注 Notes (disconnect / malfunction / etc.)</Text>
-      <Textarea
-        className='field-textarea'
-        value={value}
-        placeholder='e.g. robot disconnected at 0:45, resumed at 0:52'
-        onInput={(e) => onChange(e.detail.value)}
-      />
-    </View>
-  )
-}
-
 export default function Index() {
   const [matchId, setMatchId] = useState('')
   const [teamNumber, setTeamNumber] = useState('')
@@ -101,6 +92,7 @@ export default function Index() {
   const [auto, setAuto] = useState<AutoData>(emptyAuto())
   const [teleop, setTeleop] = useState<TeleopData>(emptyTeleop())
   const [endgame, setEndgame] = useState<EndgameData>(emptyEndgame())
+  const [overallNotes, setOverallNotes] = useState('')
 
   useLoad(() => {
     console.log('Match scouting page loaded.')
@@ -118,6 +110,7 @@ export default function Index() {
       setAuto({ ...emptyAuto(), ...saved.auto })
       setTeleop({ ...emptyTeleop(), ...saved.teleop })
       setEndgame({ ...emptyEndgame(), ...saved.endgame })
+      setOverallNotes(saved.overallNotes ?? '')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matchId, teamNumber])
@@ -134,9 +127,10 @@ export default function Index() {
       auto,
       teleop,
       endgame,
+      overallNotes,
       updatedAt: Date.now()
     })
-  }, [matchId, teamNumber, alliance, scoutName, auto, teleop, endgame])
+  }, [matchId, teamNumber, alliance, scoutName, auto, teleop, endgame, overallNotes])
 
   const patchAuto = (patch: Partial<AutoData>) => setAuto((prev) => ({ ...prev, ...patch }))
   const patchTeleop = (patch: Partial<TeleopData>) => setTeleop((prev) => ({ ...prev, ...patch }))
@@ -189,7 +183,7 @@ export default function Index() {
           <NumberField label='远点 Far scored' value={auto.farGoalsMade} onChange={(n) => patchAuto({ farGoalsMade: n })} />
         </View>
 
-        <NoteSelectField tag={auto.noteTag} text={auto.noteText} onChange={patchAuto} />
+        <NoteMultiField tags={auto.noteTags} text={auto.noteText} onChange={patchAuto} />
       </View>
 
       <View className='section-card'>
@@ -201,19 +195,7 @@ export default function Index() {
           <NumberField label='远点 Far scored' value={teleop.farGoalsMade} onChange={(n) => patchTeleop({ farGoalsMade: n })} />
         </View>
 
-        <Text className='subsection-title'>节奏 Cycle speed</Text>
-        <View className='two-col'>
-          <NumberField label='总循环数 Total cycles' value={teleop.totalCycles} onChange={(n) => patchTeleop({ totalCycles: n })} />
-          <NumberField label='平均每循环秒数 Avg cycle time (sec)' value={teleop.avgCycleTimeSec} onChange={(n) => patchTeleop({ avgCycleTimeSec: n })} />
-        </View>
-
-        <Text className='subsection-title'>判罚 Penalties</Text>
-        <View className='two-col'>
-          <NumberField label='造对方判罚 Drawn on opponent' value={teleop.penaltiesDrawn} onChange={(n) => patchTeleop({ penaltiesDrawn: n })} />
-          <NumberField label='自身被判罚 Committed by them' value={teleop.penaltiesCommitted} onChange={(n) => patchTeleop({ penaltiesCommitted: n })} />
-        </View>
-
-        <NoteSelectField tag={teleop.noteTag} text={teleop.noteText} onChange={patchTeleop} />
+        <NoteMultiField tags={teleop.noteTags} text={teleop.noteText} onChange={patchTeleop} />
       </View>
 
       <View className='section-card'>
@@ -251,10 +233,18 @@ export default function Index() {
             ))}
           </View>
         </View>
+      </View>
 
-        <NumberField label='停靠用时 Time to park (sec)' value={endgame.parkTimeSec} onChange={(n) => patchEndgame({ parkTimeSec: n })} />
-
-        <NotesField value={endgame.notes} onChange={(s) => patchEndgame({ notes: s })} />
+      <View className='section-card'>
+        <Text className='section-title'>总体备注 Overall notes</Text>
+        <View className='field-row'>
+          <Textarea
+            className='field-textarea'
+            value={overallNotes}
+            placeholder='对该队的整体印象、配合建议等 Overall impression, alliance fit, strategy notes…'
+            onInput={(e) => setOverallNotes(e.detail.value)}
+          />
+        </View>
       </View>
 
       <Text className='save-hint'>
