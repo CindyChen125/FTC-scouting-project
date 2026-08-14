@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { View, Text, Input, Textarea, Switch } from '@tarojs/components'
+import { View, Text, Input, Textarea } from '@tarojs/components'
 import Taro, { useLoad } from '@tarojs/taro'
 import AppHeader from '../../components/AppHeader'
 import {
@@ -225,9 +225,22 @@ export default function Index() {
         <View className='section-card'>
           <Text className='section-title'>Endgame</Text>
 
-          <View className='switch-row'>
+          <View className='field-row'>
             <Text className='field-label'>是否有抬升机构 Has lift mechanism</Text>
-            <Switch checked={endgame.hasLift} onChange={(e) => patchEndgame({ hasLift: e.detail.value })} />
+            <View className='pill-row'>
+              <View
+                className={`pill ${endgame.hasLift ? 'active' : ''}`}
+                onClick={() => patchEndgame({ hasLift: true })}
+              >
+                Yes
+              </View>
+              <View
+                className={`pill ${!endgame.hasLift ? 'active' : ''}`}
+                onClick={() => patchEndgame({ hasLift: false })}
+              >
+                No
+              </View>
+            </View>
           </View>
 
           <View className='field-row'>
