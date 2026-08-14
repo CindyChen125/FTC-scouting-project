@@ -148,13 +148,13 @@ export default function CurrentData() {
                   <View className='entry-stat'>
                     <Text className='entry-stat-label'>Auto goals</Text>
                     <Text className='entry-stat-value'>
-                      {entry.auto.nearGoalsMade + entry.auto.farGoalsMade}/{entry.auto.nearGoalsAttempted + entry.auto.farGoalsAttempted}
+                      {entry.auto.nearGoalsMade + entry.auto.farGoalsMade}
                     </Text>
                   </View>
                   <View className='entry-stat'>
                     <Text className='entry-stat-label'>Teleop goals</Text>
                     <Text className='entry-stat-value'>
-                      {entry.teleop.nearGoalsMade + entry.teleop.farGoalsMade}/{entry.teleop.nearGoalsAttempted + entry.teleop.farGoalsAttempted}
+                      {entry.teleop.nearGoalsMade + entry.teleop.farGoalsMade}
                     </Text>
                   </View>
                   <View className='entry-stat'>

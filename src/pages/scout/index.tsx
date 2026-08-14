@@ -169,16 +169,10 @@ export default function Index() {
             />
           </View>
 
-          <Text className='subsection-title'>近点 Near goals</Text>
+          <Text className='subsection-title'>进球 Goals scored</Text>
           <View className='two-col'>
-            <NumberField label='命中 Made' value={auto.nearGoalsMade} onChange={(n) => patchAuto({ nearGoalsMade: n })} />
-            <NumberField label='尝试 Attempted' value={auto.nearGoalsAttempted} onChange={(n) => patchAuto({ nearGoalsAttempted: n })} />
-          </View>
-
-          <Text className='subsection-title'>远点 Far goals</Text>
-          <View className='two-col'>
-            <NumberField label='命中 Made' value={auto.farGoalsMade} onChange={(n) => patchAuto({ farGoalsMade: n })} />
-            <NumberField label='尝试 Attempted' value={auto.farGoalsAttempted} onChange={(n) => patchAuto({ farGoalsAttempted: n })} />
+            <NumberField label='近点 Near scored' value={auto.nearGoalsMade} onChange={(n) => patchAuto({ nearGoalsMade: n })} />
+            <NumberField label='远点 Far scored' value={auto.farGoalsMade} onChange={(n) => patchAuto({ farGoalsMade: n })} />
           </View>
 
           <NumberField label='图案个数 Pattern count' value={auto.patternCount} onChange={(n) => patchAuto({ patternCount: n })} />
@@ -191,16 +185,10 @@ export default function Index() {
         <View className='section-card'>
           <Text className='section-title'>Teleop</Text>
 
-          <Text className='subsection-title'>近点 Near goals</Text>
+          <Text className='subsection-title'>进球 Goals scored</Text>
           <View className='two-col'>
-            <NumberField label='命中 Made' value={teleop.nearGoalsMade} onChange={(n) => patchTeleop({ nearGoalsMade: n })} />
-            <NumberField label='尝试 Attempted' value={teleop.nearGoalsAttempted} onChange={(n) => patchTeleop({ nearGoalsAttempted: n })} />
-          </View>
-
-          <Text className='subsection-title'>远点 Far goals</Text>
-          <View className='two-col'>
-            <NumberField label='命中 Made' value={teleop.farGoalsMade} onChange={(n) => patchTeleop({ farGoalsMade: n })} />
-            <NumberField label='尝试 Attempted' value={teleop.farGoalsAttempted} onChange={(n) => patchTeleop({ farGoalsAttempted: n })} />
+            <NumberField label='近点 Near scored' value={teleop.nearGoalsMade} onChange={(n) => patchTeleop({ nearGoalsMade: n })} />
+            <NumberField label='远点 Far scored' value={teleop.farGoalsMade} onChange={(n) => patchTeleop({ farGoalsMade: n })} />
           </View>
 
           <NumberField label='图案个数 Pattern count' value={teleop.patternCount} onChange={(n) => patchTeleop({ patternCount: n })} />

@@ -5,18 +5,14 @@ export interface AutoData {
   leftStart: boolean
   routeNote: string
   nearGoalsMade: number
-  nearGoalsAttempted: number
   farGoalsMade: number
-  farGoalsAttempted: number
   patternCount: number
   notes: string
 }
 
 export interface TeleopData {
   nearGoalsMade: number
-  nearGoalsAttempted: number
   farGoalsMade: number
-  farGoalsAttempted: number
   patternCount: number
   totalCycles: number
   avgCycleTimeSec: number
@@ -47,18 +43,14 @@ export const emptyAuto = (): AutoData => ({
   leftStart: false,
   routeNote: '',
   nearGoalsMade: 0,
-  nearGoalsAttempted: 0,
   farGoalsMade: 0,
-  farGoalsAttempted: 0,
   patternCount: 0,
   notes: ''
 })
 
 export const emptyTeleop = (): TeleopData => ({
   nearGoalsMade: 0,
-  nearGoalsAttempted: 0,
   farGoalsMade: 0,
-  farGoalsAttempted: 0,
   patternCount: 0,
   totalCycles: 0,
   avgCycleTimeSec: 0,
