@@ -50,6 +50,32 @@
   width: auto;
 }
 
+.picker-display {
+  background: var(--color-input-bg);
+  color: var(--color-text);
+  border-radius: 10px;
+  padding: 16px;
+  font-size: calc(28px * var(--font-scale));
+  border: 2px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  &::after {
+    content: '▾';
+    color: var(--color-text-muted);
+    margin-left: 12px;
+  }
+
+  &.placeholder {
+    color: var(--color-text-faint);
+  }
+}
+
+.note-other-input {
+  margin-top: 10px;
+}
+
 .pill-row {
   display: flex;
   gap: 12px;
@@ -71,34 +97,11 @@
   }
 }
 
-.tab-bar {
-  display: flex;
-  background: var(--color-card-bg);
-  border-radius: 16px;
-  padding: 8px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px var(--color-shadow);
-}
-
-.tab-item {
-  flex: 1;
-  text-align: center;
-  padding: 18px 0;
-  border-radius: 12px;
-  font-size: calc(28px * var(--font-scale));
-  color: var(--color-text-muted);
-
-  &.active {
-    background: var(--color-primary);
-    color: var(--color-primary-contrast);
-    font-weight: bold;
-  }
-}
-
 .section-card {
   background: var(--color-card-bg);
   border-radius: 16px;
   padding: 20px;
+  margin-bottom: 16px;
   box-shadow: 0 2px 8px var(--color-shadow);
 }
 
