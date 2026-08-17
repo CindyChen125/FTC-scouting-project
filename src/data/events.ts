@@ -1,4 +1,5 @@
 import fperocResults from './fperocResults.json'
+import caoluResults from './caoluResults.json'
 import { EventResultsData } from '../types/ranking'
 
 export interface EventInfo {
@@ -11,7 +12,8 @@ export interface EventInfo {
 // here (plus its own results JSON, same shape as fperocResults.json) when
 // scouting a new event.
 export const EVENTS: EventInfo[] = [
-  { code: 'FPEROC', name: 'Canadian Rockies Premier Event @ KDays', results: fperocResults }
+  { code: 'FPEROC', name: 'Canadian Rockies Premier Event @ KDays', results: fperocResults },
+  { code: 'CNSHOS', name: 'The CaoLu Cup Teenage Robot Design and Build Invitational Tournament #1', results: caoluResults }
 ]
 
 // The event currently being scouted — used as the default selection and to
