@@ -110,6 +110,16 @@
   display: block;
 }
 
+.sync-error {
+  display: block;
+  background: var(--color-card-bg);
+  color: var(--color-danger);
+  border-radius: 12px;
+  padding: 16px;
+  font-size: calc(22px * var(--font-scale));
+  margin-bottom: 16px;
+}
+
 .rankings-header {
   margin-bottom: 16px;
 }

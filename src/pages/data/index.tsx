@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { View, Text, Input } from '@tarojs/components'
-import Taro, { useDidShow } from '@tarojs/taro'
+import Taro from '@tarojs/taro'
 import AppHeader from '../../components/AppHeader'
 import RangeSlider from '../../components/RangeSlider'
 import { MatchScoutEntry } from '../../types/scouting'
+import { subscribeScoutEntries } from '../../firebase/scouting'
 import {
   computeRankings,
   RANKING_WEIGHTS,
@@ -29,6 +30,7 @@ const loadStoredWeights = (): RankingWeights => {
 export default function CurrentData() {
   const [mainTab, setMainTab] = useState<MainTab>('mine')
   const [entries, setEntries] = useState<MatchScoutEntry[]>([])
+  const [syncError, setSyncError] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
   // Empty selection = Overall (weighted composite). One or more selected =
@@ -44,20 +46,18 @@ export default function CurrentData() {
     )
   }
 
-  const loadEntries = () => {
-    const { keys } = Taro.getStorageInfoSync()
-    const loaded = keys
-      .filter((key) => key.startsWith('scout:'))
-      .map((key) => Taro.getStorageSync(key) as MatchScoutEntry)
-      .filter(Boolean)
-      .sort((a, b) => b.updatedAt - a.updatedAt)
-    setEntries(loaded)
-  }
-
-  // Re-scan storage every time this page becomes visible so newly saved entries show up.
-  useDidShow(() => {
-    loadEntries()
-  })
+  // Live-subscribed to every scout's submitted entries across devices (Firestore).
+  // Fires immediately from the local offline cache, then again on every change.
+  useEffect(() => {
+    const unsubscribe = subscribeScoutEntries(
+      (loaded) => {
+        setEntries(loaded)
+        setSyncError(false)
+      },
+      () => setSyncError(true)
+    )
+    return unsubscribe
+  }, [])
 
   const updateWeight = (factor: RankingFactor, value: number) => {
     setWeights((prev) => {
@@ -129,6 +129,12 @@ export default function CurrentData() {
 
         {mainTab === 'mine' && (
           <>
+            {syncError && (
+              <Text className='sync-error'>
+                ⚠️ Can't sync with the shared database right now — showing local data only.
+              </Text>
+            )}
+
             {visibleEntries.length === 0 && (
               <Text className='empty-state'>
                 {entries.length === 0 ? 'No scouting data saved yet.' : 'No entries match your search.'}

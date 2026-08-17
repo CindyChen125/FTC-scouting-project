@@ -16,6 +16,7 @@ import {
   NOTE_OPTIONS,
   NOTE_OTHER
 } from '../../types/scouting'
+import { submitScoutEntry } from '../../firebase/scouting'
 import './index.scss'
 
 function NumberField({ label, value, onChange }: { label: string, value: number, onChange: (n: number) => void }) {
@@ -150,7 +151,14 @@ export default function Index() {
       cancelText: '取消',
       success: (res) => {
         if (res.confirm) {
-          Taro.setStorageSync(scoutEntryStorageKey(matchId, teamNumber), currentEntry())
+          const entry = currentEntry()
+          // Local write always succeeds instantly and is the source of truth
+          // for this device. The Firestore write shares it with every other
+          // scout — it queues offline and syncs automatically once back online.
+          Taro.setStorageSync(scoutEntryStorageKey(matchId, teamNumber), entry)
+          submitScoutEntry(entry).catch((err) => {
+            console.error('Failed to sync submission to Firestore', err)
+          })
           Taro.showToast({ title: '已提交 Submitted ✓', icon: 'success' })
         }
       }
