@@ -2,12 +2,13 @@
 
 Scouting + team-ranking tool for Cindy's FTC team. Built with **Taro v4.2.1** (React + TypeScript + Sass, webpack5), so the same codebase can later ship as both a website and a WeChat Mini Program without a rewrite.
 
-## Status as of 2026-08-11
+## Status as of 2026-08-17
 
 **Working:**
 - Project scaffolded, `npm install` succeeds, `npm run dev:h5` runs a working dev server.
 - **Home page** (`src/pages/index/index.tsx`) with three buttons: Start Scouting / See Current Data / Settings.
-- **Match-scouting form** moved to `src/pages/scout/index.tsx` (was originally at `pages/index`): three tabs (Auto / Teleop / Endgame), styled like ftcscout.org's match-scouting UI. All field data auto-saves to browser `localStorage` (keyed by match ID + team number) as the scout types — offline-first, nothing lost mid-match.
+- **Match-scouting form** at `src/pages/scout/index.tsx`: Auto / Teleop / Endgame sections all on one scrolling page (no tabs) with a separate "Overall notes" box. Auto/Teleop notes are multi-select chips (机器断联 / 开对面闸门 / 机械故障 / 其他, with free text for 其他). Every keystroke auto-saves to a local `backup:` storage key (offline-first safety net — never shown or synced). A **Submit** button at the bottom, gated by a confirmation modal, is what actually commits the entry: it writes to the local `scout:` key *and* to Firestore, which is what makes it show up in "My Scouting Data" and sync to other scouts' devices.
+- **Firebase/Firestore sync** (`src/firebase/`): submitted entries live in a shared `scoutEntries` collection (Standard edition, `persistentLocalCache` for offline-first reads/writes — see `src/firebase/config.ts`). "My Scouting Data" subscribes live via `onSnapshot`, so every device pointed at the same Firebase project sees the same submitted entries in real time, with a banner if the sync connection drops. Firestore security rules are still in whatever default "test mode" left them — **tighten these before relying on it at a real event**, since test-mode rules are open to anyone and expire ~30 days after project creation.
 - **Current Data page** (`src/pages/data/index.tsx`): lists all saved scouting entries, with a search box (toggled via the header's 🔍 icon) that filters by match ID or team number.
 - **Settings page** (`src/pages/settings/index.tsx`): Light/Dark mode toggle and a font-size slider (85%–130%), both apply app-wide instantly and persist across sessions. Also has "Clear all scouting data."
 - **Shared AppHeader** (`src/components/AppHeader/`) on every page: sticky top bar with page title, a back arrow on sub-pages (`Taro.navigateBack()`), and the search icon.
@@ -18,7 +19,7 @@ Scouting + team-ranking tool for Cindy's FTC team. Built with **Taro v4.2.1** (R
 **Gotcha worth knowing:** Taro's H5 runtime sets `document.documentElement.style.fontSize` inline (its own viewport-scaling mechanism), which silently overrides any `html { font-size: ... }` CSS rule. An earlier `rem`-based font-scaling approach broke because of this — stick with `calc(Npx * var(--font-scale))`, not `rem`, for anything that needs to respect the font-size setting.
 
 **Not yet built:**
-- No real backend — data only lives on whichever device entered it, nothing syncs between scouts yet. Next step: wire up Firebase (needs Cindy to create a free Firebase project when we get there).
+- Firestore security rules haven't been locked down (see warning above).
 - No pit/pre-event scouting form yet (team capability profile — color-sort, lift mechanism, near/far preference). Only match-by-match scouting exists so far.
 - Scout assignment view ("my ~10 teams") not built.
 - WeChat Mini Program build untested (should work via `npm run build:weapp` once we're ready, but not yet verified). The new AppHeader/RangeSlider/theme components only use cross-platform Taro APIs (`View`, `Text`, refs, storage) so they *should* port, but this hasn't been checked on `weapp`.
