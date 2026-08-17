@@ -17,6 +17,7 @@ import {
   NOTE_OTHER
 } from '../../types/scouting'
 import { submitScoutEntry } from '../../firebase/scouting'
+import { CURRENT_EVENT_CODE } from '../../data/events'
 import './index.scss'
 
 function NumberField({ label, value, onChange }: { label: string, value: number, onChange: (n: number) => void }) {
@@ -119,6 +120,7 @@ export default function Index() {
   }, [matchId, teamNumber])
 
   const currentEntry = () => ({
+    eventCode: CURRENT_EVENT_CODE,
     matchId,
     teamNumber,
     alliance,

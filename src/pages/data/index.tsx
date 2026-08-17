@@ -12,7 +12,7 @@ import {
   RankingFactor,
   RankingWeights
 } from '../../utils/ranking'
-import fperocResults from '../../data/fperocResults.json'
+import { EVENTS, CURRENT_EVENT_CODE, findEvent } from '../../data/events'
 import './index.scss'
 
 type MainTab = 'mine' | 'rankings'
@@ -37,7 +37,10 @@ export default function CurrentData() {
   // rank by the average of those factors' scores.
   const [selectedFactors, setSelectedFactors] = useState<RankingFactor[]>([])
   const [weights, setWeights] = useState<RankingWeights>(loadStoredWeights)
+  const [eventCode, setEventCode] = useState(CURRENT_EVENT_CODE)
+  const [eventPickerOpen, setEventPickerOpen] = useState(false)
 
+  const selectedEvent = findEvent(eventCode)
   const isOverall = selectedFactors.length === 0
 
   const toggleFactor = (factor: RankingFactor) => {
@@ -72,24 +75,31 @@ export default function CurrentData() {
     Taro.setStorageSync(WEIGHTS_STORAGE_KEY, { ...RANKING_WEIGHTS })
   }
 
+  // Entries submitted before eventCode existed are treated as belonging to
+  // the current default event, so nothing old silently disappears.
+  const eventEntries = useMemo(
+    () => entries.filter((entry) => (entry.eventCode ?? CURRENT_EVENT_CODE) === eventCode),
+    [entries, eventCode]
+  )
+
   const visibleEntries = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return entries
-    return entries.filter(
+    if (!q) return eventEntries
+    return eventEntries.filter(
       (entry) => entry.matchId.toLowerCase().includes(q) || entry.teamNumber.toLowerCase().includes(q)
     )
-  }, [entries, query])
+  }, [eventEntries, query])
 
   // Compute the weighted composite + per-factor breakdown, then order by the
   // selected mode: Overall = composite, otherwise by the average of the
   // chosen factors.
   const rankedTeams = useMemo(() => {
-    const ranked = computeRankings(fperocResults.teams, weights)
+    const ranked = computeRankings(selectedEvent.results.teams, weights)
     if (selectedFactors.length === 0) return ranked
     return [...ranked].sort(
       (a, b) => meanOf(b.breakdown, selectedFactors) - meanOf(a.breakdown, selectedFactors)
     )
-  }, [weights, selectedFactors])
+  }, [selectedEvent, weights, selectedFactors])
 
   const visibleRankedTeams = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -107,6 +117,29 @@ export default function CurrentData() {
       <AppHeader title='Current Data' showBack onSearch={() => setSearchOpen((open) => !open)} />
 
       <View className='page-content'>
+        <View className='event-selector'>
+          <View className='event-selector-header' onClick={() => setEventPickerOpen((open) => !open)}>
+            <Text className='event-selector-name'>{selectedEvent.name}</Text>
+            <Text className='event-selector-arrow'>{eventPickerOpen ? '▴' : '▾'}</Text>
+          </View>
+          {eventPickerOpen && (
+            <View className='event-selector-list'>
+              {EVENTS.map((ev) => (
+                <View
+                  key={ev.code}
+                  className={`event-selector-option ${ev.code === eventCode ? 'active' : ''}`}
+                  onClick={() => {
+                    setEventCode(ev.code)
+                    setEventPickerOpen(false)
+                  }}
+                >
+                  {ev.name}
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
         <View className='tab-bar'>
           <View className={`tab-item ${mainTab === 'mine' ? 'active' : ''}`} onClick={() => setMainTab('mine')}>
             My Scouting Data
@@ -137,7 +170,11 @@ export default function CurrentData() {
 
             {visibleEntries.length === 0 && (
               <Text className='empty-state'>
-                {entries.length === 0 ? 'No scouting data saved yet.' : 'No entries match your search.'}
+                {entries.length === 0
+                  ? 'No scouting data saved yet.'
+                  : eventEntries.length === 0
+                    ? `No scouting data for ${selectedEvent.name} yet.`
+                    : 'No entries match your search.'}
               </Text>
             )}
 
@@ -176,9 +213,8 @@ export default function CurrentData() {
         {mainTab === 'rankings' && (
           <>
             <View className='rankings-header'>
-              <Text className='rankings-event-name'>{fperocResults.eventName}</Text>
               <Text className='rankings-event-meta'>
-                Quals results · {fperocResults.teams.length} teams
+                Quals results · {selectedEvent.results.teams.length} teams
               </Text>
             </View>
 

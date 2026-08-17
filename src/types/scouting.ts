@@ -34,6 +34,9 @@ export interface EndgameData {
 }
 
 export interface MatchScoutEntry {
+  // Entries submitted before this field existed have no eventCode — treat
+  // that as CURRENT_EVENT_CODE (see src/data/events.ts) when filtering.
+  eventCode?: string
   matchId: string
   teamNumber: string
   alliance: Alliance

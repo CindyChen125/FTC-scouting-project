@@ -3,6 +3,52 @@
   background: var(--color-bg);
 }
 
+.event-selector {
+  background: var(--color-card-bg);
+  border-radius: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px var(--color-shadow);
+  overflow: hidden;
+}
+
+.event-selector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+}
+
+.event-selector-name {
+  font-size: calc(26px * var(--font-scale));
+  font-weight: bold;
+  color: var(--color-text);
+}
+
+.event-selector-arrow {
+  font-size: calc(22px * var(--font-scale));
+  color: var(--color-text-muted);
+  margin-left: 12px;
+}
+
+.event-selector-list {
+  border-top: 1px solid var(--color-border);
+}
+
+.event-selector-option {
+  padding: 16px 20px;
+  font-size: calc(24px * var(--font-scale));
+  color: var(--color-text-muted);
+
+  &.active {
+    color: var(--color-primary);
+    font-weight: bold;
+  }
+
+  &:active {
+    background: var(--color-input-bg);
+  }
+}
+
 .tab-bar {
   display: flex;
   background: var(--color-card-bg);
