@@ -179,7 +179,15 @@ export default function CurrentData() {
             )}
 
             {visibleEntries.map((entry) => (
-              <View className='entry-card' key={`${entry.matchId}-${entry.teamNumber}`}>
+              <View
+                className='entry-card'
+                key={`${entry.matchId}-${entry.teamNumber}`}
+                onClick={() =>
+                  Taro.navigateTo({
+                    url: `/pages/entry/index?matchId=${encodeURIComponent(entry.matchId)}&teamNumber=${encodeURIComponent(entry.teamNumber)}`
+                  })
+                }
+              >
                 <View className='entry-header'>
                   <Text className='entry-title'>{entry.matchId} · Team {entry.teamNumber}</Text>
                   <Text className={`entry-alliance ${entry.alliance}`}>{entry.alliance}</Text>

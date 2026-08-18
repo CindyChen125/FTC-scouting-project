@@ -3,6 +3,7 @@ export default defineAppConfig({
     'pages/index/index',
     'pages/scout/index',
     'pages/data/index',
+    'pages/entry/index',
     'pages/settings/index'
   ],
   window: {

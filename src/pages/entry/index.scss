@@ -1,0 +1,109 @@
+.entry-detail-page {
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+.header-card {
+  background: var(--color-card-bg);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px var(--color-shadow);
+}
+
+.detail-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.detail-title {
+  font-size: calc(32px * var(--font-scale));
+  font-weight: bold;
+  color: var(--color-text);
+}
+
+.edit-btn {
+  padding: 10px 18px;
+  border-radius: 20px;
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  font-size: calc(22px * var(--font-scale));
+  font-weight: bold;
+}
+
+.entry-alliance {
+  display: inline-block;
+  font-size: calc(22px * var(--font-scale));
+  padding: 6px 14px;
+  border-radius: 20px;
+  color: #fff;
+  margin-bottom: 14px;
+
+  &.red {
+    background: #e05252;
+  }
+
+  &.blue {
+    background: #4a7dff;
+  }
+}
+
+.section-card {
+  background: var(--color-card-bg);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px var(--color-shadow);
+}
+
+.section-title {
+  font-size: calc(30px * var(--font-scale));
+  font-weight: bold;
+  color: var(--color-text);
+  margin-bottom: 16px;
+  display: block;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.detail-label {
+  font-size: calc(24px * var(--font-scale));
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.detail-value {
+  font-size: calc(26px * var(--font-scale));
+  color: var(--color-text);
+  font-weight: bold;
+  text-align: right;
+}
+
+.detail-notes-block {
+  display: block;
+  font-size: calc(26px * var(--font-scale));
+  color: var(--color-text);
+  white-space: pre-wrap;
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--color-text-faint);
+  font-size: calc(26px * var(--font-scale));
+  margin-top: 100px;
+  display: block;
+}

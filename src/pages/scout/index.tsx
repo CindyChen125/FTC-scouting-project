@@ -16,7 +16,7 @@ import {
   NOTE_OPTIONS,
   NOTE_OTHER
 } from '../../types/scouting'
-import { submitScoutEntry } from '../../firebase/scouting'
+import { submitScoutEntry, fetchScoutEntry } from '../../firebase/scouting'
 import { CURRENT_EVENT_CODE } from '../../data/events'
 import './index.scss'
 
@@ -97,24 +97,43 @@ export default function Index() {
   const [endgame, setEndgame] = useState<EndgameData>(emptyEndgame())
   const [overallNotes, setOverallNotes] = useState('')
 
-  useLoad(() => {
+  useLoad((options) => {
     console.log('Match scouting page loaded.')
+    // Deep-linked from a "My Scouting Data" entry's Edit button.
+    if (options?.matchId) setMatchId(decodeURIComponent(options.matchId))
+    if (options?.teamNumber) setTeamNumber(decodeURIComponent(options.teamNumber))
   })
 
-  // Resume from the auto-saved backup (latest working copy); fall back to a
-  // previously submitted entry. Merge onto empty defaults so older saves fill in.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const applyLoaded = (saved: any) => {
+    setAlliance((saved.alliance as Alliance) ?? 'red')
+    setScoutName((saved.scoutName as string) ?? '')
+    setAuto({ ...emptyAuto(), ...(saved.auto as Partial<AutoData>) })
+    setTeleop({ ...emptyTeleop(), ...(saved.teleop as Partial<TeleopData>) })
+    setEndgame({ ...emptyEndgame(), ...(saved.endgame as Partial<EndgameData>) })
+    setOverallNotes((saved.overallNotes as string) ?? '')
+  }
+
+  // Resume from the auto-saved backup (latest working copy) or a previously
+  // submitted entry on THIS device. If neither exists locally — e.g. editing
+  // an entry another scout submitted from their own device — fall back to
+  // the shared Firestore copy. Merge onto empty defaults so older saves
+  // (or fields added since) still fill in.
   useEffect(() => {
     if (!matchId || !teamNumber) return
-    const saved =
+    const local =
       Taro.getStorageSync(scoutBackupKey(matchId, teamNumber)) ||
       Taro.getStorageSync(scoutEntryStorageKey(matchId, teamNumber))
-    if (saved) {
-      setAlliance(saved.alliance ?? 'red')
-      setScoutName(saved.scoutName ?? scoutName)
-      setAuto({ ...emptyAuto(), ...saved.auto })
-      setTeleop({ ...emptyTeleop(), ...saved.teleop })
-      setEndgame({ ...emptyEndgame(), ...saved.endgame })
-      setOverallNotes(saved.overallNotes ?? '')
+    if (local) {
+      applyLoaded(local)
+      return
+    }
+    let cancelled = false
+    fetchScoutEntry(matchId, teamNumber).then((remote) => {
+      if (!cancelled && remote) applyLoaded(remote)
+    })
+    return () => {
+      cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matchId, teamNumber])
