@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { View, Text } from '@tarojs/components'
 import Taro, { useLoad } from '@tarojs/taro'
 import AppHeader from '../../components/AppHeader'
-import { MatchScoutEntry, NOTE_OTHER } from '../../types/scouting'
+import { MatchScoutEntry } from '../../types/scouting'
 import { subscribeScoutEntry } from '../../firebase/scouting'
 import { findEvent } from '../../data/events'
+import { formatNotes, parkStatusLabel } from '../../utils/scoutFormat'
 import './index.scss'
 
 function DetailRow({ label, value }: { label: string, value: string }) {
@@ -14,14 +15,6 @@ function DetailRow({ label, value }: { label: string, value: string }) {
       <Text className='detail-value'>{value}</Text>
     </View>
   )
-}
-
-const parkStatusLabel = (status: string) =>
-  status === 'partial' ? '半停 Partial' : status === 'full' ? '全停 Full' : '未停靠 None'
-
-const formatNotes = (tags: string[], text: string) => {
-  if (!tags || tags.length === 0) return '—'
-  return tags.map((t) => (t === NOTE_OTHER && text ? `${t}: ${text}` : t)).join('、')
 }
 
 export default function EntryDetail() {

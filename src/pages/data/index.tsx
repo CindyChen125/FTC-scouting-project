@@ -13,6 +13,7 @@ import {
   RankingWeights
 } from '../../utils/ranking'
 import { EVENTS, CURRENT_EVENT_CODE, findEvent } from '../../data/events'
+import { exportEntriesToExcel } from '../../utils/exportEntries'
 import './index.scss'
 
 type MainTab = 'mine' | 'rankings'
@@ -172,6 +173,15 @@ export default function CurrentData() {
               <Text className='sync-error'>
                 ⚠️ Can't sync with the shared database right now — showing local data only.
               </Text>
+            )}
+
+            {visibleEntries.length > 0 && (
+              <View
+                className='export-btn'
+                onClick={() => exportEntriesToExcel(visibleEntries, selectedEvent.name)}
+              >
+                ⬇️ Export to Excel ({visibleEntries.length})
+              </View>
             )}
 
             {visibleEntries.length === 0 && (
