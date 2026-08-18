@@ -43,6 +43,12 @@ export default function CurrentData() {
   const selectedEvent = findEvent(eventCode)
   const isOverall = selectedFactors.length === 0
 
+  // Displayed weight percentages are each slider's share of the total, so
+  // they always add up to 100% regardless of the raw slider values.
+  const totalWeight = RANKING_FACTORS.reduce((sum, f) => sum + weights[f.key], 0)
+  const weightPercent = (factor: RankingFactor) =>
+    totalWeight === 0 ? 0 : Math.round((weights[factor] / totalWeight) * 100)
+
   const toggleFactor = (factor: RankingFactor) => {
     setSelectedFactors((prev) =>
       prev.includes(factor) ? prev.filter((f) => f !== factor) : [...prev, factor]
@@ -260,7 +266,7 @@ export default function CurrentData() {
                   <View className='weight-row' key={f.key}>
                     <View className='weight-row-head'>
                       <Text className='weight-label'>{f.label}</Text>
-                      <Text className='weight-value'>{Math.round(weights[f.key] * 100)}%</Text>
+                      <Text className='weight-value'>{weightPercent(f.key)}%</Text>
                     </View>
                     <RangeSlider
                       min={0}
@@ -272,7 +278,7 @@ export default function CurrentData() {
                   </View>
                 ))}
                 <Text className='weights-note'>
-                  Weights are relative — they're normalized automatically, so they don't need to add up to 100%.
+                  Sliders are relative to each other — percentages shown are each factor's share of the total, so they always add up to 100%.
                 </Text>
               </View>
             )}
