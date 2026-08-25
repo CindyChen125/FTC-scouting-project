@@ -16,7 +16,7 @@ import {
   NOTE_OPTIONS,
   NOTE_OTHER
 } from '../../types/scouting'
-import { submitScoutEntry, fetchScoutEntry } from '../../firebase/scouting'
+import { submitScoutEntry, fetchScoutEntry } from '../../supabase/scouting'
 import { CURRENT_EVENT_CODE } from '../../data/events'
 import './index.scss'
 
@@ -117,7 +117,7 @@ export default function Index() {
   // Resume from the auto-saved backup (latest working copy) or a previously
   // submitted entry on THIS device. If neither exists locally — e.g. editing
   // an entry another scout submitted from their own device — fall back to
-  // the shared Firestore copy. Merge onto empty defaults so older saves
+  // the shared Supabase copy. Merge onto empty defaults so older saves
   // (or fields added since) still fill in.
   useEffect(() => {
     if (!matchId || !teamNumber) return
@@ -174,11 +174,12 @@ export default function Index() {
         if (res.confirm) {
           const entry = currentEntry()
           // Local write always succeeds instantly and is the source of truth
-          // for this device. The Firestore write shares it with every other
-          // scout — it queues offline and syncs automatically once back online.
+          // for this device. The Supabase write shares it with every other
+          // scout; if it fails (no signal) the entry is queued in the outbox
+          // and retried automatically, so submitting offline never loses data.
           Taro.setStorageSync(scoutEntryStorageKey(matchId, teamNumber), entry)
           submitScoutEntry(entry).catch((err) => {
-            console.error('Failed to sync submission to Firestore', err)
+            console.error('Submission queued — could not reach Supabase yet', err)
           })
           Taro.showToast({ title: '已提交 Submitted ✓', icon: 'success' })
         }

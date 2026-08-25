@@ -22,6 +22,7 @@
   "author": "",
   "dependencies": {
     "@babel/runtime": "^7.24.4",
+    "@supabase/supabase-js": "^2.112.4",
     "@tarojs/components": "4.2.1",
     "@tarojs/helper": "4.2.1",
     "@tarojs/plugin-framework-react": "4.2.1",
@@ -31,7 +32,6 @@
     "@tarojs/runtime": "4.2.1",
     "@tarojs/shared": "4.2.1",
     "@tarojs/taro": "4.2.1",
-    "firebase": "^12.17.1",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "xlsx": "^0.18.5"

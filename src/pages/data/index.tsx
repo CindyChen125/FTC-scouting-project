@@ -4,7 +4,7 @@ import Taro from '@tarojs/taro'
 import AppHeader from '../../components/AppHeader'
 import RangeSlider from '../../components/RangeSlider'
 import { MatchScoutEntry } from '../../types/scouting'
-import { subscribeScoutEntries } from '../../firebase/scouting'
+import { subscribeScoutEntries, pendingCount } from '../../supabase/scouting'
 import {
   computeRankings,
   RANKING_WEIGHTS,
@@ -32,6 +32,7 @@ export default function CurrentData() {
   const [mainTab, setMainTab] = useState<MainTab>('mine')
   const [entries, setEntries] = useState<MatchScoutEntry[]>([])
   const [syncError, setSyncError] = useState(false)
+  const [queued, setQueued] = useState(0)
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
   // Empty selection = Overall (weighted composite). One or more selected =
@@ -56,15 +57,19 @@ export default function CurrentData() {
     )
   }
 
-  // Live-subscribed to every scout's submitted entries across devices (Firestore).
-  // Fires immediately from the local offline cache, then again on every change.
+  // Live-subscribed to every scout's submitted entries across devices (Supabase).
+  // Emits immediately from local storage, then again on every realtime change.
   useEffect(() => {
     const unsubscribe = subscribeScoutEntries(
       (loaded) => {
         setEntries(loaded)
         setSyncError(false)
+        setQueued(pendingCount())
       },
-      () => setSyncError(true)
+      () => {
+        setSyncError(true)
+        setQueued(pendingCount())
+      }
     )
     return unsubscribe
   }, [])
@@ -171,7 +176,10 @@ export default function CurrentData() {
           <>
             {syncError && (
               <Text className='sync-error'>
-                ⚠️ Can't sync with the shared database right now — showing local data only.
+                ⚠️ Can't reach the shared database — showing this device's data only.
+                {queued > 0
+                  ? ` ${queued} submitted ${queued === 1 ? 'entry is' : 'entries are'} saved and will upload automatically once you're back online.`
+                  : ''}
               </Text>
             )}
 
