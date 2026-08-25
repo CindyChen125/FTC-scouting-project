@@ -54,7 +54,10 @@ export default defineConfig<'webpack5'>(async (merge, { command, mode }) => {
       }
     },
     h5: {
-      publicPath: '/',
+      // GitHub Pages serves this project from /FTC-scouting-project/, not the
+      // domain root, so asset URLs need that prefix. CI sets PUBLIC_PATH;
+      // local dev/builds stay at '/'.
+      publicPath: process.env.PUBLIC_PATH || '/',
       staticDirectory: 'static',
       output: {
         filename: 'js/[name].[hash:8].js',
