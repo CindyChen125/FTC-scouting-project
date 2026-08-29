@@ -53,6 +53,8 @@ const toEntry = (row: Row): MatchScoutEntry => ({
   updatedAt: Number(row.updated_at)
 })
 
+let channelSeq = 0
+
 const push = (entry: MatchScoutEntry) =>
   withTimeout(
     supabase.from(TABLE).upsert(toRow(entry), { onConflict: 'event_code,match_id,team_number' })
@@ -180,7 +182,11 @@ export function subscribeScoutEntries(
   load()
 
   const channel = supabase
-    .channel('scout_entries_changes')
+    // Unique per subscription. Taro keeps the previous page mounted when you
+    // navigate, so the list and a detail view are subscribed at the same time
+    // — reusing one channel name made the second caller throw ("cannot add
+    // postgres_changes callbacks after subscribe()") and blanked the page.
+    .channel(`scout_entries_${++channelSeq}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, () => load())
     .subscribe()
 
