@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, PropsWithChildren } fro
 import { View, Text } from '@tarojs/components'
 import type { Session } from '@supabase/supabase-js'
 import { supabase, usernameToEmail } from '../supabase/config'
+import { withTimeout } from '../supabase/timeout'
 import { Profile, UserRole } from '../types/scouting'
 import LoginScreen from './LoginScreen'
 
@@ -42,22 +43,44 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setProfile(null)
       return
     }
-    const { data } = await supabase
-      .from('profiles')
-      .select('user_id, username, display_name, role, is_active')
-      .eq('user_id', userId)
-      .single()
-    setProfile(
-      data
-        ? {
-            userId: data.user_id,
-            username: data.username,
-            displayName: data.display_name ?? '',
-            role: (data.role as UserRole) ?? 'scout',
-            isActive: !!data.is_active
-          }
-        : null
-    )
+
+    // A signed-in session keeps working until its token expires, so deleting
+    // or deactivating someone doesn't cut them off on its own. Their writes
+    // are refused by RLS either way, but the app has to notice and sign them
+    // out rather than leave them in a broken half-signed-in state.
+    //
+    // Crucially this only acts on a *definitive* answer from the server. A
+    // scout with no signal must stay signed in — being logged out at a venue
+    // would be far worse than the problem this solves.
+    try {
+      const { data, error } = await withTimeout(
+        supabase
+          .from('profiles')
+          .select('user_id, username, display_name, role, is_active')
+          .eq('user_id', userId)
+          .maybeSingle()
+      )
+      if (error) throw error
+
+      if (!data || !data.is_active) {
+        // No row (account deleted) or deactivated — note that a deactivated
+        // user also can't read profiles at all, so both land here.
+        await supabase.auth.signOut()
+        setProfile(null)
+        return
+      }
+
+      setProfile({
+        userId: data.user_id,
+        username: data.username,
+        displayName: data.display_name ?? '',
+        role: (data.role as UserRole) ?? 'scout',
+        isActive: !!data.is_active
+      })
+    } catch {
+      // Couldn't reach the server. Keep whatever profile we already have and
+      // stay signed in — this is the offline case, not a revoked account.
+    }
   }
 
   useEffect(() => {

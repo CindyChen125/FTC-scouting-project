@@ -2,6 +2,7 @@ import Taro from '@tarojs/taro'
 import { supabase } from './config'
 import { MatchScoutEntry, scoutEntryStorageKey, scoutEntryKeyPrefix } from '../types/scouting'
 import { CURRENT_EVENT_CODE } from '../data/events'
+import { withTimeout, isPermanentRejection } from './timeout'
 import { enqueue, dequeue, pendingEntries, pendingCount } from './outbox'
 
 const TABLE = 'scout_entries'
@@ -52,43 +53,34 @@ const toEntry = (row: Row): MatchScoutEntry => ({
   updatedAt: Number(row.updated_at)
 })
 
-// An unreachable host can leave a request pending indefinitely rather than
-// failing, which would hang the UI in limbo instead of telling a scout their
-// data isn't syncing. Every network call gets a deadline.
-const REQUEST_TIMEOUT_MS = 8000
-
-function withTimeout<T>(work: PromiseLike<T>, ms = REQUEST_TIMEOUT_MS): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('Request timed out')), ms)
-    work.then(
-      (value) => {
-        clearTimeout(timer)
-        resolve(value)
-      },
-      (err) => {
-        clearTimeout(timer)
-        reject(err)
-      }
-    )
-  })
-}
-
 const push = (entry: MatchScoutEntry) =>
   withTimeout(
     supabase.from(TABLE).upsert(toRow(entry), { onConflict: 'event_code,match_id,team_number' })
   )
 
-// Submits an entry. The local copy is written by the caller and is what the
-// UI trusts; if the network write fails (no signal at a venue) the entry is
-// queued and retried automatically, so submitting offline never loses data.
-export async function submitScoutEntry(entry: MatchScoutEntry) {
+export type SubmitOutcome = 'synced' | 'queued' | 'rejected'
+
+// Submits an entry. The caller writes the local copy; this shares it with the
+// rest of the team.
+//
+//   synced   — it reached the server
+//   queued   — no signal, saved and retried automatically (the venue case)
+//   rejected — the server refused and always will, e.g. the account was
+//              deleted or deactivated. Queuing that would retry forever and
+//              let the UI keep claiming success for data nobody else will see.
+export async function submitScoutEntry(entry: MatchScoutEntry): Promise<SubmitOutcome> {
   try {
     const { error } = await push(entry)
     if (error) throw error
     dequeue(entry)
+    return 'synced'
   } catch (err) {
+    if (isPermanentRejection(err)) {
+      dequeue(entry)
+      return 'rejected'
+    }
     enqueue(entry)
-    throw err
+    return 'queued'
   }
 }
 
@@ -99,7 +91,14 @@ export async function flushOutbox(): Promise<number> {
       const { error } = await push(entry)
       if (error) throw error
       dequeue(entry)
-    } catch {
+    } catch (err) {
+      if (isPermanentRejection(err)) {
+        // Will never succeed for this account. Drop it from the queue so one
+        // dead entry can't block every later submission from syncing; the
+        // local copy stays on the device and still exports.
+        dequeue(entry)
+        continue
+      }
       // Still offline — stop and leave the rest queued for the next attempt.
       break
     }

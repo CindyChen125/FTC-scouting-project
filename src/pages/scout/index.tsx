@@ -192,21 +192,32 @@ export default function Index() {
       content: `提交场次 ${matchId} · 队 ${teamNumber} 的侦查数据？Submit scouting data for match ${matchId}, team ${teamNumber}?`,
       confirmText: '提交',
       cancelText: '取消',
-      success: (res) => {
-        if (res.confirm) {
-          const entry = currentEntry()
-          // Local write always succeeds instantly and is the source of truth
-          // for this device. The Supabase write shares it with every other
-          // scout; if it fails (no signal) the entry is queued in the outbox
-          // and retried automatically, so submitting offline never loses data.
-          Taro.setStorageSync(
-            scoutEntryStorageKey(userId, CURRENT_EVENT_CODE, matchId, teamNumber),
-            entry
-          )
-          submitScoutEntry(entry).catch((err) => {
-            console.error('Submission queued — could not reach Supabase yet', err)
-          })
+      success: async (res) => {
+        if (!res.confirm) return
+
+        const entry = currentEntry()
+        // The local write always succeeds and keeps the data on this device.
+        Taro.setStorageSync(
+          scoutEntryStorageKey(userId, CURRENT_EVENT_CODE, matchId, teamNumber),
+          entry
+        )
+
+        // Report what actually happened. Announcing success before the write
+        // resolved meant a scout whose account had been removed saw "已提交
+        // Submitted ✓" for entries the server was rejecting.
+        const outcome = await submitScoutEntry(entry)
+        if (outcome === 'synced') {
           Taro.showToast({ title: '已提交 Submitted ✓', icon: 'success' })
+        } else if (outcome === 'queued') {
+          Taro.showToast({
+            title: '已保存，联网后自动上传 Saved — uploads when back online',
+            icon: 'none'
+          })
+        } else {
+          Taro.showToast({
+            title: '未能提交：账号无权限，请重新登录 Rejected — sign in again',
+            icon: 'none'
+          })
         }
       }
     })
