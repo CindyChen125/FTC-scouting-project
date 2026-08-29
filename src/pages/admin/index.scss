@@ -1,0 +1,149 @@
+.admin-page {
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+.section-card {
+  background: var(--color-card-bg);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px var(--color-shadow);
+}
+
+.section-title {
+  display: block;
+  font-size: calc(30px * var(--font-scale));
+  font-weight: bold;
+  color: var(--color-text);
+  margin-bottom: 16px;
+}
+
+.field-row {
+  margin-bottom: 16px;
+}
+
+.field-label {
+  display: block;
+  font-size: calc(24px * var(--font-scale));
+  color: var(--color-label);
+  margin-bottom: 8px;
+}
+
+.field-input {
+  background: var(--color-input-bg);
+  color: var(--color-text);
+  border-radius: 10px;
+  padding: 16px;
+  font-size: calc(28px * var(--font-scale));
+  border: 2px solid var(--color-border);
+
+  &:focus {
+    border-color: var(--color-primary);
+  }
+}
+
+.admin-btn {
+  padding: 18px 0;
+  border-radius: 12px;
+  text-align: center;
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  font-size: calc(28px * var(--font-scale));
+  font-weight: bold;
+
+  &.busy {
+    opacity: 0.6;
+  }
+}
+
+.admin-hint {
+  display: block;
+  font-size: calc(20px * var(--font-scale));
+  color: var(--color-text-faint);
+  margin-top: 12px;
+}
+
+.member-row {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-border);
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.member-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.member-name {
+  font-size: calc(28px * var(--font-scale));
+  font-weight: bold;
+  color: var(--color-text);
+}
+
+.member-badge {
+  font-size: calc(20px * var(--font-scale));
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: var(--color-input-bg);
+  color: var(--color-text-muted);
+
+  &.admin {
+    background: var(--color-primary);
+    color: var(--color-primary-contrast);
+    font-weight: bold;
+  }
+}
+
+.member-meta {
+  display: block;
+  font-size: calc(22px * var(--font-scale));
+  color: var(--color-text-muted);
+  margin: 6px 0 12px;
+}
+
+.member-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 10px 16px;
+  border-radius: 20px;
+  background: var(--color-input-bg);
+  font-size: calc(20px * var(--font-scale));
+  color: var(--color-text-muted);
+
+  &.danger {
+    color: var(--color-danger);
+  }
+
+  &:active {
+    background: var(--color-border);
+  }
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--color-text-faint);
+  font-size: calc(26px * var(--font-scale));
+  margin-top: 100px;
+  display: block;
+}
+
+.member-editor {
+  margin-bottom: 12px;
+}
+
+.chip.primary {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  font-weight: bold;
+}

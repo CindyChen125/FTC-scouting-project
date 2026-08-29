@@ -1,6 +1,7 @@
 import { PropsWithChildren } from 'react'
 import { useLaunch } from '@tarojs/taro'
 import { ThemeProvider } from './theme/ThemeContext'
+import { AuthProvider } from './auth/AuthContext'
 
 import './app.scss'
 
@@ -10,7 +11,11 @@ function App({ children }: PropsWithChildren<any>) {
   })
 
   // children 是将要会渲染的页面
-  return <ThemeProvider>{children}</ThemeProvider>
+  return (
+    <AuthProvider>
+      <ThemeProvider>{children}</ThemeProvider>
+    </AuthProvider>
+  )
 }
 
 export default App

@@ -13,6 +13,8 @@ import {
   RankingWeights
 } from '../../utils/ranking'
 import { EVENTS, CURRENT_EVENT_CODE, findEvent } from '../../data/events'
+import { useAuth } from '../../auth/AuthContext'
+import { fetchProfiles } from '../../supabase/admin'
 import { exportEntriesToExcel } from '../../utils/exportEntries'
 import './index.scss'
 
@@ -29,6 +31,7 @@ const loadStoredWeights = (): RankingWeights => {
 }
 
 export default function CurrentData() {
+  const { userId } = useAuth()
   const [mainTab, setMainTab] = useState<MainTab>('mine')
   const [entries, setEntries] = useState<MatchScoutEntry[]>([])
   const [syncError, setSyncError] = useState(false)
@@ -41,6 +44,20 @@ export default function CurrentData() {
   const [weights, setWeights] = useState<RankingWeights>(loadStoredWeights)
   const [eventCode, setEventCode] = useState(CURRENT_EVENT_CODE)
   const [eventPickerOpen, setEventPickerOpen] = useState(false)
+  // user id -> display name, so entries show who really scouted them even
+  // after someone is renamed.
+  const [names, setNames] = useState<Record<string, string>>({})
+
+  // Keyed on userId: profiles are unreadable until signed in, so fetching on
+  // mount alone would run before login and never retry.
+  useEffect(() => {
+    if (!userId) return
+    fetchProfiles()
+      .then((profiles) =>
+        setNames(Object.fromEntries(profiles.map((p) => [p.userId, p.displayName || p.username])))
+      )
+      .catch(() => setNames({}))
+  }, [userId])
 
   const selectedEvent = findEvent(eventCode)
   const isOverall = selectedFactors.length === 0
@@ -61,6 +78,7 @@ export default function CurrentData() {
   // Emits immediately from local storage, then again on every realtime change.
   useEffect(() => {
     const unsubscribe = subscribeScoutEntries(
+      userId,
       (loaded) => {
         setEntries(loaded)
         setSyncError(false)
@@ -72,7 +90,7 @@ export default function CurrentData() {
       }
     )
     return unsubscribe
-  }, [])
+  }, [userId])
 
   const updateWeight = (factor: RankingFactor, value: number) => {
     setWeights((prev) => {
@@ -186,7 +204,7 @@ export default function CurrentData() {
             {visibleEntries.length > 0 && (
               <View
                 className='export-btn'
-                onClick={() => exportEntriesToExcel(visibleEntries, selectedEvent.name)}
+                onClick={() => exportEntriesToExcel(visibleEntries, selectedEvent.name, names)}
               >
                 ⬇️ Export to Excel ({visibleEntries.length})
               </View>
@@ -216,7 +234,12 @@ export default function CurrentData() {
                   <Text className='entry-title'>{entry.matchId} · Team {entry.teamNumber}</Text>
                   <Text className={`entry-alliance ${entry.alliance}`}>{entry.alliance}</Text>
                 </View>
-                <Text className='entry-meta'>Scout: {entry.scoutName || '—'}</Text>
+                <Text className='entry-meta'>
+                  Scout: {(entry.scoutedBy && names[entry.scoutedBy]) || entry.scoutName || '—'}
+                  {entry.lastEditedBy && entry.lastEditedBy !== entry.scoutedBy
+                    ? ` · edited by ${names[entry.lastEditedBy] || '—'}`
+                    : ''}
+                </Text>
                 <Text className='entry-meta'>Updated: {new Date(entry.updatedAt).toLocaleString()}</Text>
 
                 <View className='entry-stats'>

@@ -4,12 +4,19 @@ import { formatNotes, parkStatusLabel } from './scoutFormat'
 
 // Exports whatever entries are passed in (already filtered by event/search
 // by the caller) to a downloaded .xlsx file — one row per scouted team+match.
-export function exportEntriesToExcel(entries: MatchScoutEntry[], eventName: string) {
+export function exportEntriesToExcel(
+  entries: MatchScoutEntry[],
+  eventName: string,
+  // user id -> display name, so a renamed scout exports under their current name
+  names: Record<string, string> = {}
+) {
   const rows = entries.map((e) => ({
     'Match ID': e.matchId,
     'Team #': e.teamNumber,
     'Alliance': e.alliance,
-    'Scout': e.scoutName || '',
+    'Scout': (e.scoutedBy && names[e.scoutedBy]) || e.scoutName || '',
+    'Edited By':
+      e.lastEditedBy && e.lastEditedBy !== e.scoutedBy ? names[e.lastEditedBy] || '' : '',
     'Updated': new Date(e.updatedAt).toLocaleString(),
     'Auto: Left Starting Line': e.auto.leftStart ? 'Yes' : 'No',
     'Auto: Near Scored': e.auto.nearGoalsMade,
@@ -25,7 +32,7 @@ export function exportEntriesToExcel(entries: MatchScoutEntry[], eventName: stri
 
   const worksheet = XLSX.utils.json_to_sheet(rows)
   worksheet['!cols'] = [
-    { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 14 }, { wch: 20 },
+    { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 20 },
     { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 34 },
     { wch: 14 }, { wch: 14 }, { wch: 34 },
     { wch: 16 }, { wch: 18 },

@@ -9,9 +9,16 @@ export const SUPABASE_ANON_KEY = 'sb_publishable_Of9UgJrn03TRedi6Sjuj3Q_RsNTyY4v
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    // No user accounts — scouts use the app anonymously, so there's no
-    // session to persist or refresh.
-    persistSession: false,
-    autoRefreshToken: false
+    // Scouts sign in once (while online, before an event) and stay signed in
+    // across app restarts — the session lives in local storage and the token
+    // refreshes itself whenever there's a connection.
+    persistSession: true,
+    autoRefreshToken: true
   }
 })
+
+// Usernames are mapped onto a placeholder domain: Supabase Auth needs
+// something email-shaped, but no mail is ever sent to these addresses.
+export const EMAIL_DOMAIN = 'dzscouting.local'
+export const usernameToEmail = (username: string) =>
+  `${username.trim().toLowerCase()}@${EMAIL_DOMAIN}`

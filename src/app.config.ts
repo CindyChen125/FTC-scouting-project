@@ -4,6 +4,7 @@ export default defineAppConfig({
     'pages/scout/index',
     'pages/data/index',
     'pages/entry/index',
+    'pages/admin/index',
     'pages/settings/index'
   ],
   window: {

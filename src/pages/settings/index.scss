@@ -72,3 +72,17 @@
   margin-top: 12px;
   display: block;
 }
+
+.settings-input {
+  background: var(--color-input-bg);
+  color: var(--color-text);
+  border-radius: 10px;
+  padding: 16px;
+  font-size: calc(26px * var(--font-scale));
+  border: 2px solid var(--color-border);
+  margin: 10px 0;
+
+  &:focus {
+    border-color: var(--color-primary);
+  }
+}

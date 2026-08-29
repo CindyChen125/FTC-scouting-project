@@ -13,10 +13,12 @@ import {
   emptyEndgame,
   scoutEntryStorageKey,
   scoutBackupKey,
+  profileLabel,
   NOTE_OPTIONS,
   NOTE_OTHER
 } from '../../types/scouting'
 import { submitScoutEntry, fetchScoutEntry } from '../../supabase/scouting'
+import { useAuth } from '../../auth/AuthContext'
 import { CURRENT_EVENT_CODE } from '../../data/events'
 import './index.scss'
 
@@ -87,10 +89,12 @@ function NoteMultiField({ tags, text, onChange }: { tags: string[], text: string
 }
 
 export default function Index() {
+  const { userId, profile } = useAuth()
+  const scoutName = profile ? profileLabel(profile) : ''
+
   const [matchId, setMatchId] = useState('')
   const [teamNumber, setTeamNumber] = useState('')
   const [alliance, setAlliance] = useState<Alliance>('red')
-  const [scoutName, setScoutName] = useState('')
 
   const [auto, setAuto] = useState<AutoData>(emptyAuto())
   const [teleop, setTeleop] = useState<TeleopData>(emptyTeleop())
@@ -104,10 +108,16 @@ export default function Index() {
     if (options?.teamNumber) setTeamNumber(decodeURIComponent(options.teamNumber))
   })
 
+  // The author of a loaded entry, preserved so editing someone else's work
+  // doesn't reassign it to the editor.
+  const [scoutedBy, setScoutedBy] = useState<string | null>(null)
+  const [originalScoutName, setOriginalScoutName] = useState<string | null>(null)
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const applyLoaded = (saved: any) => {
     setAlliance((saved.alliance as Alliance) ?? 'red')
-    setScoutName((saved.scoutName as string) ?? '')
+    setScoutedBy((saved.scoutedBy as string) ?? null)
+    setOriginalScoutName((saved.scoutName as string) ?? null)
     setAuto({ ...emptyAuto(), ...(saved.auto as Partial<AutoData>) })
     setTeleop({ ...emptyTeleop(), ...(saved.teleop as Partial<TeleopData>) })
     setEndgame({ ...emptyEndgame(), ...(saved.endgame as Partial<EndgameData>) })
@@ -120,30 +130,35 @@ export default function Index() {
   // the shared Supabase copy. Merge onto empty defaults so older saves
   // (or fields added since) still fill in.
   useEffect(() => {
-    if (!matchId || !teamNumber) return
+    if (!matchId || !teamNumber || !userId) return
     const local =
-      Taro.getStorageSync(scoutBackupKey(matchId, teamNumber)) ||
-      Taro.getStorageSync(scoutEntryStorageKey(matchId, teamNumber))
+      Taro.getStorageSync(scoutBackupKey(userId, CURRENT_EVENT_CODE, matchId, teamNumber)) ||
+      Taro.getStorageSync(scoutEntryStorageKey(userId, CURRENT_EVENT_CODE, matchId, teamNumber))
     if (local) {
       applyLoaded(local)
       return
     }
     let cancelled = false
-    fetchScoutEntry(matchId, teamNumber).then((remote) => {
+    fetchScoutEntry(userId, CURRENT_EVENT_CODE, matchId, teamNumber).then((remote) => {
       if (!cancelled && remote) applyLoaded(remote)
     })
     return () => {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matchId, teamNumber])
+  }, [matchId, teamNumber, userId])
 
   const currentEntry = () => ({
     eventCode: CURRENT_EVENT_CODE,
     matchId,
     teamNumber,
     alliance,
-    scoutName,
+    // On a new entry this scout is the author; when editing an existing one the
+    // original author is kept. The database enforces this too — the client's
+    // value is ignored on update — but keeping it right here means the local
+    // copy and the outbox agree with what the server will store.
+    scoutName: originalScoutName ?? scoutName,
+    scoutedBy: scoutedBy ?? userId,
     auto,
     teleop,
     endgame,
@@ -155,14 +170,21 @@ export default function Index() {
   // mid-match (offline-first). Backups are never shown or uploaded — only a
   // submitted entry appears in "My Scouting Data".
   useEffect(() => {
-    if (!matchId || !teamNumber) return
-    Taro.setStorageSync(scoutBackupKey(matchId, teamNumber), currentEntry())
+    if (!matchId || !teamNumber || !userId) return
+    Taro.setStorageSync(
+      scoutBackupKey(userId, CURRENT_EVENT_CODE, matchId, teamNumber),
+      currentEntry()
+    )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matchId, teamNumber, alliance, scoutName, auto, teleop, endgame, overallNotes])
+  }, [matchId, teamNumber, userId, alliance, scoutName, auto, teleop, endgame, overallNotes])
 
   const handleSubmit = () => {
     if (!matchId || !teamNumber) {
       Taro.showToast({ title: '请先填写场次和队号 Enter Match ID and Team #', icon: 'none' })
+      return
+    }
+    if (!userId) {
+      Taro.showToast({ title: '请先登录 Sign in to submit', icon: 'none' })
       return
     }
     Taro.showModal({
@@ -177,7 +199,10 @@ export default function Index() {
           // for this device. The Supabase write shares it with every other
           // scout; if it fails (no signal) the entry is queued in the outbox
           // and retried automatically, so submitting offline never loses data.
-          Taro.setStorageSync(scoutEntryStorageKey(matchId, teamNumber), entry)
+          Taro.setStorageSync(
+            scoutEntryStorageKey(userId, CURRENT_EVENT_CODE, matchId, teamNumber),
+            entry
+          )
           submitScoutEntry(entry).catch((err) => {
             console.error('Submission queued — could not reach Supabase yet', err)
           })
@@ -208,7 +233,14 @@ export default function Index() {
             <View className={`pill ${alliance === 'blue' ? 'active' : ''}`} onClick={() => setAlliance('blue')}>Blue</View>
           </View>
         </View>
-        <TextField label='侦查员 Scout Name' value={scoutName} onChange={setScoutName} placeholder='your name' />
+        <View className='field-row'>
+          <Text className='field-label'>侦查员 Scout</Text>
+          <Text className='scout-identity'>
+            {originalScoutName && originalScoutName !== scoutName
+              ? `${originalScoutName}（由 ${scoutName} 编辑 · edited by you）`
+              : scoutName || '—'}
+          </Text>
+        </View>
       </View>
 
       <View className='section-card'>

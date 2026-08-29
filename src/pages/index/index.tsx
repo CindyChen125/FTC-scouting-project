@@ -1,9 +1,13 @@
 import { View, Text } from '@tarojs/components'
 import Taro, { useLoad } from '@tarojs/taro'
 import AppHeader from '../../components/AppHeader'
+import { useAuth } from '../../auth/AuthContext'
+import { profileLabel } from '../../types/scouting'
 import './index.scss'
 
 export default function Home() {
+  const { profile, isAdmin } = useAuth()
+
   useLoad(() => {
     console.log('Home page loaded.')
   })
@@ -17,7 +21,9 @@ export default function Home() {
       <View className='page-content'>
         <View className='home-header'>
           <Text className='home-title'>FTC Scouting</Text>
-          <Text className='home-subtitle'>DECODE 2025-2026</Text>
+          <Text className='home-subtitle'>
+            DECODE 2025-2026{profile ? ` · ${profileLabel(profile)}` : ''}
+          </Text>
         </View>
 
         <View className='home-menu'>
@@ -36,6 +42,16 @@ export default function Home() {
               <Text className='home-button-desc'>Review saved match entries</Text>
             </View>
           </View>
+
+          {isAdmin && (
+            <View className='home-button' onClick={() => goTo('/pages/admin/index')}>
+              <Text className='home-button-icon'>👥</Text>
+              <View className='home-button-text'>
+                <Text className='home-button-title'>管理员 Admin</Text>
+                <Text className='home-button-desc'>Manage scouts and see who scouted what</Text>
+              </View>
+            </View>
+          )}
 
           <View className='home-button' onClick={() => goTo('/pages/settings/index')}>
             <Text className='home-button-icon'>⚙️</Text>

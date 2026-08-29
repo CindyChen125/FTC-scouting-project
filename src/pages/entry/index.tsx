@@ -4,6 +4,8 @@ import Taro, { useLoad } from '@tarojs/taro'
 import AppHeader from '../../components/AppHeader'
 import { MatchScoutEntry } from '../../types/scouting'
 import { subscribeScoutEntry } from '../../supabase/scouting'
+import { useAuth } from '../../auth/AuthContext'
+import { fetchProfiles } from '../../supabase/admin'
 import { findEvent } from '../../data/events'
 import { formatNotes, parkStatusLabel } from '../../utils/scoutFormat'
 import './index.scss'
@@ -18,10 +20,12 @@ function DetailRow({ label, value }: { label: string, value: string }) {
 }
 
 export default function EntryDetail() {
+  const { userId } = useAuth()
   const [matchId, setMatchId] = useState('')
   const [teamNumber, setTeamNumber] = useState('')
   const [entry, setEntry] = useState<MatchScoutEntry | null>(null)
   const [loaded, setLoaded] = useState(false)
+  const [names, setNames] = useState<Record<string, string>>({})
 
   useLoad((options) => {
     if (options?.matchId) setMatchId(decodeURIComponent(options.matchId))
@@ -32,12 +36,25 @@ export default function EntryDetail() {
   // or any other scout's) rather than showing stale data.
   useEffect(() => {
     if (!matchId || !teamNumber) return
-    const unsubscribe = subscribeScoutEntry(matchId, teamNumber, (loadedEntry) => {
+    const unsubscribe = subscribeScoutEntry(userId, matchId, teamNumber, (loadedEntry) => {
       setEntry(loadedEntry)
       setLoaded(true)
     })
     return unsubscribe
-  }, [matchId, teamNumber])
+  }, [userId, matchId, teamNumber])
+
+  // Resolve user ids to current display names, so a renamed scout shows their
+  // new name rather than the one snapshotted when they submitted.
+  // Keyed on userId: profiles are unreadable until signed in, so fetching on
+  // mount alone would run before login and never retry.
+  useEffect(() => {
+    if (!userId) return
+    fetchProfiles()
+      .then((profiles) =>
+        setNames(Object.fromEntries(profiles.map((p) => [p.userId, p.displayName || p.username])))
+      )
+      .catch(() => setNames({}))
+  }, [userId])
 
   const goEdit = () => {
     Taro.navigateTo({
@@ -71,7 +88,16 @@ export default function EntryDetail() {
           <Text className={`entry-alliance ${entry.alliance}`}>{entry.alliance}</Text>
 
           {eventName && <DetailRow label='赛事 Event' value={eventName} />}
-          <DetailRow label='侦查员 Scout' value={entry.scoutName || '—'} />
+          <DetailRow
+            label='侦查员 Scout'
+            value={(entry.scoutedBy && names[entry.scoutedBy]) || entry.scoutName || '—'}
+          />
+          {!!entry.lastEditedBy && entry.lastEditedBy !== entry.scoutedBy && (
+            <DetailRow
+              label='最后编辑 Edited by'
+              value={names[entry.lastEditedBy] || '—'}
+            />
+          )}
           <DetailRow label='更新时间 Updated' value={new Date(entry.updatedAt).toLocaleString()} />
         </View>
 

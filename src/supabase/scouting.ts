@@ -1,6 +1,6 @@
 import Taro from '@tarojs/taro'
 import { supabase } from './config'
-import { MatchScoutEntry, scoutEntryStorageKey } from '../types/scouting'
+import { MatchScoutEntry, scoutEntryStorageKey, scoutEntryKeyPrefix } from '../types/scouting'
 import { CURRENT_EVENT_CODE } from '../data/events'
 import { enqueue, dequeue, pendingEntries, pendingCount } from './outbox'
 
@@ -13,6 +13,8 @@ type Row = {
   team_number: string
   alliance: string
   scout_name: string
+  scouted_by: string | null
+  last_edited_by: string | null
   auto: MatchScoutEntry['auto']
   teleop: MatchScoutEntry['teleop']
   endgame: MatchScoutEntry['endgame']
@@ -26,6 +28,8 @@ const toRow = (entry: MatchScoutEntry): Row => ({
   team_number: entry.teamNumber,
   alliance: entry.alliance,
   scout_name: entry.scoutName ?? '',
+  scouted_by: entry.scoutedBy ?? null,
+  last_edited_by: entry.lastEditedBy ?? null,
   auto: entry.auto,
   teleop: entry.teleop,
   endgame: entry.endgame,
@@ -39,6 +43,8 @@ const toEntry = (row: Row): MatchScoutEntry => ({
   teamNumber: row.team_number,
   alliance: row.alliance as MatchScoutEntry['alliance'],
   scoutName: row.scout_name ?? '',
+  scoutedBy: row.scouted_by,
+  lastEditedBy: row.last_edited_by,
   auto: row.auto,
   teleop: row.teleop,
   endgame: row.endgame,
@@ -103,21 +109,24 @@ export async function flushOutbox(): Promise<number> {
 
 export { pendingCount }
 
-// Locally submitted entries, used so the list still shows this scout's own
-// work when the network is unreachable.
-function localEntries(): MatchScoutEntry[] {
+// This scout's own submitted entries, kept so the list still shows their work
+// when the network is unreachable. Scoped to one user so a shared phone never
+// mixes two people's data.
+function localEntries(userId: string | null): MatchScoutEntry[] {
+  if (!userId) return []
+  const prefix = scoutEntryKeyPrefix(userId)
   const { keys } = Taro.getStorageInfoSync()
   return keys
-    .filter((key) => key.startsWith('scout:'))
+    .filter((key) => key.startsWith(prefix))
     .map((key) => Taro.getStorageSync(key) as MatchScoutEntry)
     .filter(Boolean)
 }
 
 // Remote rows win over local copies of the same entry (another scout may have
 // edited it), except while an entry is still queued — then ours is newer.
-function mergeEntries(remote: MatchScoutEntry[]): MatchScoutEntry[] {
+function mergeEntries(remote: MatchScoutEntry[], userId: string | null): MatchScoutEntry[] {
   const byKey = new Map<string, MatchScoutEntry>()
-  for (const entry of localEntries()) {
+  for (const entry of localEntries(userId)) {
     byKey.set(`${entry.eventCode ?? ''}:${entry.matchId}:${entry.teamNumber}`, entry)
   }
   for (const entry of remote) {
@@ -132,6 +141,7 @@ function mergeEntries(remote: MatchScoutEntry[]): MatchScoutEntry[] {
 // an unsubscribe function. Emits immediately from local storage, then again
 // after the initial fetch and on every realtime change.
 export function subscribeScoutEntries(
+  userId: string | null,
   onChange: (entries: MatchScoutEntry[]) => void,
   onError?: (err: Error) => void
 ) {
@@ -139,7 +149,7 @@ export function subscribeScoutEntries(
   let active = true
 
   const emit = () => {
-    if (active) onChange(mergeEntries(remote))
+    if (active) onChange(mergeEntries(remote, userId))
   }
 
   const load = async () => {
@@ -184,12 +194,14 @@ export function subscribeScoutEntries(
 // Live-subscribes to one submitted entry (for the read-only detail view).
 // Emits null if it doesn't exist anywhere.
 export function subscribeScoutEntry(
+  userId: string | null,
   matchId: string,
   teamNumber: string,
   onChange: (entry: MatchScoutEntry | null) => void,
   onError?: (err: Error) => void
 ) {
   return subscribeScoutEntries(
+    userId,
     (entries) => onChange(entries.find((e) => e.matchId === matchId && e.teamNumber === teamNumber) ?? null),
     onError
   )
@@ -197,15 +209,23 @@ export function subscribeScoutEntry(
 
 // One-time fetch used by the scout form's Edit deep-link when this device has
 // no local copy — e.g. editing an entry another scout submitted.
-export async function fetchScoutEntry(matchId: string, teamNumber: string): Promise<MatchScoutEntry | null> {
-  const local = Taro.getStorageSync(scoutEntryStorageKey(matchId, teamNumber))
-  if (local) return local as MatchScoutEntry
+export async function fetchScoutEntry(
+  userId: string | null,
+  eventCode: string,
+  matchId: string,
+  teamNumber: string
+): Promise<MatchScoutEntry | null> {
+  if (userId) {
+    const local = Taro.getStorageSync(scoutEntryStorageKey(userId, eventCode, matchId, teamNumber))
+    if (local) return local as MatchScoutEntry
+  }
 
   try {
     const { data, error } = await withTimeout(
       supabase
         .from(TABLE)
         .select('*')
+        .eq('event_code', eventCode)
         .eq('match_id', matchId)
         .eq('team_number', teamNumber)
         .order('updated_at', { ascending: false })

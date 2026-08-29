@@ -1,12 +1,46 @@
-import { View, Text } from '@tarojs/components'
+import { useState } from 'react'
+import { View, Text, Input } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import AppHeader from '../../components/AppHeader'
 import RangeSlider from '../../components/RangeSlider'
 import { FONT_SCALE_MAX, FONT_SCALE_MIN, FONT_SCALE_STEP, useTheme } from '../../theme/ThemeContext'
+import { useAuth } from '../../auth/AuthContext'
+import { profileLabel } from '../../types/scouting'
 import './index.scss'
 
 export default function Settings() {
   const { theme, setTheme, fontScalePercent, setFontScalePercent } = useTheme()
+  const { profile, signOut, changePassword } = useAuth()
+
+  // Taro's H5 showModal has no `editable` support, so anything needing typed
+  // input has to be an inline field rather than a prompt dialog.
+  const [newPassword, setNewPassword] = useState('')
+
+  const submitPassword = async () => {
+    if (newPassword.trim().length < 6) {
+      Taro.showToast({ title: '密码至少6位 Password min 6', icon: 'none' })
+      return
+    }
+    try {
+      await changePassword(newPassword.trim())
+      setNewPassword('')
+      Taro.showToast({ title: '已更新 Password updated ✓', icon: 'success' })
+    } catch (err) {
+      Taro.showToast({ title: (err as Error).message, icon: 'none' })
+    }
+  }
+
+  const confirmSignOut = () => {
+    Taro.showModal({
+      title: '退出登录 Sign out',
+      content: '本机已保存的数据会保留。Data saved on this device is kept.',
+      confirmText: '退出',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) signOut()
+      }
+    })
+  }
 
   const clearAllData = () => {
     Taro.showModal({
@@ -30,6 +64,33 @@ export default function Settings() {
       <AppHeader title='Settings' showBack />
 
       <View className='page-content'>
+        <View className='settings-section'>
+          <View className='settings-row'>
+            <Text className='settings-label'>账号 Account</Text>
+            <Text className='settings-value'>
+              {profile ? `${profileLabel(profile)} (${profile.username})` : '—'}
+              {profile?.role === 'admin' ? ' · 管理员 Admin' : ''}
+            </Text>
+          </View>
+          <View className='settings-row'>
+            <Text className='settings-label'>修改密码 Change password</Text>
+            <Input
+              className='settings-input'
+              password
+              value={newPassword}
+              placeholder='新密码 New password (min 6)'
+              // @ts-expect-error h5-only DOM attribute
+              autoComplete='new-password'
+              onInput={(e) => setNewPassword(e.detail.value)}
+              onConfirm={submitPassword}
+            />
+            <View className='pill-row'>
+              <View className='pill' onClick={submitPassword}>保存 Save password</View>
+              <View className='pill' onClick={confirmSignOut}>退出登录 Sign out</View>
+            </View>
+          </View>
+        </View>
+
         <View className='settings-section'>
           <View className='settings-row'>
             <Text className='settings-label'>Appearance</Text>
