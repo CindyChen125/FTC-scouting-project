@@ -10,7 +10,7 @@ import './index.scss'
 
 export default function Settings() {
   const { theme, setTheme, fontScalePercent, setFontScalePercent } = useTheme()
-  const { profile, signOut, changePassword } = useAuth()
+  const { profile, isAdmin, signOut, changePassword } = useAuth()
 
   // Taro's H5 showModal has no `editable` support, so anything needing typed
   // input has to be an inline field rather than a prompt dialog.
@@ -72,23 +72,39 @@ export default function Settings() {
               {profile?.role === 'admin' ? ' · 管理员 Admin' : ''}
             </Text>
           </View>
-          <View className='settings-row'>
-            <Text className='settings-label'>修改密码 Change password</Text>
-            <Input
-              className='settings-input'
-              password
-              value={newPassword}
-              placeholder='新密码 New password (min 6)'
-              // @ts-expect-error h5-only DOM attribute
-              autoComplete='new-password'
-              onInput={(e) => setNewPassword(e.detail.value)}
-              onConfirm={submitPassword}
-            />
-            <View className='pill-row'>
-              <View className='pill' onClick={submitPassword}>保存 Save password</View>
-              <View className='pill' onClick={confirmSignOut}>退出登录 Sign out</View>
+          {/*
+            Only the admin changes their own password here. Scouts' passwords
+            are set by the admin from the Admin page, so self-service would
+            put a scout's login out of the admin's control.
+          */}
+          {isAdmin ? (
+            <View className='settings-row'>
+              <Text className='settings-label'>修改密码 Change password</Text>
+              <Input
+                className='settings-input'
+                password
+                value={newPassword}
+                placeholder='新密码 New password (min 6)'
+                // @ts-expect-error h5-only DOM attribute
+                autoComplete='new-password'
+                onInput={(e) => setNewPassword(e.detail.value)}
+                onConfirm={submitPassword}
+              />
+              <View className='pill-row'>
+                <View className='pill' onClick={submitPassword}>保存 Save password</View>
+                <View className='pill' onClick={confirmSignOut}>退出登录 Sign out</View>
+              </View>
             </View>
-          </View>
+          ) : (
+            <View className='settings-row'>
+              <Text className='settings-value'>
+                忘记密码请联系管理员 Forgot your password? Ask your team admin to reset it.
+              </Text>
+              <View className='pill-row'>
+                <View className='pill' onClick={confirmSignOut}>退出登录 Sign out</View>
+              </View>
+            </View>
+          )}
         </View>
 
         <View className='settings-section'>

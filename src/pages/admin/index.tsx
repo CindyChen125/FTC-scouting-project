@@ -99,9 +99,22 @@ export default function Admin() {
     })
   }
 
+  // Readable rather than maximally random: these get spoken across a noisy
+  // venue, so no characters that are easy to confuse (0/O, 1/l/I).
+  const generatePassword = () => {
+    const letters = 'abcdefghjkmnpqrstuvwxyz'
+    const digits = '23456789'
+    let out = ''
+    for (let i = 0; i < 5; i++) out += letters[Math.floor(Math.random() * letters.length)]
+    for (let i = 0; i < 3; i++) out += digits[Math.floor(Math.random() * digits.length)]
+    return out
+  }
+
   const openEditor = (member: Profile, kind: 'rename' | 'password') => {
     setEditing({ userId: member.userId, kind })
-    setDraft(kind === 'rename' ? profileLabel(member) : '')
+    // Prefill a suggestion so a reset is one tap plus Save; it stays visible
+    // (not masked) because the admin has to read it out to the scout.
+    setDraft(kind === 'rename' ? profileLabel(member) : generatePassword())
   }
 
   const closeEditor = () => {
@@ -185,8 +198,10 @@ export default function Admin() {
             添加 Add scout
           </View>
           <Text className='admin-hint'>
-            把用户名和密码给队员，他们可以在设置里自行修改密码。
-            Give them the username and password — they can change it in Settings.
+            把用户名和密码给队员。密码只有你能设置 —— 队员忘记了就用下面的「重置密码」重新设一个。
+            Give them the username and password. Only you can set passwords — if a scout forgets
+            theirs, use 重置密码 below to set a new one (passwords are stored hashed and can never
+            be read back, not even by you).
           </Text>
         </View>
 
@@ -214,7 +229,6 @@ export default function Admin() {
                   <Input
                     className='field-input'
                     value={draft}
-                    password={editing.kind === 'password'}
                     placeholder={
                       editing.kind === 'rename' ? '新的显示名 New display name' : '新密码 New password (min 6)'
                     }
@@ -223,8 +237,19 @@ export default function Admin() {
                     onInput={(e) => setDraft(e.detail.value)}
                     onConfirm={() => saveEditor(member)}
                   />
+                  {editing.kind === 'password' && (
+                    <Text className='admin-hint'>
+                      记下这个密码再保存 —— 保存后就看不到了。
+                      Write this down before saving — it can't be shown again.
+                    </Text>
+                  )}
                   <View className='member-actions'>
                     <View className='chip primary' onClick={() => saveEditor(member)}>保存 Save</View>
+                    {editing.kind === 'password' && (
+                      <View className='chip' onClick={() => setDraft(generatePassword())}>
+                        换一个 New suggestion
+                      </View>
+                    )}
                     <View className='chip' onClick={closeEditor}>取消 Cancel</View>
                   </View>
                 </View>

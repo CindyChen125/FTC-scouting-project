@@ -10,14 +10,43 @@
   box-shadow: 0 2px 8px var(--color-shadow);
 }
 
+// Wide enough for the "返回 Back" pill; the right side matches so the title
+// stays optically centred.
 .app-header-side {
-  width: 64px;
+  width: 168px;
   display: flex;
   align-items: center;
 
   &-right {
     justify-content: flex-end;
   }
+}
+
+.app-header-back {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 18px 10px 14px;
+  border-radius: 22px;
+  background: var(--color-input-bg);
+
+  &:active {
+    background: var(--color-border);
+  }
+}
+
+.app-header-back-arrow {
+  font-size: calc(34px * var(--font-scale));
+  color: var(--color-primary);
+  line-height: 1;
+  font-weight: bold;
+}
+
+.app-header-back-label {
+  font-size: calc(22px * var(--font-scale));
+  color: var(--color-primary);
+  font-weight: bold;
+  white-space: nowrap;
 }
 
 .app-header-title {

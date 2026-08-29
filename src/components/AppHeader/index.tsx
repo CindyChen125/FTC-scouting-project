@@ -27,8 +27,9 @@ export default function AppHeader({ title, showBack = false, onSearch }: AppHead
     <View className='app-header'>
       <View className='app-header-side'>
         {showBack && (
-          <View className='app-header-icon-btn' onClick={handleBack}>
-            <Text className='app-header-icon'>←</Text>
+          <View className='app-header-back' onClick={handleBack}>
+            <Text className='app-header-back-arrow'>‹</Text>
+            <Text className='app-header-back-label'>返回 Back</Text>
           </View>
         )}
       </View>

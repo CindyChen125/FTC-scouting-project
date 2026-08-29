@@ -206,19 +206,30 @@ export default function Index() {
         // resolved meant a scout whose account had been removed saw "已提交
         // Submitted ✓" for entries the server was rejecting.
         const outcome = await submitScoutEntry(entry)
-        if (outcome === 'synced') {
-          Taro.showToast({ title: '已提交 Submitted ✓', icon: 'success' })
-        } else if (outcome === 'queued') {
-          Taro.showToast({
-            title: '已保存，联网后自动上传 Saved — uploads when back online',
-            icon: 'none'
-          })
-        } else {
+        if (outcome === 'rejected') {
+          // Stay on the form so the scout actually sees why it failed.
           Taro.showToast({
             title: '未能提交：账号无权限，请重新登录 Rejected — sign in again',
             icon: 'none'
           })
+          return
         }
+
+        Taro.showToast({
+          title:
+            outcome === 'synced'
+              ? '已提交 Submitted ✓'
+              : '已保存，联网后自动上传 Saved — uploads when back online',
+          icon: outcome === 'synced' ? 'success' : 'none'
+        })
+
+        // Back to the home screen, ready for the next match. reLaunch rather
+        // than navigateBack because this page can be opened either from home
+        // or from an entry's Edit button, and "back" should mean home either
+        // way. The delay lets the toast be read first.
+        setTimeout(() => {
+          Taro.reLaunch({ url: '/pages/index/index' }).catch(() => {})
+        }, 1200)
       }
     })
   }
