@@ -35,6 +35,14 @@ export default function Home() {
             </View>
           </View>
 
+          <View className='home-button' onClick={() => goTo('/pages/pit/index')}>
+            <Text className='home-button-icon'>🔧</Text>
+            <View className='home-button-text'>
+              <Text className='home-button-title'>赛前侦查 Pit Scouting</Text>
+              <Text className='home-button-desc'>Ask a team about their robot, before or between matches</Text>
+            </View>
+          </View>
+
           <View className='home-button' onClick={() => goTo('/pages/data/index')}>
             <Text className='home-button-icon'>📊</Text>
             <View className='home-button-text'>

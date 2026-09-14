@@ -5,6 +5,16 @@ import AppHeader from '../../components/AppHeader'
 import RangeSlider from '../../components/RangeSlider'
 import { BiobuzzEntry, MatchScoutEntry } from '../../types/scouting'
 import { subscribeScoutEntries, pendingCount } from '../../supabase/scouting'
+import { subscribePitEntries } from '../../supabase/pit'
+import {
+  PitEntry,
+  optionLabel,
+  formatPitAuto,
+  formatColorSort,
+  DRIVETRAIN_OPTIONS,
+  BALL_OPTIONS,
+  ROLE_OPTIONS
+} from '../../types/pit'
 import {
   computeRankings,
   modelForSeason,
@@ -13,14 +23,22 @@ import {
   RankingModel,
   RankingWeights
 } from '../../utils/ranking'
-import { EVENTS, CURRENT_EVENT_CODE, findEvent, entryEventCode } from '../../data/events'
+import { EVENTS, CURRENT_EVENT_CODE, CURRENT_SEASON, findEvent, entryEventCode } from '../../data/events'
 import { gameForEntry } from '../../games'
 import { useAuth } from '../../auth/AuthContext'
 import { fetchProfiles } from '../../supabase/admin'
-import { exportEntriesToExcel } from '../../utils/exportEntries'
+import { exportEntriesToExcel, exportPitToExcel } from '../../utils/exportEntries'
 import './index.scss'
 
-type MainTab = 'mine' | 'rankings'
+type MainTab = 'mine' | 'rankings' | 'pit'
+
+// One line of what a team told us in the pits, for ranking cards.
+const pitSummary = (p: PitEntry) =>
+  [
+    `蜂巢 Hive: ${optionLabel(BALL_OPTIONS, p.data.hiveBalls)}`,
+    `花朵 Flowers: ${optionLabel(BALL_OPTIONS, p.data.flowerBalls)}`,
+    `角色 Role: ${optionLabel(ROLE_OPTIONS, p.data.role)}`
+  ].join(' · ')
 
 const meanOf = (breakdown: Record<string, number>, factors: string[]) =>
   factors.reduce((sum, f) => sum + breakdown[f], 0) / factors.length
@@ -35,6 +53,7 @@ export default function CurrentData() {
   const { userId } = useAuth()
   const [mainTab, setMainTab] = useState<MainTab>('mine')
   const [entries, setEntries] = useState<MatchScoutEntry[]>([])
+  const [pitEntries, setPitEntries] = useState<PitEntry[]>([])
   const [syncError, setSyncError] = useState(false)
   const [queued, setQueued] = useState(0)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -102,6 +121,10 @@ export default function CurrentData() {
     return unsubscribe
   }, [userId])
 
+  // Offline for pit data shows up through the match subscription's warning,
+  // which fails at the same time, so no second banner.
+  useEffect(() => subscribePitEntries(userId, setPitEntries), [userId])
+
   const updateWeight = (factor: string, value: number) => {
     setWeights((prev) => {
       const next = { ...prev, [factor]: value }
@@ -119,6 +142,24 @@ export default function CurrentData() {
     () => entries.filter((entry) => entryEventCode(entry) === eventCode),
     [entries, eventCode]
   )
+
+  const eventPitEntries = useMemo(
+    () =>
+      pitEntries
+        .filter((p) => p.eventCode === eventCode)
+        .sort((a, b) => a.teamNumber.localeCompare(b.teamNumber, undefined, { numeric: true })),
+    [pitEntries, eventCode]
+  )
+
+  const pitByTeam = useMemo(
+    () => new Map(eventPitEntries.map((p) => [p.teamNumber.trim(), p])),
+    [eventPitEntries]
+  )
+
+  const visiblePitEntries = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return q ? eventPitEntries.filter((p) => p.teamNumber.toLowerCase().includes(q)) : eventPitEntries
+  }, [eventPitEntries, query])
 
   const visibleEntries = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -192,13 +233,22 @@ export default function CurrentData() {
           <View className={`tab-item ${mainTab === 'rankings' ? 'active' : ''}`} onClick={() => setMainTab('rankings')}>
             Rankings
           </View>
+          <View className={`tab-item ${mainTab === 'pit' ? 'active' : ''}`} onClick={() => setMainTab('pit')}>
+            Pit
+          </View>
         </View>
 
         {searchOpen && (
           <Input
             className='search-input'
             value={query}
-            placeholder={mainTab === 'mine' ? 'Search by match or team #' : 'Search by team # or name'}
+            placeholder={
+              mainTab === 'mine'
+                ? 'Search by match or team #'
+                : mainTab === 'pit'
+                  ? 'Search by team #'
+                  : 'Search by team # or name'
+            }
             // @ts-expect-error h5-only DOM attribute, prevents browser autofill from injecting saved values
             autoComplete='off'
             onInput={(e) => setQuery(e.detail.value)}
@@ -346,6 +396,9 @@ export default function CurrentData() {
                   <View className='team-header-text'>
                     <Text className='team-title'>{rt.row.title}</Text>
                     <Text className='team-meta'>{rt.row.meta}</Text>
+                    {pitByTeam.has(rt.row.number) && (
+                      <Text className='team-meta'>🔧 {pitSummary(pitByTeam.get(rt.row.number)!)}</Text>
+                    )}
                   </View>
                   <Text className='team-score'>{scoreFor(rt).toFixed(1)}</Text>
                 </View>
@@ -365,6 +418,64 @@ export default function CurrentData() {
           </>
         )}
 
+        {mainTab === 'pit' && (
+          <>
+            {selectedEvent.season !== CURRENT_SEASON ? (
+              <Text className='empty-state'>Pit scouting started with BIOBUZZ — none for this event.</Text>
+            ) : (
+              <>
+                {visiblePitEntries.length > 0 && (
+                  <View
+                    className='export-btn'
+                    onClick={() => exportPitToExcel(visiblePitEntries, selectedEvent.name, names)}
+                  >
+                    ⬇️ Export to Excel ({visiblePitEntries.length})
+                  </View>
+                )}
+
+                {visiblePitEntries.length === 0 && (
+                  <Text className='empty-state'>
+                    {eventPitEntries.length === 0
+                      ? 'No pit scouting for this event yet. Use 赛前侦查 Pit Scouting on the home screen.'
+                      : 'No teams match your search.'}
+                  </Text>
+                )}
+
+                {visiblePitEntries.map((p) => (
+                  <View
+                    className='entry-card'
+                    key={p.teamNumber}
+                    onClick={() =>
+                      Taro.navigateTo({
+                        url: `/pages/pit/index?eventCode=${encodeURIComponent(p.eventCode)}&teamNumber=${encodeURIComponent(p.teamNumber)}`
+                      })
+                    }
+                  >
+                    <View className='entry-header'>
+                      <Text className='entry-title'>Team {p.teamNumber}</Text>
+                      <Text className='entry-meta'>{optionLabel(DRIVETRAIN_OPTIONS, p.data.drivetrain)}</Text>
+                    </View>
+                    <Text className='entry-meta'>
+                      Scout: {(p.scoutedBy && names[p.scoutedBy]) || p.scoutName || '—'}
+                      {p.lastEditedBy && p.lastEditedBy !== p.scoutedBy
+                        ? ` · edited by ${names[p.lastEditedBy] || '—'}`
+                        : ''}
+                    </Text>
+
+                    <View className='pit-facts'>
+                      <Text className='pit-fact'>射入蜂巢 Hive: {optionLabel(BALL_OPTIONS, p.data.hiveBalls)}</Text>
+                      <Text className='pit-fact'>放入花朵 Flowers: {optionLabel(BALL_OPTIONS, p.data.flowerBalls)}</Text>
+                      <Text className='pit-fact'>颜色分拣 Color sort: {formatColorSort(p.data.colorSort)}</Text>
+                      <Text className='pit-fact'>自动 Auto: {formatPitAuto(p.data.autoActions)}</Text>
+                      <Text className='pit-fact'>角色 Role: {optionLabel(ROLE_OPTIONS, p.data.role)}</Text>
+                      {!!p.data.notes && <Text className='pit-fact'>备注 Notes: {p.data.notes}</Text>}
+                    </View>
+                  </View>
+                ))}
+              </>
+            )}
+          </>
+        )}
       </View>
     </View>
   )

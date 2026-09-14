@@ -2,6 +2,7 @@ export default defineAppConfig({
   pages: [
     'pages/index/index',
     'pages/scout/index',
+    'pages/pit/index',
     'pages/data/index',
     'pages/entry/index',
     'pages/admin/index',

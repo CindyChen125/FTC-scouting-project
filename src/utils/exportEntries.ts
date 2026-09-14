@@ -1,6 +1,15 @@
 import * as XLSX from 'xlsx'
 import { MatchScoutEntry } from '../types/scouting'
 import { gameForEntry } from '../games'
+import {
+  PitEntry,
+  optionLabel,
+  formatPitAuto,
+  formatColorSort,
+  DRIVETRAIN_OPTIONS,
+  BALL_OPTIONS,
+  ROLE_OPTIONS
+} from '../types/pit'
 
 const fileStem = (eventName: string) => {
   const safeEventName = eventName.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').slice(0, 40)
@@ -44,3 +53,23 @@ export function exportEntriesToExcel(
   writeWorkbook(rows, 'Scouting Data', `scouting_${fileStem(eventName)}`)
 }
 
+// Pit profiles for one event, one row per team.
+export function exportPitToExcel(
+  entries: PitEntry[],
+  eventName: string,
+  names: Record<string, string> = {}
+) {
+  const rows = entries.map((e) => ({
+    'Team #': e.teamNumber,
+    'Scout': (e.scoutedBy && names[e.scoutedBy]) || e.scoutName || '',
+    'Updated': new Date(e.updatedAt).toLocaleString(),
+    'Drivetrain': optionLabel(DRIVETRAIN_OPTIONS, e.data.drivetrain),
+    'Shoots Into Hive': optionLabel(BALL_OPTIONS, e.data.hiveBalls),
+    'Scores Flowers': optionLabel(BALL_OPTIONS, e.data.flowerBalls),
+    'Rejects Opponent Nectar': formatColorSort(e.data.colorSort),
+    'Auto': formatPitAuto(e.data.autoActions),
+    'Preferred Role': optionLabel(ROLE_OPTIONS, e.data.role),
+    'Notes': e.data.notes || ''
+  }))
+  writeWorkbook(rows, 'Pit Scouting', `pit_${fileStem(eventName)}`)
+}

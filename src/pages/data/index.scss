@@ -372,3 +372,15 @@
   background: var(--color-primary);
   border-radius: 6px;
 }
+
+.pit-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.pit-fact {
+  font-size: calc(24px * var(--font-scale));
+  color: var(--color-text);
+}
