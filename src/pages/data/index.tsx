@@ -3,16 +3,18 @@ import { View, Text, Input } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import AppHeader from '../../components/AppHeader'
 import RangeSlider from '../../components/RangeSlider'
-import { MatchScoutEntry } from '../../types/scouting'
+import { BiobuzzEntry, MatchScoutEntry } from '../../types/scouting'
 import { subscribeScoutEntries, pendingCount } from '../../supabase/scouting'
 import {
   computeRankings,
-  RANKING_WEIGHTS,
-  RANKING_FACTORS,
-  RankingFactor,
+  modelForSeason,
+  decodeRows,
+  biobuzzRows,
+  RankingModel,
   RankingWeights
 } from '../../utils/ranking'
-import { EVENTS, CURRENT_EVENT_CODE, findEvent } from '../../data/events'
+import { EVENTS, CURRENT_EVENT_CODE, findEvent, entryEventCode } from '../../data/events'
+import { gameForEntry } from '../../games'
 import { useAuth } from '../../auth/AuthContext'
 import { fetchProfiles } from '../../supabase/admin'
 import { exportEntriesToExcel } from '../../utils/exportEntries'
@@ -20,14 +22,13 @@ import './index.scss'
 
 type MainTab = 'mine' | 'rankings'
 
-const WEIGHTS_STORAGE_KEY = 'rankingWeights'
-
-const meanOf = (breakdown: Record<RankingFactor, number>, factors: RankingFactor[]) =>
+const meanOf = (breakdown: Record<string, number>, factors: string[]) =>
   factors.reduce((sum, f) => sum + breakdown[f], 0) / factors.length
 
-const loadStoredWeights = (): RankingWeights => {
-  const stored = Taro.getStorageSync(WEIGHTS_STORAGE_KEY)
-  return stored ? { ...RANKING_WEIGHTS, ...stored } : { ...RANKING_WEIGHTS }
+// Each season remembers its own slider positions — the factors differ.
+const loadStoredWeights = (model: RankingModel): RankingWeights => {
+  const stored = Taro.getStorageSync(model.storageKey)
+  return stored ? { ...model.defaultWeights, ...stored } : { ...model.defaultWeights }
 }
 
 export default function CurrentData() {
@@ -40,9 +41,10 @@ export default function CurrentData() {
   const [query, setQuery] = useState('')
   // Empty selection = Overall (weighted composite). One or more selected =
   // rank by the average of those factors' scores.
-  const [selectedFactors, setSelectedFactors] = useState<RankingFactor[]>([])
-  const [weights, setWeights] = useState<RankingWeights>(loadStoredWeights)
+  const [selectedFactors, setSelectedFactors] = useState<string[]>([])
   const [eventCode, setEventCode] = useState(CURRENT_EVENT_CODE)
+  const rankingModel = modelForSeason(findEvent(eventCode).season)
+  const [weights, setWeights] = useState<RankingWeights>(() => loadStoredWeights(rankingModel))
   const [eventPickerOpen, setEventPickerOpen] = useState(false)
   // user id -> display name, so entries show who really scouted them even
   // after someone is renamed.
@@ -64,11 +66,19 @@ export default function CurrentData() {
 
   // Displayed weight percentages are each slider's share of the total, so
   // they always add up to 100% regardless of the raw slider values.
-  const totalWeight = RANKING_FACTORS.reduce((sum, f) => sum + weights[f.key], 0)
-  const weightPercent = (factor: RankingFactor) =>
+  const totalWeight = rankingModel.factors.reduce((sum, f) => sum + (weights[f.key] ?? 0), 0)
+  const weightPercent = (factor: string) =>
     totalWeight === 0 ? 0 : Math.round((weights[factor] / totalWeight) * 100)
 
-  const toggleFactor = (factor: RankingFactor) => {
+  const selectEvent = (code: string) => {
+    setEventCode(code)
+    setEventPickerOpen(false)
+    // Factors are season-specific, so a selection from another season is meaningless.
+    setSelectedFactors([])
+    setWeights(loadStoredWeights(modelForSeason(findEvent(code).season)))
+  }
+
+  const toggleFactor = (factor: string) => {
     setSelectedFactors((prev) =>
       prev.includes(factor) ? prev.filter((f) => f !== factor) : [...prev, factor]
     )
@@ -92,23 +102,21 @@ export default function CurrentData() {
     return unsubscribe
   }, [userId])
 
-  const updateWeight = (factor: RankingFactor, value: number) => {
+  const updateWeight = (factor: string, value: number) => {
     setWeights((prev) => {
       const next = { ...prev, [factor]: value }
-      Taro.setStorageSync(WEIGHTS_STORAGE_KEY, next)
+      Taro.setStorageSync(rankingModel.storageKey, next)
       return next
     })
   }
 
   const resetWeights = () => {
-    setWeights({ ...RANKING_WEIGHTS })
-    Taro.setStorageSync(WEIGHTS_STORAGE_KEY, { ...RANKING_WEIGHTS })
+    setWeights({ ...rankingModel.defaultWeights })
+    Taro.setStorageSync(rankingModel.storageKey, { ...rankingModel.defaultWeights })
   }
 
-  // Entries submitted before eventCode existed are treated as belonging to
-  // the current default event, so nothing old silently disappears.
   const eventEntries = useMemo(
-    () => entries.filter((entry) => (entry.eventCode ?? CURRENT_EVENT_CODE) === eventCode),
+    () => entries.filter((entry) => entryEventCode(entry) === eventCode),
     [entries, eventCode]
   )
 
@@ -123,19 +131,29 @@ export default function CurrentData() {
   // Compute the weighted composite + per-factor breakdown, then order by the
   // selected mode: Overall = composite, otherwise by the average of the
   // chosen factors.
+  // Past DECODE events rank from their official ftcscout results; BIOBUZZ
+  // events rank from what our scouts recorded.
+  const rankRows = useMemo(
+    () =>
+      selectedEvent.results
+        ? decodeRows(selectedEvent.results.teams)
+        : biobuzzRows(eventEntries as BiobuzzEntry[]),
+    [selectedEvent, eventEntries]
+  )
+
   const rankedTeams = useMemo(() => {
-    const ranked = computeRankings(selectedEvent.results.teams, weights)
+    const ranked = computeRankings(rankRows, rankingModel, weights)
     if (selectedFactors.length === 0) return ranked
     return [...ranked].sort(
       (a, b) => meanOf(b.breakdown, selectedFactors) - meanOf(a.breakdown, selectedFactors)
     )
-  }, [selectedEvent, weights, selectedFactors])
+  }, [rankRows, rankingModel, weights, selectedFactors])
 
   const visibleRankedTeams = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return rankedTeams
     return rankedTeams.filter(
-      (rt) => String(rt.team.number).includes(q) || rt.team.name.toLowerCase().includes(q)
+      (rt) => rt.row.title.toLowerCase().includes(q)
     )
   }, [rankedTeams, query])
 
@@ -158,10 +176,7 @@ export default function CurrentData() {
                 <View
                   key={ev.code}
                   className={`event-selector-option ${ev.code === eventCode ? 'active' : ''}`}
-                  onClick={() => {
-                    setEventCode(ev.code)
-                    setEventPickerOpen(false)
-                  }}
+                  onClick={() => selectEvent(ev.code)}
                 >
                   {ev.name}
                 </View>
@@ -226,7 +241,7 @@ export default function CurrentData() {
                 key={`${entry.matchId}-${entry.teamNumber}`}
                 onClick={() =>
                   Taro.navigateTo({
-                    url: `/pages/entry/index?matchId=${encodeURIComponent(entry.matchId)}&teamNumber=${encodeURIComponent(entry.teamNumber)}`
+                    url: `/pages/entry/index?eventCode=${encodeURIComponent(entryEventCode(entry))}&matchId=${encodeURIComponent(entry.matchId)}&teamNumber=${encodeURIComponent(entry.teamNumber)}`
                   })
                 }
               >
@@ -243,22 +258,12 @@ export default function CurrentData() {
                 <Text className='entry-meta'>Updated: {new Date(entry.updatedAt).toLocaleString()}</Text>
 
                 <View className='entry-stats'>
-                  <View className='entry-stat'>
-                    <Text className='entry-stat-label'>Auto goals</Text>
-                    <Text className='entry-stat-value'>
-                      {entry.auto.nearGoalsMade + entry.auto.farGoalsMade}
-                    </Text>
-                  </View>
-                  <View className='entry-stat'>
-                    <Text className='entry-stat-label'>Teleop goals</Text>
-                    <Text className='entry-stat-value'>
-                      {entry.teleop.nearGoalsMade + entry.teleop.farGoalsMade}
-                    </Text>
-                  </View>
-                  <View className='entry-stat'>
-                    <Text className='entry-stat-label'>Endgame</Text>
-                    <Text className='entry-stat-value'>{entry.endgame.parkStatus}</Text>
-                  </View>
+                  {gameForEntry(entry).cardStats(entry).map((stat) => (
+                    <View className='entry-stat' key={stat.label}>
+                      <Text className='entry-stat-label'>{stat.label}</Text>
+                      <Text className='entry-stat-value'>{stat.value}</Text>
+                    </View>
+                  ))}
                 </View>
               </View>
             ))}
@@ -269,7 +274,9 @@ export default function CurrentData() {
           <>
             <View className='rankings-header'>
               <Text className='rankings-event-meta'>
-                Quals results · {selectedEvent.results.teams.length} teams
+                {selectedEvent.results
+                  ? `Quals results · ${rankRows.length} teams`
+                  : `From our scouting · ${rankRows.length} teams · ${eventEntries.length} entries`}
               </Text>
             </View>
 
@@ -280,7 +287,7 @@ export default function CurrentData() {
               >
                 Overall
               </View>
-              {RANKING_FACTORS.map((f) => (
+              {rankingModel.factors.map((f) => (
                 <View
                   key={f.key}
                   className={`mode-item ${selectedFactors.includes(f.key) ? 'active' : ''}`}
@@ -293,7 +300,7 @@ export default function CurrentData() {
 
             {!isOverall && (
               <Text className='mode-hint'>
-                Ranking by average of: {selectedFactors.map((f) => RANKING_FACTORS.find((x) => x.key === f)!.label).join(' · ')}
+                Ranking by average of: {selectedFactors.map((f) => rankingModel.factors.find((x) => x.key === f)?.label ?? f).join(' · ')}
               </Text>
             )}
 
@@ -303,7 +310,7 @@ export default function CurrentData() {
                   <Text className='weights-panel-title'>Adjust weights</Text>
                   <Text className='weights-reset' onClick={resetWeights}>Reset</Text>
                 </View>
-                {RANKING_FACTORS.map((f) => (
+                {rankingModel.factors.map((f) => (
                   <View className='weight-row' key={f.key}>
                     <View className='weight-row-head'>
                       <Text className='weight-label'>{f.label}</Text>
@@ -313,7 +320,7 @@ export default function CurrentData() {
                       min={0}
                       max={1}
                       step={0.05}
-                      value={weights[f.key]}
+                      value={weights[f.key] ?? 0}
                       onChange={(v) => updateWeight(f.key, v)}
                     />
                   </View>
@@ -325,24 +332,26 @@ export default function CurrentData() {
             )}
 
             {visibleRankedTeams.length === 0 && (
-              <Text className='empty-state'>No teams match your search.</Text>
+              <Text className='empty-state'>
+                {rankRows.length === 0
+                  ? 'No scouting data for this event yet — rankings appear once matches are submitted.'
+                  : 'No teams match your search.'}
+              </Text>
             )}
 
             {visibleRankedTeams.map((rt, i) => (
-              <View className='team-card' key={rt.team.number}>
+              <View className='team-card' key={rt.row.number}>
                 <View className='team-header'>
                   <Text className='team-composite-rank'>#{i + 1}</Text>
                   <View className='team-header-text'>
-                    <Text className='team-title'>{rt.team.number} · {rt.team.name}</Text>
-                    <Text className='team-meta'>
-                      {rt.team.wins}-{rt.team.losses}-{rt.team.ties} · quals rank {rt.team.rank}
-                    </Text>
+                    <Text className='team-title'>{rt.row.title}</Text>
+                    <Text className='team-meta'>{rt.row.meta}</Text>
                   </View>
                   <Text className='team-score'>{scoreFor(rt).toFixed(1)}</Text>
                 </View>
 
                 <View className='team-breakdown'>
-                  {RANKING_FACTORS.map((f) => (
+                  {rankingModel.factors.map((f) => (
                     <View className={`breakdown-row ${selectedFactors.includes(f.key) ? 'highlight' : ''}`} key={f.key}>
                       <Text className='breakdown-label'>{f.label}</Text>
                       <View className='breakdown-bar-track'>
@@ -355,6 +364,7 @@ export default function CurrentData() {
             ))}
           </>
         )}
+
       </View>
     </View>
   )

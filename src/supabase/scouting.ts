@@ -1,7 +1,7 @@
 import Taro from '@tarojs/taro'
 import { supabase } from './config'
 import { MatchScoutEntry, scoutEntryStorageKey, scoutEntryKeyPrefix } from '../types/scouting'
-import { CURRENT_EVENT_CODE } from '../data/events'
+import { entryEventCode } from '../data/events'
 import { withTimeout, isPermanentRejection } from './timeout'
 import { enqueue, dequeue, pendingEntries, pendingCount } from './outbox'
 
@@ -24,7 +24,7 @@ type Row = {
 }
 
 const toRow = (entry: MatchScoutEntry): Row => ({
-  event_code: entry.eventCode ?? CURRENT_EVENT_CODE,
+  event_code: entryEventCode(entry),
   match_id: entry.matchId,
   team_number: entry.teamNumber,
   alliance: entry.alliance,
@@ -51,7 +51,7 @@ const toEntry = (row: Row): MatchScoutEntry => ({
   endgame: row.endgame,
   overallNotes: row.overall_notes ?? '',
   updatedAt: Number(row.updated_at)
-})
+}) as MatchScoutEntry
 
 let channelSeq = 0
 
@@ -127,11 +127,13 @@ function localEntries(userId: string | null): MatchScoutEntry[] {
 // edited it), except while an entry is still queued — then ours is newer.
 function mergeEntries(remote: MatchScoutEntry[], userId: string | null): MatchScoutEntry[] {
   const byKey = new Map<string, MatchScoutEntry>()
+  const keyOf = (entry: MatchScoutEntry) =>
+    `${entryEventCode(entry)}:${entry.matchId}:${entry.teamNumber}`
   for (const entry of localEntries(userId)) {
-    byKey.set(`${entry.eventCode ?? ''}:${entry.matchId}:${entry.teamNumber}`, entry)
+    byKey.set(keyOf(entry), entry)
   }
   for (const entry of remote) {
-    const key = `${entry.eventCode ?? ''}:${entry.matchId}:${entry.teamNumber}`
+    const key = keyOf(entry)
     const local = byKey.get(key)
     if (!local || entry.updatedAt >= local.updatedAt) byKey.set(key, entry)
   }
@@ -197,9 +199,11 @@ export function subscribeScoutEntries(
 }
 
 // Live-subscribes to one submitted entry (for the read-only detail view).
-// Emits null if it doesn't exist anywhere.
+// Emits null if it doesn't exist anywhere. The event matters: every event has
+// a "Q1", so match + team alone can pick up another event's entry.
 export function subscribeScoutEntry(
   userId: string | null,
+  eventCode: string,
   matchId: string,
   teamNumber: string,
   onChange: (entry: MatchScoutEntry | null) => void,
@@ -207,7 +211,13 @@ export function subscribeScoutEntry(
 ) {
   return subscribeScoutEntries(
     userId,
-    (entries) => onChange(entries.find((e) => e.matchId === matchId && e.teamNumber === teamNumber) ?? null),
+    (entries) =>
+      onChange(
+        entries.find(
+          (e) =>
+            entryEventCode(e) === eventCode && e.matchId === matchId && e.teamNumber === teamNumber
+        ) ?? null
+      ),
     onError
   )
 }

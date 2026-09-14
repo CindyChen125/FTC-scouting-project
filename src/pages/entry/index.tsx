@@ -6,8 +6,8 @@ import { MatchScoutEntry } from '../../types/scouting'
 import { subscribeScoutEntry } from '../../supabase/scouting'
 import { useAuth } from '../../auth/AuthContext'
 import { fetchProfiles } from '../../supabase/admin'
-import { findEvent } from '../../data/events'
-import { formatNotes, parkStatusLabel } from '../../utils/scoutFormat'
+import { findEvent, entryEventCode, CURRENT_SEASON } from '../../data/events'
+import { gameForEntry } from '../../games'
 import './index.scss'
 
 function DetailRow({ label, value }: { label: string, value: string }) {
@@ -21,6 +21,7 @@ function DetailRow({ label, value }: { label: string, value: string }) {
 
 export default function EntryDetail() {
   const { userId } = useAuth()
+  const [eventCode, setEventCode] = useState('')
   const [matchId, setMatchId] = useState('')
   const [teamNumber, setTeamNumber] = useState('')
   const [entry, setEntry] = useState<MatchScoutEntry | null>(null)
@@ -28,6 +29,7 @@ export default function EntryDetail() {
   const [names, setNames] = useState<Record<string, string>>({})
 
   useLoad((options) => {
+    if (options?.eventCode) setEventCode(decodeURIComponent(options.eventCode))
     if (options?.matchId) setMatchId(decodeURIComponent(options.matchId))
     if (options?.teamNumber) setTeamNumber(decodeURIComponent(options.teamNumber))
   })
@@ -35,13 +37,13 @@ export default function EntryDetail() {
   // Live-subscribed so this view reflects an edit immediately (this device
   // or any other scout's) rather than showing stale data.
   useEffect(() => {
-    if (!matchId || !teamNumber) return
-    const unsubscribe = subscribeScoutEntry(userId, matchId, teamNumber, (loadedEntry) => {
+    if (!eventCode || !matchId || !teamNumber) return
+    const unsubscribe = subscribeScoutEntry(userId, eventCode, matchId, teamNumber, (loadedEntry) => {
       setEntry(loadedEntry)
       setLoaded(true)
     })
     return unsubscribe
-  }, [userId, matchId, teamNumber])
+  }, [userId, eventCode, matchId, teamNumber])
 
   // Resolve user ids to current display names, so a renamed scout shows their
   // new name rather than the one snapshotted when they submitted.
@@ -58,7 +60,7 @@ export default function EntryDetail() {
 
   const goEdit = () => {
     Taro.navigateTo({
-      url: `/pages/scout/index?matchId=${encodeURIComponent(matchId)}&teamNumber=${encodeURIComponent(teamNumber)}`
+      url: `/pages/scout/index?eventCode=${encodeURIComponent(eventCode)}&matchId=${encodeURIComponent(matchId)}&teamNumber=${encodeURIComponent(teamNumber)}`
     })
   }
 
@@ -73,7 +75,10 @@ export default function EntryDetail() {
     )
   }
 
-  const eventName = entry.eventCode ? findEvent(entry.eventCode).name : undefined
+  const event = findEvent(entryEventCode(entry))
+  // Only the current game's form exists, so past seasons' entries are view-only.
+  const editable = event.season === CURRENT_SEASON
+  const game = gameForEntry(entry)
 
   return (
     <View className='entry-detail-page'>
@@ -83,11 +88,11 @@ export default function EntryDetail() {
         <View className='header-card'>
           <View className='detail-header-row'>
             <Text className='detail-title'>{entry.matchId} · Team {entry.teamNumber}</Text>
-            <View className='edit-btn' onClick={goEdit}>✏️ Edit</View>
+            {editable && <View className='edit-btn' onClick={goEdit}>✏️ Edit</View>}
           </View>
           <Text className={`entry-alliance ${entry.alliance}`}>{entry.alliance}</Text>
 
-          {eventName && <DetailRow label='赛事 Event' value={eventName} />}
+          <DetailRow label='赛事 Event' value={`${event.name} · ${game.name}`} />
           <DetailRow
             label='侦查员 Scout'
             value={(entry.scoutedBy && names[entry.scoutedBy]) || entry.scoutName || '—'}
@@ -101,26 +106,14 @@ export default function EntryDetail() {
           <DetailRow label='更新时间 Updated' value={new Date(entry.updatedAt).toLocaleString()} />
         </View>
 
-        <View className='section-card'>
-          <Text className='section-title'>自动阶段 Auto</Text>
-          <DetailRow label='是否离开起始线 Left starting line' value={entry.auto.leftStart ? 'Yes' : 'No'} />
-          <DetailRow label='近点 Near scored' value={String(entry.auto.nearGoalsMade)} />
-          <DetailRow label='远点 Far scored' value={String(entry.auto.farGoalsMade)} />
-          <DetailRow label='备注 Notes' value={formatNotes(entry.auto.noteTags, entry.auto.noteText)} />
-        </View>
-
-        <View className='section-card'>
-          <Text className='section-title'>手动阶段 Teleop</Text>
-          <DetailRow label='近点 Near scored' value={String(entry.teleop.nearGoalsMade)} />
-          <DetailRow label='远点 Far scored' value={String(entry.teleop.farGoalsMade)} />
-          <DetailRow label='备注 Notes' value={formatNotes(entry.teleop.noteTags, entry.teleop.noteText)} />
-        </View>
-
-        <View className='section-card'>
-          <Text className='section-title'>终局阶段 Endgame</Text>
-          <DetailRow label='是否有抬升机构 Has lift mechanism' value={entry.endgame.hasLift ? 'Yes' : 'No'} />
-          <DetailRow label='停靠 Park status' value={parkStatusLabel(entry.endgame.parkStatus)} />
-        </View>
+        {game.detailSections(entry).map((section) => (
+          <View className='section-card' key={section.title}>
+            <Text className='section-title'>{section.title}</Text>
+            {section.rows.map((row) => (
+              <DetailRow key={row.label} label={row.label} value={row.value} />
+            ))}
+          </View>
+        ))}
 
         <View className='section-card'>
           <Text className='section-title'>总体备注 Overall notes</Text>

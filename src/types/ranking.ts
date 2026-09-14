@@ -26,17 +26,3 @@ export interface EventResultsData {
   eventName: string
   teams: EventTeamResult[]
 }
-
-export interface RankingBreakdown {
-  auto: number
-  teleop: number
-  endgame: number
-  consistency: number
-  defense: number
-}
-
-export interface RankedTeam {
-  team: EventTeamResult
-  breakdown: RankingBreakdown
-  compositeScore: number
-}

@@ -4,10 +4,10 @@ import Taro, { useLoad } from '@tarojs/taro'
 import AppHeader from '../../components/AppHeader'
 import {
   Alliance,
-  ParkStatus,
   AutoData,
   TeleopData,
   EndgameData,
+  BiobuzzEntry,
   emptyAuto,
   emptyTeleop,
   emptyEndgame,
@@ -19,19 +19,42 @@ import {
 } from '../../types/scouting'
 import { submitScoutEntry, fetchScoutEntry } from '../../supabase/scouting'
 import { useAuth } from '../../auth/AuthContext'
-import { CURRENT_EVENT_CODE } from '../../data/events'
+import { CURRENT_EVENT_CODE, CURRENT_SEASON, findEvent } from '../../data/events'
 import './index.scss'
 
-function NumberField({ label, value, onChange }: { label: string, value: number, onChange: (n: number) => void }) {
+// Tap-to-count, so a scout can keep their eyes on the robot instead of typing.
+function CounterField({ label, value, onChange }: { label: string, value: number, onChange: (n: number) => void }) {
   return (
     <View className='field-row'>
       <Text className='field-label'>{label}</Text>
-      <Input
-        className='field-input'
-        type='digit'
-        value={String(value)}
-        onInput={(e) => onChange(Number(e.detail.value) || 0)}
-      />
+      <View className='counter'>
+        <View
+          className={`counter-btn ${value === 0 ? 'disabled' : ''}`}
+          onClick={() => onChange(Math.max(0, value - 1))}
+        >
+          −
+        </View>
+        <Text className='counter-value'>{value}</Text>
+        <View className='counter-btn plus' onClick={() => onChange(value + 1)}>
+          +
+        </View>
+      </View>
+    </View>
+  )
+}
+
+function YesNoField({ label, value, onChange }: { label: string, value: boolean, onChange: (v: boolean) => void }) {
+  return (
+    <View className='field-row'>
+      <Text className='field-label'>{label}</Text>
+      <View className='pill-row'>
+        <View className={`pill ${value ? 'active' : ''}`} onClick={() => onChange(true)}>
+          Yes
+        </View>
+        <View className={`pill ${!value ? 'active' : ''}`} onClick={() => onChange(false)}>
+          No
+        </View>
+      </View>
     </View>
   )
 }
@@ -92,6 +115,7 @@ export default function Index() {
   const { userId, profile } = useAuth()
   const scoutName = profile ? profileLabel(profile) : ''
 
+  const [eventCode, setEventCode] = useState(CURRENT_EVENT_CODE)
   const [matchId, setMatchId] = useState('')
   const [teamNumber, setTeamNumber] = useState('')
   const [alliance, setAlliance] = useState<Alliance>('red')
@@ -103,7 +127,13 @@ export default function Index() {
 
   useLoad((options) => {
     console.log('Match scouting page loaded.')
-    // Deep-linked from a "My Scouting Data" entry's Edit button.
+    // Deep-linked from a "My Scouting Data" entry's Edit button. This form
+    // only knows the current game, so an older season's event is ignored
+    // rather than overwritten with BIOBUZZ-shaped data.
+    if (options?.eventCode) {
+      const code = decodeURIComponent(options.eventCode)
+      if (findEvent(code).code === code && findEvent(code).season === CURRENT_SEASON) setEventCode(code)
+    }
     if (options?.matchId) setMatchId(decodeURIComponent(options.matchId))
     if (options?.teamNumber) setTeamNumber(decodeURIComponent(options.teamNumber))
   })
@@ -132,24 +162,24 @@ export default function Index() {
   useEffect(() => {
     if (!matchId || !teamNumber || !userId) return
     const local =
-      Taro.getStorageSync(scoutBackupKey(userId, CURRENT_EVENT_CODE, matchId, teamNumber)) ||
-      Taro.getStorageSync(scoutEntryStorageKey(userId, CURRENT_EVENT_CODE, matchId, teamNumber))
+      Taro.getStorageSync(scoutBackupKey(userId, eventCode, matchId, teamNumber)) ||
+      Taro.getStorageSync(scoutEntryStorageKey(userId, eventCode, matchId, teamNumber))
     if (local) {
       applyLoaded(local)
       return
     }
     let cancelled = false
-    fetchScoutEntry(userId, CURRENT_EVENT_CODE, matchId, teamNumber).then((remote) => {
+    fetchScoutEntry(userId, eventCode, matchId, teamNumber).then((remote) => {
       if (!cancelled && remote) applyLoaded(remote)
     })
     return () => {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matchId, teamNumber, userId])
+  }, [eventCode, matchId, teamNumber, userId])
 
-  const currentEntry = () => ({
-    eventCode: CURRENT_EVENT_CODE,
+  const currentEntry = (): BiobuzzEntry => ({
+    eventCode,
     matchId,
     teamNumber,
     alliance,
@@ -172,11 +202,11 @@ export default function Index() {
   useEffect(() => {
     if (!matchId || !teamNumber || !userId) return
     Taro.setStorageSync(
-      scoutBackupKey(userId, CURRENT_EVENT_CODE, matchId, teamNumber),
+      scoutBackupKey(userId, eventCode, matchId, teamNumber),
       currentEntry()
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matchId, teamNumber, userId, alliance, scoutName, auto, teleop, endgame, overallNotes])
+  }, [eventCode, matchId, teamNumber, userId, alliance, scoutName, auto, teleop, endgame, overallNotes])
 
   const handleSubmit = () => {
     if (!matchId || !teamNumber) {
@@ -198,7 +228,7 @@ export default function Index() {
         const entry = currentEntry()
         // The local write always succeeds and keeps the data on this device.
         Taro.setStorageSync(
-          scoutEntryStorageKey(userId, CURRENT_EVENT_CODE, matchId, teamNumber),
+          scoutEntryStorageKey(userId, eventCode, matchId, teamNumber),
           entry
         )
 
@@ -244,6 +274,7 @@ export default function Index() {
 
       <View className='page-content'>
       <View className='header-card'>
+        <Text className='event-badge'>{findEvent(eventCode).name}</Text>
         <View className='two-col'>
           <TextField label='比赛场次 Match ID' value={matchId} onChange={setMatchId} placeholder='Q12' />
           <TextField label='队号 Team #' value={teamNumber} onChange={setTeamNumber} placeholder='417' />
@@ -268,29 +299,10 @@ export default function Index() {
       <View className='section-card'>
         <Text className='section-title'>自动阶段 Auto</Text>
 
-        <View className='field-row'>
-          <Text className='field-label'>是否离开起始线 Left starting line</Text>
-          <View className='pill-row'>
-            <View
-              className={`pill ${auto.leftStart ? 'active' : ''}`}
-              onClick={() => patchAuto({ leftStart: true })}
-            >
-              Yes
-            </View>
-            <View
-              className={`pill ${!auto.leftStart ? 'active' : ''}`}
-              onClick={() => patchAuto({ leftStart: false })}
-            >
-              No
-            </View>
-          </View>
-        </View>
-
-        <Text className='subsection-title'>进球 Goals scored</Text>
-        <View className='two-col'>
-          <NumberField label='近点 Near scored' value={auto.nearGoalsMade} onChange={(n) => patchAuto({ nearGoalsMade: n })} />
-          <NumberField label='远点 Far scored' value={auto.farGoalsMade} onChange={(n) => patchAuto({ farGoalsMade: n })} />
-        </View>
+        <YesNoField label='远离 Leave (离开场地边墙 off the wall)' value={auto.leave} onChange={(v) => patchAuto({ leave: v })} />
+        <CounterField label='射入蜂房 Balls into hive' value={auto.cellBalls} onChange={(n) => patchAuto({ cellBalls: n })} />
+        <CounterField label='联盟蜂巢翻转 Alliance hive tips (整个联盟 whole alliance)' value={auto.allianceTips} onChange={(n) => patchAuto({ allianceTips: n })} />
+        <YesNoField label='自动停泊装载区 Auto park in loading zone' value={auto.park} onChange={(v) => patchAuto({ park: v })} />
 
         <NoteMultiField tags={auto.noteTags} text={auto.noteText} onChange={patchAuto} />
       </View>
@@ -298,11 +310,12 @@ export default function Index() {
       <View className='section-card'>
         <Text className='section-title'>手动阶段 Teleop</Text>
 
-        <Text className='subsection-title'>进球 Goals scored</Text>
+        <Text className='subsection-title'>射入蜂房 Balls into hive</Text>
         <View className='two-col'>
-          <NumberField label='近点 Near scored' value={teleop.nearGoalsMade} onChange={(n) => patchTeleop({ nearGoalsMade: n })} />
-          <NumberField label='远点 Far scored' value={teleop.farGoalsMade} onChange={(n) => patchTeleop({ farGoalsMade: n })} />
+          <CounterField label='花粉 Pollen' value={teleop.cellPollen} onChange={(n) => patchTeleop({ cellPollen: n })} />
+          <CounterField label='花蜜 Nectar' value={teleop.cellNectar} onChange={(n) => patchTeleop({ cellNectar: n })} />
         </View>
+        <CounterField label='联盟蜂巢翻转 Alliance hive tips (整个联盟 whole alliance)' value={teleop.allianceTips} onChange={(n) => patchTeleop({ allianceTips: n })} />
 
         <NoteMultiField tags={teleop.noteTags} text={teleop.noteText} onChange={patchTeleop} />
       </View>
@@ -310,38 +323,12 @@ export default function Index() {
       <View className='section-card'>
         <Text className='section-title'>终局阶段 Endgame</Text>
 
-        <View className='field-row'>
-          <Text className='field-label'>是否有抬升机构 Has lift mechanism</Text>
-          <View className='pill-row'>
-            <View
-              className={`pill ${endgame.hasLift ? 'active' : ''}`}
-              onClick={() => patchEndgame({ hasLift: true })}
-            >
-              Yes
-            </View>
-            <View
-              className={`pill ${!endgame.hasLift ? 'active' : ''}`}
-              onClick={() => patchEndgame({ hasLift: false })}
-            >
-              No
-            </View>
-          </View>
+        <Text className='subsection-title'>放入花朵 Balls into flowers</Text>
+        <View className='two-col'>
+          <CounterField label='花粉 Pollen' value={endgame.flowerPollen} onChange={(n) => patchEndgame({ flowerPollen: n })} />
+          <CounterField label='花蜜 Nectar' value={endgame.flowerNectar} onChange={(n) => patchEndgame({ flowerNectar: n })} />
         </View>
-
-        <View className='field-row'>
-          <Text className='field-label'>停靠 Park status</Text>
-          <View className='pill-row'>
-            {(['none', 'partial', 'full'] as ParkStatus[]).map((status) => (
-              <View
-                key={status}
-                className={`pill ${endgame.parkStatus === status ? 'active' : ''}`}
-                onClick={() => patchEndgame({ parkStatus: status })}
-              >
-                {status === 'none' ? '未停靠' : status === 'partial' ? '半停' : '全停'}
-              </View>
-            ))}
-          </View>
-        </View>
+        <YesNoField label='停泊装载区 Park in loading zone' value={endgame.park} onChange={(v) => patchEndgame({ park: v })} />
       </View>
 
       <View className='section-card'>

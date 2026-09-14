@@ -22,7 +22,7 @@ export default function Home() {
         <View className='home-header'>
           <Text className='home-title'>FTC Scouting</Text>
           <Text className='home-subtitle'>
-            DECODE 2025-2026{profile ? ` · ${profileLabel(profile)}` : ''}
+            BIOBUZZ 2026-2027{profile ? ` · ${profileLabel(profile)}` : ''}
           </Text>
         </View>
 
