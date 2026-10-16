@@ -59,12 +59,13 @@ function YesNoField({ label, value, onChange }: { label: string, value: boolean,
   )
 }
 
-function TextField({ label, value, onChange, placeholder }: { label: string, value: string, onChange: (s: string) => void, placeholder?: string }) {
+function TextField({ label, value, onChange, placeholder, numeric = false }: { label: string, value: string, onChange: (s: string) => void, placeholder?: string, numeric?: boolean }) {
   return (
     <View className='field-row'>
       <Text className='field-label'>{label}</Text>
       <Input
         className='field-input'
+        type={numeric ? 'number' : 'text'}
         value={value}
         placeholder={placeholder}
         // @ts-expect-error h5-only DOM attribute, prevents browser autofill from injecting saved values
@@ -276,7 +277,16 @@ export default function Index() {
       <View className='header-card'>
         <Text className='event-badge'>{findEvent(eventCode).name}</Text>
         <View className='two-col'>
-          <TextField label='比赛场次 Match ID' value={matchId} onChange={setMatchId} placeholder='Q12' />
+          <TextField
+            label='比赛场次 Match #'
+            value={matchId.replace(/^Q/i, '')}
+            onChange={(value) => {
+              const number = value.replace(/\D/g, '')
+              setMatchId(number ? `Q${number}` : '')
+            }}
+            placeholder='12'
+            numeric
+          />
           <TextField label='队号 Team #' value={teamNumber} onChange={setTeamNumber} placeholder='417' />
         </View>
         <View className='field-row'>
@@ -317,18 +327,14 @@ export default function Index() {
         </View>
         <CounterField label='联盟蜂巢翻转 Alliance hive tips (整个联盟 whole alliance)' value={teleop.allianceTips} onChange={(n) => patchTeleop({ allianceTips: n })} />
 
-        <NoteMultiField tags={teleop.noteTags} text={teleop.noteText} onChange={patchTeleop} />
-      </View>
-
-      <View className='section-card'>
-        <Text className='section-title'>终局阶段 Endgame</Text>
-
         <Text className='subsection-title'>放入花朵 Balls into flowers</Text>
         <View className='two-col'>
           <CounterField label='花粉 Pollen' value={endgame.flowerPollen} onChange={(n) => patchEndgame({ flowerPollen: n })} />
           <CounterField label='花蜜 Nectar' value={endgame.flowerNectar} onChange={(n) => patchEndgame({ flowerNectar: n })} />
         </View>
         <YesNoField label='停泊装载区 Park in loading zone' value={endgame.park} onChange={(v) => patchEndgame({ park: v })} />
+
+        <NoteMultiField tags={teleop.noteTags} text={teleop.noteText} onChange={patchTeleop} />
       </View>
 
       <View className='section-card'>
@@ -346,7 +352,7 @@ export default function Index() {
       <Text className='save-hint'>
         {matchId && teamNumber
           ? '已自动备份 Auto-saved as backup ✓ · 提交后才会进入数据列表 submit to add to My Scouting Data'
-          : 'Enter Match ID and Team # to start'}
+          : 'Enter Match # and Team # to start'}
       </Text>
 
       <View
