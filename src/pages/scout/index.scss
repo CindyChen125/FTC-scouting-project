@@ -47,7 +47,36 @@
   padding: 16px;
   font-size: calc(26px * var(--font-scale));
   min-height: 120px;
-  width: auto;
+  width: 100%;
+  box-sizing: border-box;
+  border: 2px solid var(--color-border);
+  color-scheme: inherit;
+
+  textarea {
+    background: transparent;
+    color: inherit;
+    font: inherit;
+  }
+}
+
+.counter-shortcuts {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+
+  button {
+    margin: 0;
+    background: var(--color-input-bg);
+    color: var(--color-text);
+  }
+}
+
+@media (min-width: 900px) {
+  .scout-page .page-content {
+    max-width: 760px; /* px */
+    margin-inline: auto;
+  }
 }
 
 .chip-row {

@@ -2,6 +2,7 @@ import { PropsWithChildren } from 'react'
 import { useLaunch } from '@tarojs/taro'
 import { ThemeProvider } from './theme/ThemeContext'
 import { AuthProvider } from './auth/AuthContext'
+import { LanguageProvider } from './i18n/LanguageContext'
 
 import './app.scss'
 
@@ -12,9 +13,9 @@ function App({ children }: PropsWithChildren<any>) {
 
   // children 是将要会渲染的页面
   return (
-    <AuthProvider>
+    <LanguageProvider><AuthProvider>
       <ThemeProvider>{children}</ThemeProvider>
-    </AuthProvider>
+    </AuthProvider></LanguageProvider>
   )
 }
 

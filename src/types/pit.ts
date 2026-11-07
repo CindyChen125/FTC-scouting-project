@@ -2,6 +2,8 @@
 // between matches. One profile per team per event (robots change between
 // events). BIOBUZZ 2026-2027 questions.
 
+import { translate as t } from '../i18n'
+
 export type Drivetrain = 'mecanum' | 'tank' | 'swerve' | 'other'
 export type BallCapability = 'pollen' | 'nectar' | 'both' | 'none'
 export type AutoAction = 'leave' | 'preload' | 'tip' | 'park'
@@ -9,6 +11,7 @@ export type PitRole = 'hive' | 'flowers' | 'defense' | 'flexible'
 
 // '' / null = not answered yet, which is different from answering "none".
 export interface PitData {
+  photoPath?: string
   drivetrain: Drivetrain | ''
   hiveBalls: BallCapability | ''
   flowerBalls: BallCapability | ''
@@ -68,13 +71,13 @@ export const ROLE_OPTIONS: { value: PitRole; label: string }[] = [
 ]
 
 export const optionLabel = <T extends string>(options: { value: T; label: string }[], value: T | '') =>
-  options.find((o) => o.value === value)?.label ?? '—'
+  t(options.find((o) => o.value === value)?.label ?? '—')
 
 export const formatPitAuto = (actions: AutoAction[]) =>
-  actions.length === 0 ? '—' : actions.map((a) => optionLabel(AUTO_OPTIONS, a)).join('、')
+  actions.length === 0 ? '—' : actions.map((a) => optionLabel(AUTO_OPTIONS, a)).join(' · ')
 
 export const formatColorSort = (value: boolean | null) =>
-  value === null ? '—' : value ? '能 Yes' : '不能 No'
+  value === null ? '—' : t(value ? '能 Yes' : '不能 No')
 
 // Same namespacing as match entries: per user (shared phones) and per event.
 export const pitEntryStorageKey = (userId: string, eventCode: string, teamNumber: string) =>

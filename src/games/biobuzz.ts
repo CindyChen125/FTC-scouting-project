@@ -30,7 +30,7 @@ export const biobuzzView: GameView<BiobuzzEntry> = {
     { label: 'Hive balls', value: String(hiveBalls(e)) },
     { label: 'Flower balls', value: String(flowerBalls(e)) },
     { label: 'Alliance tips', value: String(allianceTips(e)) },
-    { label: 'Park', value: e.endgame.park ? 'Yes' : 'No' }
+    { label: 'Park', value: yesNo(e.endgame.park) }
   ],
 
   detailSections: (e) => [
@@ -50,6 +50,8 @@ export const biobuzzView: GameView<BiobuzzEntry> = {
         { label: '花粉射入蜂房 Pollen into hive', value: String(e.teleop.cellPollen) },
         { label: '花蜜射入蜂房 Nectar into hive', value: String(e.teleop.cellNectar) },
         { label: '联盟蜂巢翻转 Alliance hive tips', value: String(e.teleop.allianceTips) },
+        { label: '全场小犯规 Match minor fouls', value: String(e.teleop.minorFouls ?? '—') },
+        { label: '全场大犯规 Match major fouls', value: String(e.teleop.majorFouls ?? '—') },
         { label: '备注 Notes', value: formatNotes(e.teleop.noteTags, e.teleop.noteText) }
       ]
     },
@@ -72,6 +74,8 @@ export const biobuzzView: GameView<BiobuzzEntry> = {
     'Teleop: Pollen Into Hive': e.teleop.cellPollen,
     'Teleop: Nectar Into Hive': e.teleop.cellNectar,
     'Teleop: Alliance Tips': e.teleop.allianceTips,
+    'Match: Minor Fouls': e.teleop.minorFouls ?? '',
+    'Match: Major Fouls': e.teleop.majorFouls ?? '',
     'Teleop: Notes': formatNotes(e.teleop.noteTags, e.teleop.noteText),
     'Endgame: Pollen Into Flowers': e.endgame.flowerPollen,
     'Endgame: Nectar Into Flowers': e.endgame.flowerNectar,

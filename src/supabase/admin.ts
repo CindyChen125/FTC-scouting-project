@@ -1,5 +1,6 @@
 import { supabase, SUPABASE_URL } from './config'
 import { Profile, UserRole } from '../types/scouting'
+import { translate as t } from '../i18n'
 
 const FUNCTION_URL = `${SUPABASE_URL}/functions/v1/admin-users`
 
@@ -21,7 +22,7 @@ async function callAdminFunction(action: string, args: Record<string, unknown> =
   })
 
   const body = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(body?.error || `Request failed (${res.status})`)
+  if (!res.ok) throw new Error(body?.error || t('requestFailed', { status: res.status }))
   return body
 }
 

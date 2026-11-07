@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx'
+import { translate as t, dateTime } from '../i18n'
 import { MatchScoutEntry } from '../types/scouting'
 import { gameForEntry } from '../games'
 import {
@@ -19,13 +20,14 @@ const fileStem = (eventName: string) => {
 // Writes rows to a downloaded .xlsx, sizing each column to its header or
 // longest value, within reason.
 function writeWorkbook(rows: Record<string, string | number>[], sheetName: string, fileName: string) {
+  rows = rows.map((row) => Object.fromEntries(Object.entries(row).map(([key, value]) => [t(key), value])))
   const worksheet = XLSX.utils.json_to_sheet(rows)
   const headers = rows.length > 0 ? Object.keys(rows[0]) : []
   worksheet['!cols'] = headers.map((h) => ({
     wch: Math.min(40, Math.max(8, h.length + 2, ...rows.map((r) => String(r[h] ?? '').length + 2)))
   }))
   const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
+  XLSX.utils.book_append_sheet(workbook, worksheet, t(sheetName).replace(/[\/\\?*\[\]:]/g, ' ').slice(0, 31))
   XLSX.writeFile(workbook, `${fileName}.xlsx`)
 }
 
@@ -41,11 +43,11 @@ export function exportEntriesToExcel(
   const rows = entries.map((e) => ({
     'Match ID': e.matchId,
     'Team #': e.teamNumber,
-    'Alliance': e.alliance,
+    'Alliance': t(e.alliance === 'red' ? 'Red' : 'Blue'),
     'Scout': (e.scoutedBy && names[e.scoutedBy]) || e.scoutName || '',
     'Edited By':
       e.lastEditedBy && e.lastEditedBy !== e.scoutedBy ? names[e.lastEditedBy] || '' : '',
-    'Updated': new Date(e.updatedAt).toLocaleString(),
+    'Updated': dateTime(e.updatedAt),
     ...gameForEntry(e).exportColumns(e),
     'Overall Notes': e.overallNotes || ''
   }))
@@ -62,7 +64,7 @@ export function exportPitToExcel(
   const rows = entries.map((e) => ({
     'Team #': e.teamNumber,
     'Scout': (e.scoutedBy && names[e.scoutedBy]) || e.scoutName || '',
-    'Updated': new Date(e.updatedAt).toLocaleString(),
+    'Updated': dateTime(e.updatedAt),
     'Drivetrain': optionLabel(DRIVETRAIN_OPTIONS, e.data.drivetrain),
     'Shoots Into Hive': optionLabel(BALL_OPTIONS, e.data.hiveBalls),
     'Scores Flowers': optionLabel(BALL_OPTIONS, e.data.flowerBalls),

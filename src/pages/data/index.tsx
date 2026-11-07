@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { View, Text, Input } from '@tarojs/components'
+import { View, Text, Input, Picker, Button } from '@tarojs/components'
 import Taro from '@tarojs/taro'
+import { translate as t, dateTime } from '../../i18n'
+import { useLanguage } from '../../i18n/LanguageContext'
 import AppHeader from '../../components/AppHeader'
 import RangeSlider from '../../components/RangeSlider'
 import { BiobuzzEntry, MatchScoutEntry } from '../../types/scouting'
@@ -23,7 +25,9 @@ import {
   RankingModel,
   RankingWeights
 } from '../../utils/ranking'
-import { EVENTS, CURRENT_EVENT_CODE, CURRENT_SEASON, findEvent, entryEventCode } from '../../data/events'
+import { EVENTS, CURRENT_EVENT_CODE, CURRENT_SEASON, findEvent, eventLabel, entryEventCode } from '../../data/events'
+import { readImportedEvents, syncImportedEvents } from '../../data/ftcScout'
+import { officialOpr } from '../../utils/officialOpr'
 import { gameForEntry } from '../../games'
 import { useAuth } from '../../auth/AuthContext'
 import { fetchProfiles } from '../../supabase/admin'
@@ -35,9 +39,9 @@ type MainTab = 'mine' | 'rankings' | 'pit'
 // One line of what a team told us in the pits, for ranking cards.
 const pitSummary = (p: PitEntry) =>
   [
-    `蜂巢 Hive: ${optionLabel(BALL_OPTIONS, p.data.hiveBalls)}`,
-    `花朵 Flowers: ${optionLabel(BALL_OPTIONS, p.data.flowerBalls)}`,
-    `角色 Role: ${optionLabel(ROLE_OPTIONS, p.data.role)}`
+    `${t('蜂巢 Hive')}: ${optionLabel(BALL_OPTIONS, p.data.hiveBalls)}`,
+    `${t('花朵 Flowers')}: ${optionLabel(BALL_OPTIONS, p.data.flowerBalls)}`,
+    `${t('角色 Role:')} ${optionLabel(ROLE_OPTIONS, p.data.role)}`
   ].join(' · ')
 
 const meanOf = (breakdown: Record<string, number>, factors: string[]) =>
@@ -50,6 +54,7 @@ const loadStoredWeights = (model: RankingModel): RankingWeights => {
 }
 
 export default function CurrentData() {
+  const { language } = useLanguage()
   const { userId } = useAuth()
   const [mainTab, setMainTab] = useState<MainTab>('mine')
   const [entries, setEntries] = useState<MatchScoutEntry[]>([])
@@ -62,7 +67,27 @@ export default function CurrentData() {
   // rank by the average of those factors' scores.
   const [selectedFactors, setSelectedFactors] = useState<string[]>([])
   const [eventCode, setEventCode] = useState(CURRENT_EVENT_CODE)
-  const rankingModel = modelForSeason(findEvent(eventCode).season)
+  const [importedEvents, setImportedEvents] = useState(readImportedEvents)
+  useEffect(() => {
+    if (!userId) return
+    let active = true
+    syncImportedEvents().then((events) => { if (active) setImportedEvents(events) }).catch(() => {})
+    return () => { active = false }
+  }, [userId])
+  const eventOptions = [...new Set([
+    ...EVENTS.map((event) => event.code),
+    ...importedEvents.map((event) => event.code),
+    ...entries.map(entryEventCode),
+    ...pitEntries.map((entry) => entry.eventCode)
+  ])].map(findEvent)
+  const schedule = importedEvents.find((event) => event.code === eventCode)?.matches
+  const opr = useMemo(() => officialOpr(schedule ?? []), [schedule])
+  const [comparison, setComparison] = useState({ eventCode: '', left: '', right: '' })
+  const [partnerTeam, setPartnerTeam] = useState({ eventCode: '', number: '' })
+  const baseModel = modelForSeason(findEvent(eventCode).season)
+  const rankingModel = useMemo(() => opr.size && baseModel === modelForSeason(CURRENT_SEASON)
+    ? { ...baseModel, factors: [...baseModel.factors, { key: 'officialOpr', label: 'Official score OPR' }] }
+    : baseModel, [baseModel, opr.size])
   const [weights, setWeights] = useState<RankingWeights>(() => loadStoredWeights(rankingModel))
   const [eventPickerOpen, setEventPickerOpen] = useState(false)
   // user id -> display name, so entries show who really scouted them even
@@ -178,8 +203,13 @@ export default function CurrentData() {
     () =>
       selectedEvent.results
         ? decodeRows(selectedEvent.results.teams)
-        : biobuzzRows(eventEntries as BiobuzzEntry[]),
-    [selectedEvent, eventEntries]
+        : biobuzzRows(eventEntries as BiobuzzEntry[]).map((row) => ({
+          ...row,
+          raw: { ...row.raw, ...(opr.has(row.number) ? { officialOpr: opr.get(row.number)! } : {}) }
+        })),
+    // Row summaries are translated when constructed; refresh them on language changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedEvent, eventEntries, opr, language]
   )
 
   const rankedTeams = useMemo(() => {
@@ -203,23 +233,23 @@ export default function CurrentData() {
 
   return (
     <View className='data-page'>
-      <AppHeader title='Current Data' showBack onSearch={() => setSearchOpen((open) => !open)} />
+      <AppHeader title={t("Current Data")} showBack onSearch={() => setSearchOpen((open) => !open)} />
 
       <View className='page-content'>
         <View className='event-selector'>
           <View className='event-selector-header' onClick={() => setEventPickerOpen((open) => !open)}>
-            <Text className='event-selector-name'>{selectedEvent.name}</Text>
+            <Text className='event-selector-name'>{eventLabel(selectedEvent)}</Text>
             <Text className='event-selector-arrow'>{eventPickerOpen ? '▴' : '▾'}</Text>
           </View>
           {eventPickerOpen && (
             <View className='event-selector-list'>
-              {EVENTS.map((ev) => (
+              {eventOptions.map((ev) => (
                 <View
                   key={ev.code}
                   className={`event-selector-option ${ev.code === eventCode ? 'active' : ''}`}
                   onClick={() => selectEvent(ev.code)}
                 >
-                  {ev.name}
+                  {eventLabel(ev)}
                 </View>
               ))}
             </View>
@@ -227,15 +257,9 @@ export default function CurrentData() {
         </View>
 
         <View className='tab-bar'>
-          <View className={`tab-item ${mainTab === 'mine' ? 'active' : ''}`} onClick={() => setMainTab('mine')}>
-            My Scouting Data
-          </View>
-          <View className={`tab-item ${mainTab === 'rankings' ? 'active' : ''}`} onClick={() => setMainTab('rankings')}>
-            Rankings
-          </View>
-          <View className={`tab-item ${mainTab === 'pit' ? 'active' : ''}`} onClick={() => setMainTab('pit')}>
-            Pit
-          </View>
+          <View className={`tab-item ${mainTab === 'mine' ? 'active' : ''}`} onClick={() => setMainTab('mine')}>{t("My Scouting Data")}</View>
+          <View className={`tab-item ${mainTab === 'rankings' ? 'active' : ''}`} onClick={() => setMainTab('rankings')}>{t("Rankings")}</View>
+          <View className={`tab-item ${mainTab === 'pit' ? 'active' : ''}`} onClick={() => setMainTab('pit')}>{t("Pit")}</View>
         </View>
 
         {searchOpen && (
@@ -244,10 +268,10 @@ export default function CurrentData() {
             value={query}
             placeholder={
               mainTab === 'mine'
-                ? 'Search by match or team #'
+                ? t("Search by match or team #")
                 : mainTab === 'pit'
-                  ? 'Search by team #'
-                  : 'Search by team # or name'
+                  ? t("Search by team #")
+                  : t("Search by team # or name")
             }
             // @ts-expect-error h5-only DOM attribute, prevents browser autofill from injecting saved values
             autoComplete='off'
@@ -258,10 +282,8 @@ export default function CurrentData() {
         {mainTab === 'mine' && (
           <>
             {syncError && (
-              <Text className='sync-error'>
-                ⚠️ Can't reach the shared database — showing this device's data only.
-                {queued > 0
-                  ? ` ${queued} submitted ${queued === 1 ? 'entry is' : 'entries are'} saved and will upload automatically once you're back online.`
+              <Text className='sync-error'>{t("⚠️ Can't reach the shared database — showing this device's data only.")}{queued > 0
+                  ? ` ${t('queuedEntries', { count: queued })}`
                   : ''}
               </Text>
             )}
@@ -270,47 +292,45 @@ export default function CurrentData() {
               <View
                 className='export-btn'
                 onClick={() => exportEntriesToExcel(visibleEntries, selectedEvent.name, names)}
-              >
-                ⬇️ Export to Excel ({visibleEntries.length})
+              >{t('Export to Excel')} ({visibleEntries.length})
               </View>
             )}
 
             {visibleEntries.length === 0 && (
               <Text className='empty-state'>
                 {entries.length === 0
-                  ? 'No scouting data saved yet.'
+                  ? t("No scouting data saved yet.")
                   : eventEntries.length === 0
-                    ? `No scouting data for ${selectedEvent.name} yet.`
-                    : 'No entries match your search.'}
+                    ? t('noEventEntries', { event: eventLabel(selectedEvent) })
+                    : t("No entries match your search.")}
               </Text>
             )}
 
             {visibleEntries.map((entry) => (
               <View
                 className='entry-card'
-                key={`${entry.matchId}-${entry.teamNumber}`}
+                key={`${entry.matchId}-${entry.teamNumber}-${entry.observationKey ?? entry.scoutedBy ?? 'legacy'}`}
                 onClick={() =>
                   Taro.navigateTo({
-                    url: `/pages/entry/index?eventCode=${encodeURIComponent(entryEventCode(entry))}&matchId=${encodeURIComponent(entry.matchId)}&teamNumber=${encodeURIComponent(entry.teamNumber)}`
+                    url: `/pages/entry/index?eventCode=${encodeURIComponent(entryEventCode(entry))}&matchId=${encodeURIComponent(entry.matchId)}&teamNumber=${encodeURIComponent(entry.teamNumber)}&observationKey=${encodeURIComponent(entry.observationKey ?? entry.scoutedBy ?? 'legacy')}`
                   })
                 }
               >
                 <View className='entry-header'>
-                  <Text className='entry-title'>{entry.matchId} · Team {entry.teamNumber}</Text>
-                  <Text className={`entry-alliance ${entry.alliance}`}>{entry.alliance}</Text>
+                  <Text className='entry-title'>{entry.matchId} · {t('teamNumber', { number: entry.teamNumber })}</Text>
+                  <Text className={`entry-alliance ${entry.alliance}`}>{t(entry.alliance === 'red' ? 'Red' : 'Blue')}</Text>
                 </View>
-                <Text className='entry-meta'>
-                  Scout: {(entry.scoutedBy && names[entry.scoutedBy]) || entry.scoutName || '—'}
+                <Text className='entry-meta'>{t("Scout:")} {(entry.scoutedBy && names[entry.scoutedBy]) || entry.scoutName || '—'}
                   {entry.lastEditedBy && entry.lastEditedBy !== entry.scoutedBy
-                    ? ` · edited by ${names[entry.lastEditedBy] || '—'}`
+                    ? t('editedBy', { name: names[entry.lastEditedBy] || '—' })
                     : ''}
                 </Text>
-                <Text className='entry-meta'>Updated: {new Date(entry.updatedAt).toLocaleString()}</Text>
+                <Text className='entry-meta'>{t("Updated:")} {dateTime(entry.updatedAt)}</Text>
 
                 <View className='entry-stats'>
                   {gameForEntry(entry).cardStats(entry).map((stat) => (
-                    <View className='entry-stat' key={stat.label}>
-                      <Text className='entry-stat-label'>{stat.label}</Text>
+                    <View className='entry-stat' key={t(stat.label)}>
+                      <Text className='entry-stat-label'>{t(stat.label)}</Text>
                       <Text className='entry-stat-value'>{stat.value}</Text>
                     </View>
                   ))}
@@ -322,48 +342,124 @@ export default function CurrentData() {
 
         {mainTab === 'rankings' && (
           <>
+            {selectedEvent.season === CURRENT_SEASON && rankRows.length > 1 && (() => {
+              const own = partnerTeam.eventCode === eventCode ? rankRows.find((row) => row.number === partnerTeam.number) : undefined
+              const dimensions = ['hive', 'auto', 'flowers', 'park']
+              const weakest = own && dimensions
+                .map((key) => ({
+                  key,
+                  relative: rankRows.filter((row) => row.raw[key] < own.raw[key]).length / (rankRows.length - 1),
+                  spread: rankRows.some((row) => row.raw[key] !== own.raw[key])
+                }))
+                .filter(({ spread }) => spread)
+                .sort((a, b) => a.relative - b.relative)[0]?.key
+              const label = baseModel.factors.find((factor) => factor.key === weakest)?.label
+              const suggestions = weakest && own ? rankRows.filter((row) => row.number !== own.number && row.raw[weakest] > own.raw[weakest])
+                .sort((a, b) => b.raw[weakest] - a.raw[weakest]).slice(0, 3) : []
+              return (
+                <View className='weights-panel'>
+                  <Text className='weights-panel-title'>{t("搭档推荐 Partner finder")}</Text>
+                  <Picker textProps={{ okText: t('Confirm'), cancelText: t('Cancel') }} mode='selector' range={rankRows.map((row) => row.title)}
+                    onChange={(e) => {
+                      const row = rankRows[Number(e.detail.value)]
+                      if (row) setPartnerTeam({ eventCode, number: row.number })
+                    }}
+                  >
+                    <Button size='mini'>{own ? t('ourRobot', { team: own.title }) : t("选择我方队伍 Choose our team")}</Button>
+                  </Picker>
+                  {own && (suggestions.length > 0
+                    ? <Text>{t('strengthen', { factor: t(label ?? ''), teams: suggestions.map((row) => row.title).join(' · ') })}</Text>
+                    : <Text>{t("No clear complementary match from current scouting.")}</Text>)}
+                </View>
+              )
+            })()}
+            {schedule && (
+              <View className='weights-panel'>
+                <Text className='weights-panel-title'>{t("官方比分 Official results")}</Text>
+                {schedule.filter((match) => match.redScore !== undefined && match.blueScore !== undefined).map((match) => (
+                  <View className='weight-row-head' key={match.number}>
+                    <Text>Q{match.number}</Text>
+                    <Text>{t('allianceScore', { red: match.redScore!, blue: match.blueScore! })}</Text>
+                  </View>
+                ))}
+                {!schedule.some((match) => match.redScore !== undefined) && <Text>{t("No posted scores yet. Refresh the import in Start Scouting.")}</Text>}
+              </View>
+            )}
             <View className='rankings-header'>
               <Text className='rankings-event-meta'>
                 {selectedEvent.results
-                  ? `Quals results · ${rankRows.length} teams`
-                  : `From our scouting · ${rankRows.length} teams · ${eventEntries.length} entries`}
+                  ? t('qualificationTeams', { teams: rankRows.length })
+                  : t('scoutedTeams', { teams: rankRows.length, entries: eventEntries.length })}
               </Text>
             </View>
+
+            {rankRows.length >= 2 && (() => {
+              const choices = [...rankRows].sort((a, b) => Number(a.number) - Number(b.number))
+              const selected = comparison.eventCode === eventCode ? comparison : { left: '', right: '' }
+              const left = choices.find((row) => row.number === selected.left)
+              const right = choices.find((row) => row.number === selected.right)
+              return (
+                <View className='weights-panel'>
+                  <Text className='weights-panel-title'>{t("队伍对比 Compare teams")}</Text>
+                  <View className='comparison-grid'>
+                    <Text>{t("指标 Metric")}</Text>
+                    {(['left', 'right'] as const).map((side) => (
+                      <Picker key={side} textProps={{ okText: t('Confirm'), cancelText: t('Cancel') }} mode='selector' range={choices.map((row) => row.title)}
+                        onChange={(e) => {
+                          const choice = choices[Number(e.detail.value)]
+                          if (choice) setComparison({ ...selected, eventCode, [side]: choice.number })
+                        }}
+                      >
+                        <Button size='mini'>{selected[side] ? t('teamNumber', { number: selected[side] }) : side === 'left' ? t("Team A") : t("Team B")}</Button>
+                      </Picker>
+                    ))}
+                    {left && right && left.number !== right.number && rankingModel.factors.map((factor) => (
+                      <View key={factor.key} className='comparison-row'>
+                        <Text>{t(factor.label)}</Text>
+                        {[left, right].map((row) => (
+                          <Text key={row.number}>{factor.key === 'reliability'
+                            ? `${(row.raw[factor.key] * 100).toFixed(0)}%`
+                            : row.raw[factor.key]?.toFixed(1) ?? '—'}</Text>
+                        ))}
+                      </View>
+                    ))}
+                  </View>
+                  {left && right && left.number === right.number && <Text>{t("请选择两支不同队伍 Choose two different teams.")}</Text>}
+                </View>
+              )
+            })()}
 
             <View className='mode-bar'>
               <View
                 className={`mode-item ${isOverall ? 'active' : ''}`}
                 onClick={() => setSelectedFactors([])}
-              >
-                Overall
-              </View>
+              >{t("Overall")}</View>
               {rankingModel.factors.map((f) => (
                 <View
                   key={f.key}
                   className={`mode-item ${selectedFactors.includes(f.key) ? 'active' : ''}`}
                   onClick={() => toggleFactor(f.key)}
                 >
-                  {f.label}
+                  {t(f.label)}
                 </View>
               ))}
             </View>
 
             {!isOverall && (
-              <Text className='mode-hint'>
-                Ranking by average of: {selectedFactors.map((f) => rankingModel.factors.find((x) => x.key === f)?.label ?? f).join(' · ')}
+              <Text className='mode-hint'>{t("Ranking by average of:")} {selectedFactors.map((f) => t(rankingModel.factors.find((x) => x.key === f)?.label ?? f)).join(' · ')}
               </Text>
             )}
 
             {isOverall && (
               <View className='weights-panel'>
                 <View className='weights-panel-head'>
-                  <Text className='weights-panel-title'>Adjust weights</Text>
-                  <Text className='weights-reset' onClick={resetWeights}>Reset</Text>
+                  <Text className='weights-panel-title'>{t("Adjust weights")}</Text>
+                  <Text className='weights-reset' onClick={resetWeights}>{t("Reset")}</Text>
                 </View>
                 {rankingModel.factors.map((f) => (
                   <View className='weight-row' key={f.key}>
                     <View className='weight-row-head'>
-                      <Text className='weight-label'>{f.label}</Text>
+                      <Text className='weight-label'>{t(f.label)}</Text>
                       <Text className='weight-value'>{weightPercent(f.key)}%</Text>
                     </View>
                     <RangeSlider
@@ -375,17 +471,15 @@ export default function CurrentData() {
                     />
                   </View>
                 ))}
-                <Text className='weights-note'>
-                  Sliders are relative to each other — percentages shown are each factor's share of the total, so they always add up to 100%.
-                </Text>
+                <Text className='weights-note'>{t("Sliders are relative to each other — percentages shown are each factor's share of the total, so they always add up to 100%.")}</Text>
               </View>
             )}
 
             {visibleRankedTeams.length === 0 && (
               <Text className='empty-state'>
                 {rankRows.length === 0
-                  ? 'No scouting data for this event yet — rankings appear once matches are submitted.'
-                  : 'No teams match your search.'}
+                  ? t("No scouting data for this event yet — rankings appear once matches are submitted.")
+                  : t("No teams match your search.")}
               </Text>
             )}
 
@@ -396,8 +490,9 @@ export default function CurrentData() {
                   <View className='team-header-text'>
                     <Text className='team-title'>{rt.row.title}</Text>
                     <Text className='team-meta'>{rt.row.meta}</Text>
+                    {opr.has(rt.row.number) && <Text className='team-meta'>{t("Official score OPR:")} {opr.get(rt.row.number)?.toFixed(1)}</Text>}
                     {pitByTeam.has(rt.row.number) && (
-                      <Text className='team-meta'>🔧 {pitSummary(pitByTeam.get(rt.row.number)!)}</Text>
+                      <Text className='team-meta'>{t("Pit ·")}{pitSummary(pitByTeam.get(rt.row.number)!)}</Text>
                     )}
                   </View>
                   <Text className='team-score'>{scoreFor(rt).toFixed(1)}</Text>
@@ -406,7 +501,7 @@ export default function CurrentData() {
                 <View className='team-breakdown'>
                   {rankingModel.factors.map((f) => (
                     <View className={`breakdown-row ${selectedFactors.includes(f.key) ? 'highlight' : ''}`} key={f.key}>
-                      <Text className='breakdown-label'>{f.label}</Text>
+                      <Text className='breakdown-label'>{t(f.label)}</Text>
                       <View className='breakdown-bar-track'>
                         <View className='breakdown-bar-fill' style={{ width: `${rt.breakdown[f.key]}%` }} />
                       </View>
@@ -421,23 +516,22 @@ export default function CurrentData() {
         {mainTab === 'pit' && (
           <>
             {selectedEvent.season !== CURRENT_SEASON ? (
-              <Text className='empty-state'>Pit scouting started with BIOBUZZ — none for this event.</Text>
+              <Text className='empty-state'>{t("Pit scouting started with BIOBUZZ — none for this event.")}</Text>
             ) : (
               <>
                 {visiblePitEntries.length > 0 && (
                   <View
                     className='export-btn'
                     onClick={() => exportPitToExcel(visiblePitEntries, selectedEvent.name, names)}
-                  >
-                    ⬇️ Export to Excel ({visiblePitEntries.length})
+                  >{t('Export to Excel')} ({visiblePitEntries.length})
                   </View>
                 )}
 
                 {visiblePitEntries.length === 0 && (
                   <Text className='empty-state'>
                     {eventPitEntries.length === 0
-                      ? 'No pit scouting for this event yet. Use 赛前侦查 Pit Scouting on the home screen.'
-                      : 'No teams match your search.'}
+                      ? t("No pit scouting for this event yet. Use 赛前侦查 Pit Scouting on the home screen.")
+                      : t("No teams match your search.")}
                   </Text>
                 )}
 
@@ -452,23 +546,22 @@ export default function CurrentData() {
                     }
                   >
                     <View className='entry-header'>
-                      <Text className='entry-title'>Team {p.teamNumber}</Text>
+                      <Text className='entry-title'>{t('teamNumber', { number: p.teamNumber })}</Text>
                       <Text className='entry-meta'>{optionLabel(DRIVETRAIN_OPTIONS, p.data.drivetrain)}</Text>
                     </View>
-                    <Text className='entry-meta'>
-                      Scout: {(p.scoutedBy && names[p.scoutedBy]) || p.scoutName || '—'}
+                    <Text className='entry-meta'>{t("Scout:")} {(p.scoutedBy && names[p.scoutedBy]) || p.scoutName || '—'}
                       {p.lastEditedBy && p.lastEditedBy !== p.scoutedBy
-                        ? ` · edited by ${names[p.lastEditedBy] || '—'}`
+                        ? t('editedBy', { name: names[p.lastEditedBy] || '—' })
                         : ''}
                     </Text>
 
                     <View className='pit-facts'>
-                      <Text className='pit-fact'>射入蜂巢 Hive: {optionLabel(BALL_OPTIONS, p.data.hiveBalls)}</Text>
-                      <Text className='pit-fact'>放入花朵 Flowers: {optionLabel(BALL_OPTIONS, p.data.flowerBalls)}</Text>
-                      <Text className='pit-fact'>颜色分拣 Color sort: {formatColorSort(p.data.colorSort)}</Text>
-                      <Text className='pit-fact'>自动 Auto: {formatPitAuto(p.data.autoActions)}</Text>
-                      <Text className='pit-fact'>角色 Role: {optionLabel(ROLE_OPTIONS, p.data.role)}</Text>
-                      {!!p.data.notes && <Text className='pit-fact'>备注 Notes: {p.data.notes}</Text>}
+                      <Text className='pit-fact'>{t("射入蜂巢 Hive:")} {optionLabel(BALL_OPTIONS, p.data.hiveBalls)}</Text>
+                      <Text className='pit-fact'>{t("放入花朵 Flowers:")} {optionLabel(BALL_OPTIONS, p.data.flowerBalls)}</Text>
+                      <Text className='pit-fact'>{t("颜色分拣 Color sort:")} {formatColorSort(p.data.colorSort)}</Text>
+                      <Text className='pit-fact'>{t("自动 Auto:")} {formatPitAuto(p.data.autoActions)}</Text>
+                      <Text className='pit-fact'>{t("角色 Role:")} {optionLabel(ROLE_OPTIONS, p.data.role)}</Text>
+                      {!!p.data.notes && <Text className='pit-fact'>{t("备注 Notes:")} {p.data.notes}</Text>}
                     </View>
                   </View>
                 ))}

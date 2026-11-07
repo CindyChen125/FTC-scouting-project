@@ -1,5 +1,9 @@
 import { View, Text } from '@tarojs/components'
 import Taro from '@tarojs/taro'
+import { useEffect } from 'react'
+import { translate as t } from '../../i18n'
+import { useLanguage } from '../../i18n/LanguageContext'
+import LanguagePicker from '../LanguagePicker'
 import './index.scss'
 
 interface AppHeaderProps {
@@ -9,6 +13,8 @@ interface AppHeaderProps {
 }
 
 export default function AppHeader({ title, showBack = false, onSearch }: AppHeaderProps) {
+  useLanguage()
+  useEffect(() => { Taro.setNavigationBarTitle({ title }).catch(() => {}) }, [title])
   const handleBack = () => {
     Taro.navigateBack().catch(() => {
       Taro.reLaunch({ url: '/pages/index/index' })
@@ -24,12 +30,13 @@ export default function AppHeader({ title, showBack = false, onSearch }: AppHead
   }
 
   return (
+    <>
     <View className='app-header'>
       <View className='app-header-side'>
         {showBack && (
           <View className='app-header-back' onClick={handleBack}>
             <Text className='app-header-back-arrow'>‹</Text>
-            <Text className='app-header-back-label'>返回 Back</Text>
+            <Text className='app-header-back-label'>{t("返回 Back")}</Text>
           </View>
         )}
       </View>
@@ -38,9 +45,11 @@ export default function AppHeader({ title, showBack = false, onSearch }: AppHead
 
       <View className='app-header-side app-header-side-right'>
         <View className='app-header-icon-btn' onClick={handleSearch}>
-          <Text className='app-header-icon'>🔍</Text>
+          <Text className='app-header-back-label'>{t("Search")}</Text>
         </View>
       </View>
     </View>
+    <LanguagePicker />
+    </>
   )
 }

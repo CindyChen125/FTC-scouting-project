@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState, PropsWithChildren } from 'react'
 import { View, Text } from '@tarojs/components'
 import type { Session } from '@supabase/supabase-js'
+import { translate as t } from '../i18n'
+import { useLanguage } from '../i18n/LanguageContext'
 import { supabase, usernameToEmail } from '../supabase/config'
 import { withTimeout } from '../supabase/timeout'
 import { Profile, UserRole } from '../types/scouting'
@@ -34,6 +36,7 @@ const AuthContext = createContext<AuthValue>({
 export const useAuth = () => useContext(AuthContext)
 
 export function AuthProvider({ children }: PropsWithChildren) {
+  useLanguage()
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -155,7 +158,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       )}
       {loading && (
         <View className='auth-overlay auth-loading'>
-          <Text>载入中… Loading…</Text>
+          <Text>{t("载入中… Loading…")}</Text>
         </View>
       )}
     </AuthContext.Provider>

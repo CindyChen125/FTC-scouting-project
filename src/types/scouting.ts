@@ -20,6 +20,22 @@ export const NOTE_OPTIONS = [
   NOTE_OTHER
 ]
 
+const NOTE_IDS = [
+  'disconnected', 'mechanical-failure', 'defense', 'early-nectar',
+  'over-control-limit', 'stuck-on-hive', 'other'
+]
+
+// Accept the original bilingual labels when loading older entries or drafts.
+export const noteTagId = (tag: string): string => {
+  const index = NOTE_OPTIONS.indexOf(tag)
+  return index < 0 ? tag : NOTE_IDS[index]
+}
+
+export const noteTagLabel = (tag: string): string => {
+  const index = NOTE_IDS.indexOf(tag)
+  return index < 0 ? tag : NOTE_OPTIONS[index]
+}
+
 export type UserRole = 'admin' | 'scout'
 
 export interface Profile {
@@ -34,6 +50,7 @@ export const profileLabel = (p: Pick<Profile, 'displayName' | 'username'>) =>
   p.displayName || p.username
 
 interface EntryBase {
+  observationKey?: string
   // Entries submitted before this field existed have no eventCode — treat
   // that as LEGACY_EVENT_CODE (see src/data/events.ts).
   eventCode?: string
@@ -102,6 +119,8 @@ export interface AutoData {
 }
 
 export interface TeleopData {
+  minorFouls?: number
+  majorFouls?: number
   cellPollen: number
   cellNectar: number
   allianceTips: number

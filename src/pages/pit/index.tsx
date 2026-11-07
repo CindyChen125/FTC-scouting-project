@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { View, Text, Input, Textarea } from '@tarojs/components'
+import { Button, Picker, View, Text, Input, Textarea, Image } from '@tarojs/components'
 import Taro, { useLoad } from '@tarojs/taro'
+import { translate as t } from '../../i18n'
+import { useLanguage } from '../../i18n/LanguageContext'
 import AppHeader from '../../components/AppHeader'
 import { profileLabel } from '../../types/scouting'
 import {
@@ -17,7 +19,9 @@ import {
 } from '../../types/pit'
 import { submitPitEntry, fetchPitEntry } from '../../supabase/pit'
 import { useAuth } from '../../auth/AuthContext'
-import { CURRENT_EVENT_CODE, CURRENT_SEASON, findEvent } from '../../data/events'
+import { uploadRobotPhoto, robotPhotoUrl } from '../../supabase/photos'
+import { CURRENT_EVENT_CODE, CURRENT_SEASON, findEvent, eventLabel } from '../../data/events'
+import { readImportedEvents, syncImportedEvents } from '../../data/ftcScout'
 import './index.scss'
 
 // Single-choice chips. Tapping the selected chip again clears the answer, so a
@@ -28,6 +32,7 @@ function ChoiceField<T extends string>({ label, options, value, onChange }: {
   value: T | ''
   onChange: (v: T | '') => void
 }) {
+  useLanguage()
   return (
     <View className='field-row'>
       <Text className='field-label'>{label}</Text>
@@ -38,7 +43,7 @@ function ChoiceField<T extends string>({ label, options, value, onChange }: {
             className={`chip ${value === opt.value ? 'active' : ''}`}
             onClick={() => onChange(value === opt.value ? '' : opt.value)}
           >
-            {opt.label}
+            {t(opt.label)}
           </View>
         ))}
       </View>
@@ -47,12 +52,24 @@ function ChoiceField<T extends string>({ label, options, value, onChange }: {
 }
 
 export default function PitScouting() {
+  useLanguage()
   const { userId, profile } = useAuth()
   const scoutName = profile ? profileLabel(profile) : ''
 
   const [eventCode, setEventCode] = useState(CURRENT_EVENT_CODE)
   const [teamNumber, setTeamNumber] = useState('')
   const [data, setData] = useState<PitData>(emptyPitData())
+  const [photoUrl, setPhotoUrl] = useState('')
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const [photoError, setPhotoError] = useState('')
+  useEffect(() => {
+    let active = true
+    setPhotoUrl('')
+    if (data.photoPath) robotPhotoUrl(data.photoPath).then((url) => {
+      if (active) setPhotoUrl(url)
+    }).catch(() => { if (active) setPhotoError('Photo unavailable. Check your connection.') })
+    return () => { active = false }
+  }, [data.photoPath])
   const [scoutedBy, setScoutedBy] = useState<string | null>(null)
   const [originalScoutName, setOriginalScoutName] = useState<string | null>(null)
 
@@ -129,18 +146,18 @@ export default function PitScouting() {
   const handleSubmit = () => {
     const team = teamNumber.trim()
     if (!team) {
-      Taro.showToast({ title: '请先填写队号 Enter Team #', icon: 'none' })
+      Taro.showToast({ title: t("请先填写队号 Enter Team #"), icon: 'none' })
       return
     }
     if (!userId) {
-      Taro.showToast({ title: '请先登录 Sign in to submit', icon: 'none' })
+      Taro.showToast({ title: t("请先登录 Sign in to submit"), icon: 'none' })
       return
     }
     Taro.showModal({
-      title: '确认提交 Confirm submit',
-      content: `提交队 ${team} 的赛前侦查？Submit pit scouting for team ${team}?`,
-      confirmText: '提交',
-      cancelText: '取消',
+      title: t("确认提交 Confirm submit"),
+      content: t('submitPit', { team }),
+      confirmText: t("提交"),
+      cancelText: t("取消"),
       success: async (res) => {
         if (!res.confirm) return
 
@@ -150,7 +167,7 @@ export default function PitScouting() {
         const outcome = await submitPitEntry(entry)
         if (outcome === 'rejected') {
           Taro.showToast({
-            title: '未能提交：账号无权限，请重新登录 Rejected — sign in again',
+            title: t("未能提交：账号无权限，请重新登录 Rejected — sign in again"),
             icon: 'none'
           })
           return
@@ -159,8 +176,8 @@ export default function PitScouting() {
         Taro.showToast({
           title:
             outcome === 'synced'
-              ? '已提交 Submitted ✓'
-              : '已保存，联网后自动上传 Saved — uploads when back online',
+              ? t("已提交 Submitted ✓")
+              : t("已保存，联网后自动上传 Saved — uploads when back online"),
           icon: outcome === 'synced' ? 'success' : 'none'
         })
 
@@ -172,16 +189,45 @@ export default function PitScouting() {
   }
 
   const hasTeam = !!teamNumber.trim()
+  const [importedEvents, setImportedEvents] = useState(readImportedEvents)
+  useEffect(() => {
+    if (!userId) return
+    let active = true
+    syncImportedEvents().then((events) => { if (active) setImportedEvents(events) }).catch(() => {})
+    return () => { active = false }
+  }, [userId])
+  const roster = importedEvents.find((event) => event.code === eventCode)?.teams ?? []
+  const openPit = (code: string, team = '') => {
+    Taro.redirectTo({ url: `/pages/pit/index?eventCode=${encodeURIComponent(code)}&teamNumber=${encodeURIComponent(team)}` })
+      .catch(() => Taro.showToast({ title: t("Could not open pit profile"), icon: 'none' }))
+  }
 
   return (
     <View className='scout-page'>
-      <AppHeader title='Pit Scouting' showBack />
+      <AppHeader title={t("Pit Scouting")} showBack />
 
       <View className='page-content'>
         <View className='header-card'>
-          <Text className='event-badge'>{findEvent(eventCode).name}</Text>
+          <Text className='event-badge'>{eventLabel(findEvent(eventCode))}</Text>
+          {importedEvents.length > 0 && (
+            <Picker textProps={{ okText: t('Confirm'), cancelText: t('Cancel') }} mode='selector' range={[t("Practice"), ...importedEvents.map((event) => event.name)]}
+              onChange={(e) => openPit(importedEvents[Number(e.detail.value) - 1]?.code ?? CURRENT_EVENT_CODE)}
+            >
+              <Button size='mini'>{t("选择赛事 Choose event")}</Button>
+            </Picker>
+          )}
+          {roster.length > 0 && (
+            <Picker textProps={{ okText: t('Confirm'), cancelText: t('Cancel') }} mode='selector' range={roster}
+              onChange={(e) => {
+                const team = roster[Number(e.detail.value)]
+                if (team) openPit(eventCode, team)
+              }}
+            >
+              <Button size='mini'>{t("选择队伍 Choose team")}</Button>
+            </Picker>
+          )}
           <View className='field-row'>
-            <Text className='field-label'>队号 Team #</Text>
+            <Text className='field-label'>{t("队号 Team #")}</Text>
             <Input
               className='field-input'
               value={teamNumber}
@@ -192,40 +238,55 @@ export default function PitScouting() {
             />
           </View>
           <View className='field-row'>
-            <Text className='field-label'>侦查员 Scout</Text>
+            <Text className='field-label'>{t("侦查员 Scout")}</Text>
             <Text className='scout-identity'>
               {originalScoutName && originalScoutName !== scoutName
-                ? `${originalScoutName}（由 ${scoutName} 编辑 · edited by you）`
+                ? t('editedScout', { author: originalScoutName, editor: scoutName })
                 : scoutName || '—'}
             </Text>
           </View>
         </View>
 
         <View className='section-card'>
-          <Text className='section-title'>机器人 Robot</Text>
+          <Text className='section-title'>{t("机器人 Robot")}</Text>
+          {photoUrl && <Image src={photoUrl} mode='aspectFit' style={{ width: '100%', height: '240px' }} />}
+          <Button size='mini' disabled={!userId || photoBusy} loading={photoBusy} onClick={async () => {
+            if (!userId || photoBusy) return
+            setPhotoBusy(true)
+            setPhotoError('')
+            try {
+              const photoPath = await uploadRobotPhoto(userId)
+              patch({ photoPath })
+            } catch (error) {
+              setPhotoError(error instanceof Error ? error.message : 'Photo upload cancelled or unavailable.')
+            } finally { setPhotoBusy(false) }
+          }}
+          >{t("机器人照片 Add / replace robot photo")}</Button>
+          {data.photoPath && <Button size='mini' onClick={() => patch({ photoPath: undefined })}>{t("移除照片 Remove photo")}</Button>}
+          {!!photoError && <Text>{t(photoError)}</Text>}
           <ChoiceField
-            label='底盘 Drivetrain'
+            label={t("底盘 Drivetrain")}
             options={DRIVETRAIN_OPTIONS}
             value={data.drivetrain}
             onChange={(v) => patch({ drivetrain: v })}
           />
           <ChoiceField
-            label='射入蜂巢 Shoots into hive'
+            label={t("射入蜂巢 Shoots into hive")}
             options={BALL_OPTIONS}
             value={data.hiveBalls}
             onChange={(v) => patch({ hiveBalls: v })}
           />
           <ChoiceField
-            label='放入花朵 Scores flowers'
+            label={t("放入花朵 Scores flowers")}
             options={BALL_OPTIONS}
             value={data.flowerBalls}
             onChange={(v) => patch({ flowerBalls: v })}
           />
           <ChoiceField
-            label='颜色分拣 Rejects opponent nectar'
+            label={t("颜色分拣 Rejects opponent nectar")}
             options={[
-              { value: 'yes', label: '能 Yes' },
-              { value: 'no', label: '不能 No' }
+              { value: 'yes', label: t("能 Yes") },
+              { value: 'no', label: t("不能 No") }
             ]}
             value={data.colorSort === null ? '' : data.colorSort ? 'yes' : 'no'}
             onChange={(v) => patch({ colorSort: v === '' ? null : v === 'yes' })}
@@ -233,9 +294,9 @@ export default function PitScouting() {
         </View>
 
         <View className='section-card'>
-          <Text className='section-title'>策略 Strategy</Text>
+          <Text className='section-title'>{t("策略 Strategy")}</Text>
           <View className='field-row'>
-            <Text className='field-label'>自动阶段 Auto (可多选 multi-select)</Text>
+            <Text className='field-label'>{t("自动阶段 Auto (可多选 multi-select)")}</Text>
             <View className='chip-row'>
               {AUTO_OPTIONS.map((opt) => (
                 <View
@@ -243,13 +304,13 @@ export default function PitScouting() {
                   className={`chip ${data.autoActions.includes(opt.value) ? 'active' : ''}`}
                   onClick={() => toggleAuto(opt.value)}
                 >
-                  {opt.label}
+                  {t(opt.label)}
                 </View>
               ))}
             </View>
           </View>
           <ChoiceField
-            label='擅长角色 Preferred role'
+            label={t("擅长角色 Preferred role")}
             options={ROLE_OPTIONS}
             value={data.role}
             onChange={(v) => patch({ role: v })}
@@ -257,24 +318,22 @@ export default function PitScouting() {
         </View>
 
         <View className='section-card'>
-          <Text className='section-title'>备注 Notes</Text>
+          <Text className='section-title'>{t("备注 Notes")}</Text>
           <View className='field-row'>
             <Textarea
               className='field-textarea'
               value={data.notes}
-              placeholder='机构、稳定性、配合意向等 Mechanisms, reliability, alliance fit…'
+              placeholder={t("机构、稳定性、配合意向等 Mechanisms, reliability, alliance fit…")}
               onInput={(e) => patch({ notes: e.detail.value })}
             />
           </View>
         </View>
 
         <Text className='save-hint'>
-          {hasTeam ? '已自动备份 Auto-saved as backup ✓' : 'Enter Team # to start'}
+          {hasTeam ? t("已自动备份 Auto-saved as backup ✓") : t("Enter Team # to start")}
         </Text>
 
-        <View className={`submit-btn ${hasTeam ? '' : 'disabled'}`} onClick={handleSubmit}>
-          提交 Submit
-        </View>
+        <View className={`submit-btn ${hasTeam ? '' : 'disabled'}`} onClick={handleSubmit}>{t("提交 Submit")}</View>
       </View>
     </View>
   )

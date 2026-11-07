@@ -1,4 +1,5 @@
-import { MatchScoutEntry, NOTE_OTHER, Season } from '../types/scouting'
+import { MatchScoutEntry, NOTE_OTHER, Season, noteTagLabel } from '../types/scouting'
+import { translate as t } from '../i18n'
 
 export interface StatItem {
   label: string
@@ -24,9 +25,9 @@ export interface GameView<E extends MatchScoutEntry = MatchScoutEntry> {
   exportColumns: (entry: E) => Record<string, string | number>
 }
 
-export const yesNo = (value: boolean) => (value ? 'Yes' : 'No')
+export const yesNo = (value: boolean) => t(value ? 'Yes' : 'No')
 
 export const formatNotes = (tags: string[], text: string) => {
   if (!tags || tags.length === 0) return '—'
-  return tags.map((t) => (t === NOTE_OTHER && text ? `${t}: ${text}` : t)).join('、')
+  return tags.map(noteTagLabel).map((label) => (label === NOTE_OTHER && text ? `${t(label)}: ${text}` : t(label))).join(' · ')
 }

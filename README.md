@@ -52,6 +52,22 @@ Scouting + team-ranking tool for Cindy's FTC team. Built with **Taro v4.2.1** (R
 
 ## Running it
 
+### Interface language
+
+Use the language picker on the sign-in screen or any page to choose **English**, **中文**, or **中文 / English**. The choice applies immediately across the app and is remembered on this device, including after signing out. The former scouting-only preference is carried over automatically. No database setup is needed.
+
+Navigation, forms, preset notes, rankings, dialogs, validation, and Excel headings use the selected language. Names, imported event names, free-text notes, stored option IDs, and match identifiers are preserved. Unknown third-party error details are shown as received.
+
+Interface messages live in `src/i18n/messages.json`; add both languages and matching `{placeholders}` when adding UI text. Translate only display labels, never values used in storage, comparisons, CSS, or API calls. Run `npm run test:i18n` to check all page language switches, draft preservation, legacy preferences, ranking refresh, login validation, and exports using fake services (no database writes).
+
+### Import a BIOBUZZ event
+
+In **Start Scouting**, enter the event code from FTCScout and select **Import / refresh**. Choose the event, qualifying match, and robot station to fill in the team number. Use **Next match** to keep the station and advance through the qualification schedule. Pit Scouting can also select an imported event and team. Imported schedules, rosters, and posted scores are cached on this device; refresh the import to get newly posted results. Match and pit submissions continue to sync through the existing Supabase tables.
+
+The event's **Rankings** view shows posted qualification scores, a side-by-side team comparison, and a partner shortlist based on the selected robot's weakest relative scouting category. When the posted match schedule supports an OPR estimate, it can be included as an optional ranking factor. OPR estimates contribution from alliance scores; it is not an official individual score.
+
+Shared imports, separate submissions per scout, private pit photo storage, and isolated workspaces for other teams require a coordinated database rollout. Do not change the existing primary key or enable a public photo bucket as a workaround.
+
 ```
 npm install
 npm run dev:h5      # website, http://localhost:10086

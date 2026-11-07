@@ -1,0 +1,1410 @@
+{
+  "载入中… Loading…": {
+    "en": "Loading…",
+    "zh": "载入中…"
+  },
+  "请输入用户名和密码 Enter your username and password": {
+    "en": "Enter your username and password",
+    "zh": "请输入用户名和密码"
+  },
+  "用户名或密码错误 Wrong username or password": {
+    "en": "Wrong username or password",
+    "zh": "用户名或密码错误"
+  },
+  "请登录以继续 Sign in to continue": {
+    "en": "Sign in to continue",
+    "zh": "请登录以继续"
+  },
+  "用户名 Username": {
+    "en": "Username",
+    "zh": "用户名"
+  },
+  "密码 Password": {
+    "en": "Password",
+    "zh": "密码"
+  },
+  "登录中… Signing in…": {
+    "en": "Signing in…",
+    "zh": "登录中…"
+  },
+  "登录 Sign In": {
+    "en": "Sign In",
+    "zh": "登录"
+  },
+  "账号由管理员创建 Accounts are created by your team admin.": {
+    "en": "Accounts are created by your team admin.",
+    "zh": "账号由管理员创建"
+  },
+  "自动阶段 Auto": {
+    "en": "Auto",
+    "zh": "自动阶段"
+  },
+  "远离 Leave": {
+    "en": "Leave",
+    "zh": "远离"
+  },
+  "射入蜂房 Balls into hive": {
+    "en": "Balls into hive",
+    "zh": "射入蜂房"
+  },
+  "联盟蜂巢翻转 Alliance hive tips": {
+    "en": "Alliance hive tips",
+    "zh": "联盟蜂巢翻转"
+  },
+  "自动停泊 Auto park": {
+    "en": "Auto park",
+    "zh": "自动停泊"
+  },
+  "备注 Notes": {
+    "en": "Notes",
+    "zh": "备注"
+  },
+  "手动阶段 Teleop": {
+    "en": "Teleop",
+    "zh": "手动阶段"
+  },
+  "花粉射入蜂房 Pollen into hive": {
+    "en": "Pollen into hive",
+    "zh": "花粉射入蜂房"
+  },
+  "花蜜射入蜂房 Nectar into hive": {
+    "en": "Nectar into hive",
+    "zh": "花蜜射入蜂房"
+  },
+  "全场小犯规 Match minor fouls": {
+    "en": "Match minor fouls",
+    "zh": "全场小犯规"
+  },
+  "全场大犯规 Match major fouls": {
+    "en": "Match major fouls",
+    "zh": "全场大犯规"
+  },
+  "终局阶段 Endgame": {
+    "en": "Endgame",
+    "zh": "终局阶段"
+  },
+  "花粉放入花朵 Pollen into flowers": {
+    "en": "Pollen into flowers",
+    "zh": "花粉放入花朵"
+  },
+  "花蜜放入花朵 Nectar into flowers": {
+    "en": "Nectar into flowers",
+    "zh": "花蜜放入花朵"
+  },
+  "停泊装载区 Park in loading zone": {
+    "en": "Park in loading zone",
+    "zh": "停泊装载区"
+  },
+  "半停 Partial": {
+    "en": "Partial",
+    "zh": "半停"
+  },
+  "全停 Full": {
+    "en": "Full",
+    "zh": "全停"
+  },
+  "未停靠 None": {
+    "en": "None",
+    "zh": "未停靠"
+  },
+  "是否离开起始线 Left starting line": {
+    "en": "Left starting line",
+    "zh": "是否离开起始线"
+  },
+  "近点 Near scored": {
+    "en": "Near scored",
+    "zh": "近点"
+  },
+  "远点 Far scored": {
+    "en": "Far scored",
+    "zh": "远点"
+  },
+  "是否有抬升机构 Has lift mechanism": {
+    "en": "Has lift mechanism",
+    "zh": "是否有抬升机构"
+  },
+  "停靠 Park status": {
+    "en": "Park status",
+    "zh": "停靠"
+  },
+  "麦轮 Mecanum": {
+    "en": "Mecanum",
+    "zh": "麦轮"
+  },
+  "坦克 Tank": {
+    "en": "Tank",
+    "zh": "坦克"
+  },
+  "舵轮 Swerve": {
+    "en": "Swerve",
+    "zh": "舵轮"
+  },
+  "其他 Other": {
+    "en": "Other",
+    "zh": "其他"
+  },
+  "花粉 Pollen": {
+    "en": "Pollen",
+    "zh": "花粉"
+  },
+  "花蜜 Nectar": {
+    "en": "Nectar",
+    "zh": "花蜜"
+  },
+  "都可以 Both": {
+    "en": "Both",
+    "zh": "都可以"
+  },
+  "不能 None": {
+    "en": "None",
+    "zh": "不能"
+  },
+  "射预载 Shoots preload": {
+    "en": "Shoots preload",
+    "zh": "射预载"
+  },
+  "翻转蜂巢 Gets a tip": {
+    "en": "Gets a tip",
+    "zh": "翻转蜂巢"
+  },
+  "停泊 Parks": {
+    "en": "Parks",
+    "zh": "停泊"
+  },
+  "蜂巢 Hive": {
+    "en": "Hive",
+    "zh": "蜂巢"
+  },
+  "花朵 Flowers": {
+    "en": "Flowers",
+    "zh": "花朵"
+  },
+  "防守 Defense": {
+    "en": "Defense",
+    "zh": "防守"
+  },
+  "灵活 Flexible": {
+    "en": "Flexible",
+    "zh": "灵活"
+  },
+  "能 Yes": {
+    "en": "Yes",
+    "zh": "能"
+  },
+  "不能 No": {
+    "en": "No",
+    "zh": "不能"
+  },
+  "机器断联 Robot disconnected": {
+    "en": "Robot disconnected",
+    "zh": "机器断联"
+  },
+  "机械故障 Mechanical failure": {
+    "en": "Mechanical failure",
+    "zh": "机械故障"
+  },
+  "防守 Played defense": {
+    "en": "Played defense",
+    "zh": "防守"
+  },
+  "提前放花蜜 Early nectar in flower": {
+    "en": "Early nectar in flower",
+    "zh": "提前放花蜜"
+  },
+  "持有超过4个 Held more than 4": {
+    "en": "Held more than 4",
+    "zh": "持有超过4个"
+  },
+  "卡在蜂巢 Stuck on hive": {
+    "en": "Stuck on hive",
+    "zh": "卡在蜂巢"
+  },
+  "返回 Back": {
+    "en": "Back",
+    "zh": "返回"
+  },
+  "仅管理员可见 Admins only.": {
+    "en": "Admins only.",
+    "zh": "仅管理员可见"
+  },
+  "用户名必填，密码至少6位 Username required, password min 6": {
+    "en": "Username required; password must be at least 6 characters",
+    "zh": "用户名必填，密码至少 6 位"
+  },
+  "已创建 Scout created ✓": {
+    "en": "Scout created ✓",
+    "zh": "已创建"
+  },
+  "名字不能为空 Name required": {
+    "en": "Name required",
+    "zh": "名字不能为空"
+  },
+  "已更新 Renamed ✓": {
+    "en": "Renamed ✓",
+    "zh": "已更新"
+  },
+  "密码至少6位 Password min 6": {
+    "en": "Password must be at least 6 characters",
+    "zh": "密码至少 6 位"
+  },
+  "密码已重置 Password reset ✓": {
+    "en": "Password reset ✓",
+    "zh": "密码已重置"
+  },
+  "删除账号 Delete account": {
+    "en": "Delete account",
+    "zh": "删除账号"
+  },
+  "已删除 Deleted ✓": {
+    "en": "Deleted ✓",
+    "zh": "已删除"
+  },
+  "添加侦查员 Add scout": {
+    "en": "Add scout",
+    "zh": "添加侦查员"
+  },
+  "显示名 Display name": {
+    "en": "Display name",
+    "zh": "显示名"
+  },
+  "初始密码 Starting password": {
+    "en": "Starting password",
+    "zh": "初始密码"
+  },
+  "添加 Add scout": {
+    "en": "Add scout",
+    "zh": "添加"
+  },
+  "把用户名和密码给队员。密码只有你能设置 —— 队员忘记了就用下面的「重置密码」重新设一个。 Give them the username and password. Only you can set passwords — if a scout forgets theirs, use 重置密码 below to set a new one (passwords are stored hashed and can never be read back, not even by you).": {
+    "en": "Give scouts their username and password. Only admins can set scout passwords. Use Reset password below if someone forgets theirs. Stored passwords cannot be read back.",
+    "zh": "将用户名和密码交给队员。只有管理员可以设置侦查员密码。忘记密码时，请使用下方的“重置密码”。已保存的密码无法查看。"
+  },
+  "队员 Members (": {
+    "en": "Members (",
+    "zh": "队员（"
+  },
+  "管理员 Admin": {
+    "en": "Admin",
+    "zh": "管理员"
+  },
+  "侦查员 Scout": {
+    "en": "Scout",
+    "zh": "侦查员"
+  },
+  "场 matches": {
+    "en": "matches",
+    "zh": "场"
+  },
+  "新的显示名 New display name": {
+    "en": "New display name",
+    "zh": "新的显示名"
+  },
+  "新密码 New password (min 6)": {
+    "en": "New password (min 6 characters)",
+    "zh": "新密码（至少 6 位）"
+  },
+  "记下这个密码再保存 —— 保存后就看不到了。 Write this down before saving — it can't be shown again.": {
+    "en": "Write this password down before saving. It cannot be shown again.",
+    "zh": "保存前请记下密码，保存后无法再次查看。"
+  },
+  "保存 Save": {
+    "en": "Save",
+    "zh": "保存"
+  },
+  "换一个 New suggestion": {
+    "en": "New suggestion",
+    "zh": "换一个"
+  },
+  "取消 Cancel": {
+    "en": "Cancel",
+    "zh": "取消"
+  },
+  "重命名 Rename": {
+    "en": "Rename",
+    "zh": "重命名"
+  },
+  "重置密码 Password": {
+    "en": "Reset password",
+    "zh": "重置密码"
+  },
+  "已停用 Deactivated ✓": {
+    "en": "Deactivated ✓",
+    "zh": "已停用"
+  },
+  "已启用 Reactivated ✓": {
+    "en": "Reactivated ✓",
+    "zh": "已启用"
+  },
+  "停用 Deactivate": {
+    "en": "Deactivate",
+    "zh": "停用"
+  },
+  "启用 Reactivate": {
+    "en": "Reactivate",
+    "zh": "启用"
+  },
+  "角色已更新 Role updated ✓": {
+    "en": "Role updated ✓",
+    "zh": "角色已更新"
+  },
+  "降为侦查员 Make scout": {
+    "en": "Make scout",
+    "zh": "降为侦查员"
+  },
+  "设为管理员 Make admin": {
+    "en": "Make admin",
+    "zh": "设为管理员"
+  },
+  "删除 Delete": {
+    "en": "Delete",
+    "zh": "删除"
+  },
+  "搭档推荐 Partner finder": {
+    "en": "Partner finder",
+    "zh": "搭档推荐"
+  },
+  "选择我方队伍 Choose our team": {
+    "en": "Choose our team",
+    "zh": "选择我方队伍"
+  },
+  "补强 Strengthen": {
+    "en": "Strengthen",
+    "zh": "补强"
+  },
+  "官方比分 Official results": {
+    "en": "Official results",
+    "zh": "官方比分"
+  },
+  "队伍对比 Compare teams": {
+    "en": "Compare teams",
+    "zh": "队伍对比"
+  },
+  "指标 Metric": {
+    "en": "Metric",
+    "zh": "指标"
+  },
+  "请选择两支不同队伍 Choose two different teams.": {
+    "en": "Choose two different teams.",
+    "zh": "请选择两支不同队伍"
+  },
+  "射入蜂巢 Hive:": {
+    "en": "Hive:",
+    "zh": "射入蜂巢"
+  },
+  "放入花朵 Flowers:": {
+    "en": "Flowers:",
+    "zh": "放入花朵"
+  },
+  "颜色分拣 Color sort:": {
+    "en": "Color sort:",
+    "zh": "颜色分拣"
+  },
+  "自动 Auto:": {
+    "en": "Auto:",
+    "zh": "自动"
+  },
+  "角色 Role:": {
+    "en": "Role:",
+    "zh": "角色"
+  },
+  "备注 Notes:": {
+    "en": "Notes:",
+    "zh": "备注"
+  },
+  "赛事 Event": {
+    "en": "Event",
+    "zh": "赛事"
+  },
+  "最后编辑 Edited by": {
+    "en": "Edited by",
+    "zh": "最后编辑"
+  },
+  "更新时间 Updated": {
+    "en": "Updated",
+    "zh": "更新时间"
+  },
+  "总体备注 Overall notes": {
+    "en": "Overall notes",
+    "zh": "总体备注"
+  },
+  "赛前侦查 Pit Scouting": {
+    "en": "Pit Scouting",
+    "zh": "赛前侦查"
+  },
+  "请先填写队号 Enter Team #": {
+    "en": "Enter Team #",
+    "zh": "请先填写队号"
+  },
+  "请先登录 Sign in to submit": {
+    "en": "Sign in to submit",
+    "zh": "请先登录"
+  },
+  "确认提交 Confirm submit": {
+    "en": "Confirm submit",
+    "zh": "确认提交"
+  },
+  "未能提交：账号无权限，请重新登录 Rejected — sign in again": {
+    "en": "Rejected — sign in again",
+    "zh": "未能提交：账号无权限，请重新登录"
+  },
+  "已提交 Submitted ✓": {
+    "en": "Submitted ✓",
+    "zh": "已提交"
+  },
+  "已保存，联网后自动上传 Saved — uploads when back online": {
+    "en": "Saved — uploads when back online",
+    "zh": "已保存，联网后自动上传"
+  },
+  "选择赛事 Choose event": {
+    "en": "Choose event",
+    "zh": "选择赛事"
+  },
+  "选择队伍 Choose team": {
+    "en": "Choose team",
+    "zh": "选择队伍"
+  },
+  "队号 Team #": {
+    "en": "Team #",
+    "zh": "队号"
+  },
+  "机器人 Robot": {
+    "en": "Robot",
+    "zh": "机器人"
+  },
+  "移除照片 Remove photo": {
+    "en": "Remove photo",
+    "zh": "移除照片"
+  },
+  "底盘 Drivetrain": {
+    "en": "Drivetrain",
+    "zh": "底盘"
+  },
+  "射入蜂巢 Shoots into hive": {
+    "en": "Shoots into hive",
+    "zh": "射入蜂巢"
+  },
+  "放入花朵 Scores flowers": {
+    "en": "Scores flowers",
+    "zh": "放入花朵"
+  },
+  "颜色分拣 Rejects opponent nectar": {
+    "en": "Rejects opponent nectar",
+    "zh": "颜色分拣"
+  },
+  "策略 Strategy": {
+    "en": "Strategy",
+    "zh": "策略"
+  },
+  "自动阶段 Auto (可多选 multi-select)": {
+    "en": "Auto (multi-select)",
+    "zh": "自动阶段（可多选）"
+  },
+  "擅长角色 Preferred role": {
+    "en": "Preferred role",
+    "zh": "擅长角色"
+  },
+  "机构、稳定性、配合意向等 Mechanisms, reliability, alliance fit…": {
+    "en": "Mechanisms, reliability, alliance fit…",
+    "zh": "机构、稳定性、配合意向等"
+  },
+  "已自动备份 Auto-saved as backup ✓": {
+    "en": "Auto-saved as backup ✓",
+    "zh": "已自动备份"
+  },
+  "提交 Submit": {
+    "en": "Submit",
+    "zh": "提交"
+  },
+  "是 Yes": {
+    "en": "Yes",
+    "zh": "是"
+  },
+  "否 No": {
+    "en": "No",
+    "zh": "否"
+  },
+  "备注（可多选） Notes (multi-select)": {
+    "en": "Notes (multi-select)",
+    "zh": "备注（可多选）"
+  },
+  "请输入 Describe…": {
+    "en": "Describe…",
+    "zh": "请输入"
+  },
+  "请先填写场次和队号 Enter Match ID and Team #": {
+    "en": "Enter Match ID and Team #",
+    "zh": "请先填写场次和队号"
+  },
+  "无法完成操作 Could not complete the action": {
+    "en": "Could not complete the action",
+    "zh": "无法完成操作"
+  },
+  "开始侦查 Start Scouting": {
+    "en": "Start Scouting",
+    "zh": "开始侦查"
+  },
+  "语言 Language:": {
+    "en": "Language:",
+    "zh": "语言"
+  },
+  "位置 Station:": {
+    "en": "Station:",
+    "zh": "位置"
+  },
+  "场次 Match ·": {
+    "en": "Match ·",
+    "zh": "场次"
+  },
+  "下一场 Next match": {
+    "en": "Next match",
+    "zh": "下一场"
+  },
+  "官方比分 Official score: Red": {
+    "en": "Official score: Red",
+    "zh": "官方比分"
+  },
+  "比赛场次 Match #": {
+    "en": "Match #",
+    "zh": "比赛场次"
+  },
+  "联盟 Alliance": {
+    "en": "Alliance",
+    "zh": "联盟"
+  },
+  "远离 Leave (离开场地边墙 off the wall)": {
+    "en": "Leave (off the wall)",
+    "zh": "远离（离开场地边墙）"
+  },
+  "联盟蜂巢翻转 Alliance hive tips (整个联盟 whole alliance)": {
+    "en": "Alliance hive tips (whole alliance)",
+    "zh": "联盟蜂巢翻转（整个联盟）"
+  },
+  "自动停泊装载区 Auto park in loading zone": {
+    "en": "Auto park in loading zone",
+    "zh": "自动停泊装载区"
+  },
+  "放入花朵 Balls into flowers": {
+    "en": "Balls into flowers",
+    "zh": "放入花朵"
+  },
+  "裁判判罚（全场） Referee-called fouls (whole match)": {
+    "en": "Referee-called fouls (whole match)",
+    "zh": "裁判判罚（全场）"
+  },
+  "小犯规 Minor fouls": {
+    "en": "Minor fouls",
+    "zh": "小犯规"
+  },
+  "大犯规 Major fouls": {
+    "en": "Major fouls",
+    "zh": "大犯规"
+  },
+  "对该队的整体印象、配合建议等 Overall impression, alliance fit, strategy notes…": {
+    "en": "Overall impression, alliance fit, strategy notes…",
+    "zh": "对该队的整体印象、配合建议等"
+  },
+  "已自动备份 Auto-saved as backup ✓ · 提交后才会进入数据列表 submit to add to My Scouting Data": {
+    "en": "Draft backed up on this device. Submit to add it to Scouting Data.",
+    "zh": "草稿已自动备份到本机，提交后才会进入侦查数据列表。"
+  },
+  "提交中 Saving…": {
+    "en": "Saving…",
+    "zh": "提交中"
+  },
+  "已更新 Password updated ✓": {
+    "en": "Password updated ✓",
+    "zh": "已更新"
+  },
+  "退出登录 Sign out": {
+    "en": "Sign out",
+    "zh": "退出登录"
+  },
+  "账号 Account": {
+    "en": "Account",
+    "zh": "账号"
+  },
+  "修改密码 Change password": {
+    "en": "Change password",
+    "zh": "修改密码"
+  },
+  "保存 Save password": {
+    "en": "Save password",
+    "zh": "保存"
+  },
+  "忘记密码请联系管理员 Forgot your password? Ask your team admin to reset it.": {
+    "en": "Forgot your password? Ask your team admin to reset it.",
+    "zh": "忘记密码请联系管理员"
+  },
+  "Language": {
+    "en": "Language",
+    "zh": "语言"
+  },
+  "FTC Scouting": {
+    "en": "FTC Scouting",
+    "zh": "FTC 侦查"
+  },
+  "Start Scouting": {
+    "en": "Start Scouting",
+    "zh": "开始侦查"
+  },
+  "Enter match data for a team": {
+    "en": "Enter match data for a team",
+    "zh": "记录一支队伍的比赛数据"
+  },
+  "Ask a team about their robot, before or between matches": {
+    "en": "Ask a team about their robot, before or between matches",
+    "zh": "在比赛前或间隙了解队伍的机器人"
+  },
+  "See Current Data": {
+    "en": "See Current Data",
+    "zh": "查看当前数据"
+  },
+  "Review saved match entries": {
+    "en": "Review saved match entries",
+    "zh": "查看已保存的比赛记录"
+  },
+  "Manage scouts and see who scouted what": {
+    "en": "Manage scouts and see who scouted what",
+    "zh": "管理侦查员并查看侦查记录"
+  },
+  "Settings": {
+    "en": "Settings",
+    "zh": "设置"
+  },
+  "App preferences and data management": {
+    "en": "App preferences and data management",
+    "zh": "应用偏好与数据管理"
+  },
+  "Appearance": {
+    "en": "Appearance",
+    "zh": "外观"
+  },
+  "Light": {
+    "en": "Light",
+    "zh": "浅色"
+  },
+  "Dark": {
+    "en": "Dark",
+    "zh": "深色"
+  },
+  "Font size": {
+    "en": "Font size",
+    "zh": "字体大小"
+  },
+  "Adjusts text size across the whole app.": {
+    "en": "Adjusts text size across the whole app.",
+    "zh": "调整整个应用的文字大小。"
+  },
+  "Local data": {
+    "en": "Local data",
+    "zh": "本机数据"
+  },
+  "Clear all data": {
+    "en": "Clear all data",
+    "zh": "清除本机数据"
+  },
+  "Clear all scouting data": {
+    "en": "Clear all scouting data",
+    "zh": "清除本机侦查数据"
+  },
+  "This deletes every locally saved scouting entry on this device. This cannot be undone.": {
+    "en": "This deletes every locally saved scouting entry on this device. This cannot be undone.",
+    "zh": "这会删除本机已保存的侦查记录，无法撤销。"
+  },
+  "Data cleared": {
+    "en": "Data cleared",
+    "zh": "数据已清除"
+  },
+  "Submitted cloud records and queued uploads are kept.": {
+    "en": "Submitted cloud records and queued uploads are kept.",
+    "zh": "已提交的云端记录和等待上传的数据会保留。"
+  },
+  "your username": {
+    "en": "your username",
+    "zh": "输入用户名"
+  },
+  "e.g. alice": {
+    "en": "e.g. alice",
+    "zh": "例如 alice"
+  },
+  "e.g. Alice Wang": {
+    "en": "e.g. Alice Wang",
+    "zh": "例如 小王"
+  },
+  "min 6 characters": {
+    "en": "min 6 characters",
+    "zh": "至少 6 个字符"
+  },
+  "Admin": {
+    "en": "Admin",
+    "zh": "管理员"
+  },
+  "Search": {
+    "en": "Search",
+    "zh": "搜索"
+  },
+  "Current Data": {
+    "en": "Current Data",
+    "zh": "当前数据"
+  },
+  "My Scouting Data": {
+    "en": "My Scouting Data",
+    "zh": "侦查数据"
+  },
+  "Rankings": {
+    "en": "Rankings",
+    "zh": "排名"
+  },
+  "Pit": {
+    "en": "Pit",
+    "zh": "赛前侦查"
+  },
+  "Pit Scouting": {
+    "en": "Pit Scouting",
+    "zh": "赛前侦查"
+  },
+  "Match Detail": {
+    "en": "Match Detail",
+    "zh": "比赛详情"
+  },
+  "Entry not found.": {
+    "en": "Entry not found.",
+    "zh": "未找到记录。"
+  },
+  "Loading…": {
+    "en": "Loading…",
+    "zh": "载入中…"
+  },
+  "Loading this match…": {
+    "en": "Loading this match…",
+    "zh": "正在载入本场比赛…"
+  },
+  "Edit": {
+    "en": "Edit",
+    "zh": "编辑"
+  },
+  "Team": {
+    "en": "Team",
+    "zh": "队伍"
+  },
+  "Team #": {
+    "en": "Team #",
+    "zh": "队号"
+  },
+  "Team A": {
+    "en": "Team A",
+    "zh": "队伍 A"
+  },
+  "Team B": {
+    "en": "Team B",
+    "zh": "队伍 B"
+  },
+  "Alliance": {
+    "en": "Alliance",
+    "zh": "联盟"
+  },
+  "Red": {
+    "en": "Red",
+    "zh": "红方"
+  },
+  "Blue": {
+    "en": "Blue",
+    "zh": "蓝方"
+  },
+  "Red 1": {
+    "en": "Red 1",
+    "zh": "红方 1 号位"
+  },
+  "Red 2": {
+    "en": "Red 2",
+    "zh": "红方 2 号位"
+  },
+  "Blue 1": {
+    "en": "Blue 1",
+    "zh": "蓝方 1 号位"
+  },
+  "Practice": {
+    "en": "Practice",
+    "zh": "练习赛"
+  },
+  "Event code": {
+    "en": "Event code",
+    "zh": "赛事代码"
+  },
+  "Event import failed": {
+    "en": "Event import failed",
+    "zh": "赛事导入失败"
+  },
+  "Could not open match": {
+    "en": "Could not open match",
+    "zh": "无法打开比赛"
+  },
+  "Could not open pit profile": {
+    "en": "Could not open pit profile",
+    "zh": "无法打开赛前侦查资料"
+  },
+  "Enter Match # and Team # to start": {
+    "en": "Enter Match # and Team # to start",
+    "zh": "填写场次与队号即可开始"
+  },
+  "Enter Team # to start": {
+    "en": "Enter Team # to start",
+    "zh": "填写队号即可开始"
+  },
+  "Search by match or team #": {
+    "en": "Search by match or team #",
+    "zh": "按场次或队号搜索"
+  },
+  "Search by team #": {
+    "en": "Search by team #",
+    "zh": "按队号搜索"
+  },
+  "Search by team # or name": {
+    "en": "Search by team # or name",
+    "zh": "按队号或队名搜索"
+  },
+  "No scouting data saved yet.": {
+    "en": "No scouting data saved yet.",
+    "zh": "暂无侦查数据。"
+  },
+  "No entries match your search.": {
+    "en": "No entries match your search.",
+    "zh": "没有符合搜索条件的记录。"
+  },
+  "No teams match your search.": {
+    "en": "No teams match your search.",
+    "zh": "没有符合搜索条件的队伍。"
+  },
+  "No clear complementary match from current scouting.": {
+    "en": "No clear complementary match from current scouting.",
+    "zh": "根据目前的侦查数据，暂无明显互补的队伍。"
+  },
+  "No posted scores yet. Refresh the import in Start Scouting.": {
+    "en": "No posted scores yet. Refresh the import in Start Scouting.",
+    "zh": "暂无官方比分。请在“开始侦查”页面刷新赛事导入。"
+  },
+  "No scouting data for this event yet — rankings appear once matches are submitted.": {
+    "en": "No scouting data for this event yet — rankings appear once matches are submitted.",
+    "zh": "本赛事暂无侦查数据；提交比赛记录后即可查看排名。"
+  },
+  "Pit scouting started with BIOBUZZ — none for this event.": {
+    "en": "Pit scouting started with BIOBUZZ — none for this event.",
+    "zh": "赛前侦查从 BIOBUZZ 赛季开始提供，本赛事无此数据。"
+  },
+  "No pit scouting for this event yet. Use 赛前侦查 Pit Scouting on the home screen.": {
+    "en": "No pit scouting for this event yet. Open Pit Scouting on the home screen.",
+    "zh": "本赛事暂无赛前侦查数据。请从首页进入“赛前侦查”填写。"
+  },
+  "Overall": {
+    "en": "Overall",
+    "zh": "综合"
+  },
+  "Adjust weights": {
+    "en": "Adjust weights",
+    "zh": "调整权重"
+  },
+  "Reset": {
+    "en": "Reset",
+    "zh": "重置"
+  },
+  "Sliders are relative to each other — percentages shown are each factor's share of the total, so they always add up to 100%.": {
+    "en": "Sliders are relative to each other — percentages shown are each factor's share of the total, so they always add up to 100%.",
+    "zh": "各滑块表示相对权重；百分比是各指标占总权重的比例，总计为 100%。"
+  },
+  "Hive": {
+    "en": "Hive",
+    "zh": "蜂巢"
+  },
+  "Flowers": {
+    "en": "Flowers",
+    "zh": "花朵"
+  },
+  "Auto": {
+    "en": "Auto",
+    "zh": "自动阶段"
+  },
+  "Teleop": {
+    "en": "Teleop",
+    "zh": "手动阶段"
+  },
+  "Endgame": {
+    "en": "Endgame",
+    "zh": "终局阶段"
+  },
+  "Consistency": {
+    "en": "Consistency",
+    "zh": "稳定性"
+  },
+  "Defense": {
+    "en": "Defense",
+    "zh": "防守"
+  },
+  "Leave+Park": {
+    "en": "Leave+Park",
+    "zh": "远离与停泊"
+  },
+  "Alliance tips": {
+    "en": "Alliance tips",
+    "zh": "联盟蜂巢翻转"
+  },
+  "No reported breakdown": {
+    "en": "No reported breakdown",
+    "zh": "无故障报告比例"
+  },
+  "Official score OPR": {
+    "en": "Official score OPR",
+    "zh": "官方总分 OPR"
+  },
+  "Hive balls": {
+    "en": "Hive balls",
+    "zh": "蜂巢球数"
+  },
+  "Flower balls": {
+    "en": "Flower balls",
+    "zh": "花朵球数"
+  },
+  "Park": {
+    "en": "Park",
+    "zh": "停泊"
+  },
+  "Auto goals": {
+    "en": "Auto goals",
+    "zh": "自动进球数"
+  },
+  "Teleop goals": {
+    "en": "Teleop goals",
+    "zh": "手动进球数"
+  },
+  "Yes": {
+    "en": "Yes",
+    "zh": "是"
+  },
+  "No": {
+    "en": "No",
+    "zh": "否"
+  },
+  "Drivetrain": {
+    "en": "Drivetrain",
+    "zh": "底盘"
+  },
+  "Scout": {
+    "en": "Scout",
+    "zh": "侦查员"
+  },
+  "Edited By": {
+    "en": "Edited By",
+    "zh": "最后编辑者"
+  },
+  "Updated": {
+    "en": "Updated",
+    "zh": "更新时间"
+  },
+  "Notes": {
+    "en": "Notes",
+    "zh": "备注"
+  },
+  "Overall Notes": {
+    "en": "Overall Notes",
+    "zh": "总体备注"
+  },
+  "Match ID": {
+    "en": "Match ID",
+    "zh": "比赛场次"
+  },
+  "Scouting Data": {
+    "en": "Scouting Data",
+    "zh": "侦查数据"
+  },
+  "Shoots Into Hive": {
+    "en": "Shoots Into Hive",
+    "zh": "射入蜂巢"
+  },
+  "Scores Flowers": {
+    "en": "Scores Flowers",
+    "zh": "放入花朵"
+  },
+  "Rejects Opponent Nectar": {
+    "en": "Rejects Opponent Nectar",
+    "zh": "排除对方花蜜"
+  },
+  "Preferred Role": {
+    "en": "Preferred Role",
+    "zh": "擅长角色"
+  },
+  "Auto: Leave": {
+    "en": "Auto: Leave",
+    "zh": "自动：远离"
+  },
+  "Auto: Balls Into Hive": {
+    "en": "Auto: Balls Into Hive",
+    "zh": "自动：射入蜂巢球数"
+  },
+  "Auto: Alliance Tips": {
+    "en": "Auto: Alliance Tips",
+    "zh": "自动：联盟蜂巢翻转"
+  },
+  "Auto: Park": {
+    "en": "Auto: Park",
+    "zh": "自动：停泊"
+  },
+  "Auto: Notes": {
+    "en": "Auto: Notes",
+    "zh": "自动：备注"
+  },
+  "Teleop: Pollen Into Hive": {
+    "en": "Teleop: Pollen Into Hive",
+    "zh": "手动：花粉射入蜂巢"
+  },
+  "Teleop: Nectar Into Hive": {
+    "en": "Teleop: Nectar Into Hive",
+    "zh": "手动：花蜜射入蜂巢"
+  },
+  "Teleop: Alliance Tips": {
+    "en": "Teleop: Alliance Tips",
+    "zh": "手动：联盟蜂巢翻转"
+  },
+  "Match: Minor Fouls": {
+    "en": "Match: Minor Fouls",
+    "zh": "全场：小犯规"
+  },
+  "Match: Major Fouls": {
+    "en": "Match: Major Fouls",
+    "zh": "全场：大犯规"
+  },
+  "Teleop: Notes": {
+    "en": "Teleop: Notes",
+    "zh": "手动：备注"
+  },
+  "Endgame: Pollen Into Flowers": {
+    "en": "Endgame: Pollen Into Flowers",
+    "zh": "终局：花粉放入花朵"
+  },
+  "Endgame: Nectar Into Flowers": {
+    "en": "Endgame: Nectar Into Flowers",
+    "zh": "终局：花蜜放入花朵"
+  },
+  "Endgame: Park": {
+    "en": "Endgame: Park",
+    "zh": "终局：停泊"
+  },
+  "Auto: Left Starting Line": {
+    "en": "Auto: Left Starting Line",
+    "zh": "自动：离开起始线"
+  },
+  "Auto: Near Scored": {
+    "en": "Auto: Near Scored",
+    "zh": "自动：近点进球"
+  },
+  "Auto: Far Scored": {
+    "en": "Auto: Far Scored",
+    "zh": "自动：远点进球"
+  },
+  "Teleop: Near Scored": {
+    "en": "Teleop: Near Scored",
+    "zh": "手动：近点进球"
+  },
+  "Teleop: Far Scored": {
+    "en": "Teleop: Far Scored",
+    "zh": "手动：远点进球"
+  },
+  "Endgame: Has Lift": {
+    "en": "Endgame: Has Lift",
+    "zh": "终局：有抬升机构"
+  },
+  "Endgame: Park Status": {
+    "en": "Endgame: Park Status",
+    "zh": "终局：停靠状态"
+  },
+  "Photo unavailable. Check your connection.": {
+    "en": "Photo unavailable. Check your connection.",
+    "zh": "照片无法载入，请检查网络连接。"
+  },
+  "Photo upload cancelled or unavailable.": {
+    "en": "Photo upload cancelled or unavailable.",
+    "zh": "照片上传已取消或暂时不可用。"
+  },
+  "Choose a JPG, PNG, or WebP image under 5 MB.": {
+    "en": "Choose a JPG, PNG, or WebP image under 5 MB.",
+    "zh": "请选择小于 5 MB 的 JPG、PNG 或 WebP 图片。"
+  },
+  "Enter an FTCScout event code.": {
+    "en": "Enter an FTCScout event code.",
+    "zh": "请输入 FTCScout 赛事代码。"
+  },
+  "Could not load this BIOBUZZ event. Check the code and your connection.": {
+    "en": "Could not load this BIOBUZZ event. Check the code and your connection.",
+    "zh": "无法载入此 BIOBUZZ 赛事，请检查代码与网络连接。"
+  },
+  "Saved on this device, but sharing failed. Check database setup and retry import.": {
+    "en": "Saved on this device, but sharing failed. Check database setup and retry import.",
+    "zh": "已保存到本机，但共享失败。请检查数据库设置后重新导入。"
+  },
+  "Request timed out": {
+    "en": "Request timed out",
+    "zh": "请求超时"
+  },
+  "Not signed in": {
+    "en": "Not signed in",
+    "zh": "尚未登录"
+  },
+  "Failed to fetch": {
+    "en": "Failed to fetch",
+    "zh": "无法连接服务器，请检查网络连接。"
+  },
+  "Failed to fetch.": {
+    "en": "Failed to fetch.",
+    "zh": "无法连接服务器，请检查网络连接。"
+  },
+  "Invalid login credentials": {
+    "en": "Invalid login credentials",
+    "zh": "用户名或密码错误"
+  },
+  "Confirm": {
+    "en": "Confirm",
+    "zh": "确认"
+  },
+  "Cancel": {
+    "en": "Cancel",
+    "zh": "取消"
+  },
+  "Submit": {
+    "en": "Submit",
+    "zh": "提交"
+  },
+  "Delete": {
+    "en": "Delete",
+    "zh": "删除"
+  },
+  "Sign out": {
+    "en": "Sign out",
+    "zh": "退出登录"
+  },
+  "Scout:": {
+    "en": "Scout:",
+    "zh": "侦查员："
+  },
+  "Updated:": {
+    "en": "Updated:",
+    "zh": "更新时间："
+  },
+  "Ranking by average of:": {
+    "en": "Ranking by average of:",
+    "zh": "按以下指标的平均值排名："
+  },
+  "Official score OPR:": {
+    "en": "Official score OPR:",
+    "zh": "官方总分 OPR："
+  },
+  "Pit ·": {
+    "en": "Pit ·",
+    "zh": "赛前侦查 ·"
+  },
+  "· Team": {
+    "en": "· Team",
+    "zh": "· 队伍"
+  },
+  "· Blue": {
+    "en": "· Blue",
+    "zh": "· 蓝方"
+  },
+  "quals ·": {
+    "en": "quals ·",
+    "zh": "场资格赛 ·"
+  },
+  "teams": {
+    "en": "teams",
+    "zh": "支队伍"
+  },
+  "Export to Excel": {
+    "en": "Export to Excel",
+    "zh": "导出 Excel"
+  },
+  "FTCScout 赛事代码 Event code": {
+    "en": "FTCScout event code",
+    "zh": "FTCScout 赛事代码"
+  },
+  "BIOBUZZ 练习赛 Practice & Scrimmages": {
+    "en": "BIOBUZZ Practice & Scrimmages",
+    "zh": "BIOBUZZ 练习赛"
+  },
+  "本机已保存的数据会保留。Data saved on this device is kept.": {
+    "en": "Data saved on this device is kept.",
+    "zh": "本机已保存的数据会保留。"
+  },
+  "（你 you）": {
+    "en": " (you)",
+    "zh": "（你）"
+  },
+  " · 已停用 deactivated": {
+    "en": " · deactivated",
+    "zh": " · 已停用"
+  },
+  " · 管理员 Admin": {
+    "en": " · Admin",
+    "zh": " · 管理员"
+  },
+  "☀️ Light": {
+    "en": "Light",
+    "zh": "浅色"
+  },
+  "🌙 Dark": {
+    "en": "Dark",
+    "zh": "深色"
+  },
+  "⚠️ Can't reach the shared database — showing this device's data only.": {
+    "en": "Can't reach the shared database. Showing this device's data only.",
+    "zh": "无法连接共享数据库，目前仅显示本机数据。"
+  },
+  "⬇️ Export to Excel (": {
+    "en": "Export to Excel (",
+    "zh": "导出 Excel（"
+  },
+  "删除": {
+    "en": "Delete",
+    "zh": "删除"
+  },
+  "取消": {
+    "en": "Cancel",
+    "zh": "取消"
+  },
+  "提交": {
+    "en": "Submit",
+    "zh": "提交"
+  },
+  "退出": {
+    "en": "Sign out",
+    "zh": "退出"
+  },
+  "机器人照片 Add / replace robot photo": {
+    "en": "Add / replace robot photo",
+    "zh": "添加或更换机器人照片"
+  },
+  "导入或刷新赛事 Import / refresh": {
+    "en": "Import / refresh event",
+    "zh": "导入或刷新赛事"
+  },
+  "submitMatch": {
+    "en": "Submit scouting data for match {match}, team {team}?",
+    "zh": "提交场次 {match}、队伍 {team} 的侦查数据？"
+  },
+  "submitPit": {
+    "en": "Submit pit scouting for team {team}?",
+    "zh": "提交队伍 {team} 的赛前侦查？"
+  },
+  "deleteAccount": {
+    "en": "Permanently delete {name}? Their submitted entries stay, but lose the name link.",
+    "zh": "永久删除 {name}？其提交的数据会保留，但不再关联姓名。"
+  },
+  "signInFailed": {
+    "en": "Sign-in failed: {error}",
+    "zh": "登录失败：{error}"
+  },
+  "editedScout": {
+    "en": "{author} (edited by {editor})",
+    "zh": "{author}（由 {editor} 编辑）"
+  },
+  "importedMatches": {
+    "en": "Imported {count} qualification matches",
+    "zh": "已导入 {count} 场资格赛"
+  },
+  "matchSchedule": {
+    "en": "Matches: {matches} qualifications · {teams} teams",
+    "zh": "赛程：{matches} 场资格赛 · {teams} 支队伍"
+  },
+  "officialScore": {
+    "en": "Official score: Red {red} · Blue {blue}",
+    "zh": "官方比分：红方 {red} · 蓝方 {blue}"
+  },
+  "allianceScore": {
+    "en": "Red {red} · Blue {blue}",
+    "zh": "红方 {red} · 蓝方 {blue}"
+  },
+  "queuedEntries": {
+    "en": "{count} submitted record(s) saved. Upload resumes automatically when online.",
+    "zh": "已保存 {count} 条提交记录，联网后会自动上传。"
+  },
+  "noEventEntries": {
+    "en": "No scouting data for {event} yet.",
+    "zh": "{event} 暂无侦查数据。"
+  },
+  "editedBy": {
+    "en": " · edited by {name}",
+    "zh": " · 由 {name} 编辑"
+  },
+  "ourRobot": {
+    "en": "Our robot: {team}",
+    "zh": "我方机器人：{team}"
+  },
+  "strengthen": {
+    "en": "Strengthen {factor}: {teams}",
+    "zh": "补强 {factor}：{teams}"
+  },
+  "qualificationTeams": {
+    "en": "Qualification results · {teams} teams",
+    "zh": "资格赛成绩 · {teams} 支队伍"
+  },
+  "scoutedTeams": {
+    "en": "From our scouting · {teams} teams · {entries} entries",
+    "zh": "侦查数据 · {teams} 支队伍 · {entries} 条记录"
+  },
+  "teamNumber": {
+    "en": "Team {number}",
+    "zh": "队伍 {number}"
+  },
+  "qualificationRank": {
+    "en": "{wins}-{losses}-{ties} · qualification rank {rank}",
+    "zh": "{wins} 胜 {losses} 负 {ties} 平 · 资格赛第 {rank} 名"
+  },
+  "teamSummary": {
+    "en": "{count} scouted · {failures} reported breakdowns · average {hive} hive / {flowers} flower balls",
+    "zh": "侦查 {count} 场 · {failures} 场报告故障 · 平均蜂巢 {hive} 球 / 花朵 {flowers} 球"
+  },
+  "Admins only": {
+    "en": "Admins only",
+    "zh": "仅管理员可操作"
+  },
+  "Expected a JSON body": {
+    "en": "Expected a JSON body",
+    "zh": "请求格式无效"
+  },
+  "username and password are required": {
+    "en": "username and password are required",
+    "zh": "请输入用户名和密码"
+  },
+  "Password must be at least 6 characters": {
+    "en": "Password must be at least 6 characters",
+    "zh": "密码至少 6 位"
+  },
+  "Username may only contain letters, numbers, . _ and -": {
+    "en": "Username may only contain letters, numbers, . _ and -",
+    "zh": "用户名只能包含字母、数字、点、下划线及连字符"
+  },
+  "userId and password are required": {
+    "en": "userId and password are required",
+    "zh": "缺少用户编号或密码"
+  },
+  "userId is required": {
+    "en": "userId is required",
+    "zh": "缺少用户编号"
+  },
+  "You can't delete your own account": {
+    "en": "You can't delete your own account",
+    "zh": "无法删除自己的账号"
+  },
+  "Cannot delete the last active admin": {
+    "en": "Cannot delete the last active admin",
+    "zh": "无法删除最后一位启用的管理员"
+  },
+  "Cannot demote or deactivate the last active admin": {
+    "en": "Cannot demote or deactivate the last active admin",
+    "zh": "无法降级或停用最后一位启用的管理员"
+  },
+  "User already registered": {
+    "en": "User already registered",
+    "zh": "该用户已存在"
+  },
+  "requestFailed": {
+    "en": "Request failed ({status})",
+    "zh": "请求失败（{status}）"
+  }
+}

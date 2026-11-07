@@ -42,6 +42,28 @@ page {
   padding-bottom: 80px;
 }
 
+// Translated captions may be longer than the original labels.
+.page-content button {
+  white-space: normal;
+  height: auto;
+  overflow-wrap: anywhere;
+}
+
+.tab-item,
+.weight-label,
+.field-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 900PX) {
+  .page-content {
+    box-sizing: border-box;
+    max-width: 880PX;
+    margin-inline: auto;
+  }
+}
+
 .auth-overlay {
   position: fixed;
   top: 0;
