@@ -86,3 +86,17 @@
     border-color: var(--color-primary);
   }
 }
+
+.settings-section { border: 1px solid var(--color-border); border-radius: var(--radius-panel); box-shadow: var(--shadow-panel); }
+.settings-section + .settings-section { margin-top: 14px; }
+.settings-label { color: var(--color-text); font-weight: 720; }
+.settings-value { line-height: 1.5; }
+.settings-input { min-height: 52px; box-sizing: border-box; border-width: 1px; border-color: var(--color-border-strong); border-radius: var(--radius-control); }
+.settings-input:focus { box-shadow: 0 0 0 3px var(--color-focus); }
+.danger-button { border: 1px solid var(--color-danger); border-radius: var(--radius-control); background: transparent; color: var(--color-danger); }
+.danger-button:active { background: var(--color-danger); color: #fff; }
+
+@media (max-width: 520px) {
+  .settings-section { padding: 18px 16px; }
+  .settings-label-row { align-items: flex-start; }
+}

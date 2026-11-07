@@ -4,6 +4,7 @@ import Taro, { useLoad } from '@tarojs/taro'
 import { translate as t } from '../../i18n'
 import { useLanguage } from '../../i18n/LanguageContext'
 import AppHeader from '../../components/AppHeader'
+import SyncStatus, { SyncState } from '../../components/SyncStatus'
 import {
   Alliance,
   AutoData,
@@ -21,10 +22,11 @@ import {
   noteTagId,
   noteTagLabel
 } from '../../types/scouting'
-import { submitScoutEntry, fetchScoutEntry } from '../../supabase/scouting'
+import { submitScoutEntry, fetchScoutEntry, flushOutbox, pendingCount } from '../../supabase/scouting'
 import { useAuth } from '../../auth/AuthContext'
 import { CURRENT_EVENT_CODE, CURRENT_SEASON, findEvent, eventLabel } from '../../data/events'
 import { importEvent, readImportedEvents, syncImportedEvents, STATIONS, Station } from '../../data/ftcScout'
+import { readSelectedEventCode, writeSelectedEventCode } from '../../data/selectedEvent'
 import './index.scss'
 
 // Tap-to-count, so a scout can keep their eyes on the robot instead of typing.
@@ -33,21 +35,19 @@ function CounterField({ label, value, onChange }: { label: string, value: number
   return (
     <View className='field-row'>
       <Text className='field-label'>{t(label)}</Text>
-      <View className='counter'>
+      <View className='counter-line'>
         <View
           className={`counter-btn ${value === 0 ? 'disabled' : ''}`}
           onClick={() => onChange(Math.max(0, value - 1))}
         >
-          −
+          −1
         </View>
         <Text className='counter-value'>{value}</Text>
-        <View className='counter-btn plus' onClick={() => onChange(value + 1)}>
-          +
+        <View className='counter-btn' onClick={() => onChange(value + 1)}>
+          +1
         </View>
-      </View>
-      <View className='counter-shortcuts'>
         {[2, 4].map((step) => (
-          <Button key={step} size='mini' onClick={() => onChange(value + step)}>+{step}</Button>
+          <View key={step} className='counter-btn' onClick={() => onChange(value + step)}>+{step}</View>
         ))}
       </View>
     </View>
@@ -133,7 +133,7 @@ export default function Index() {
   const { userId, profile } = useAuth()
   const scoutName = profile ? profileLabel(profile) : ''
 
-  const [eventCode, setEventCode] = useState(CURRENT_EVENT_CODE)
+  const [eventCode, setEventCode] = useState(readSelectedEventCode)
   const [importedEvents, setImportedEvents] = useState(readImportedEvents)
   useEffect(() => {
     if (!userId) return
@@ -155,6 +155,9 @@ export default function Index() {
   const [teleop, setTeleop] = useState<TeleopData>(emptyTeleop())
   const [endgame, setEndgame] = useState<EndgameData>(emptyEndgame())
   const [overallNotes, setOverallNotes] = useState('')
+  const [syncState, setSyncState] = useState<SyncState | null>(null)
+
+  useEffect(() => writeSelectedEventCode(eventCode), [eventCode])
 
   useLoad((options) => {
     console.log('Match scouting page loaded.')
@@ -248,6 +251,7 @@ export default function Index() {
       scoutBackupKey(userId, eventCode, matchId, teamNumber),
       currentEntry()
     )
+    setSyncState('local')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventCode, matchId, teamNumber, userId, alliance, scoutName, auto, teleop, endgame, overallNotes, loadedIdentity, identity])
 
@@ -282,12 +286,14 @@ export default function Index() {
           scoutEntryStorageKey(userId, eventCode, matchId, teamNumber),
           entry
         )
+        setSyncState('local')
 
         // Report what actually happened. Announcing success before the write
         // resolved meant a scout whose account had been removed saw "已提交
         // Submitted ✓" for entries the server was rejecting.
         const outcome = await submitScoutEntry(entry)
         if (outcome === 'rejected') {
+          setSyncState('error')
           // Stay on the form so the scout actually sees why it failed.
           Taro.showToast({
             title: t("未能提交：账号无权限，请重新登录 Rejected — sign in again"),
@@ -295,6 +301,8 @@ export default function Index() {
           })
           return
         }
+
+        setSyncState(outcome === 'synced' ? 'synced' : 'queued')
 
         Taro.showToast({
           title:
@@ -314,10 +322,21 @@ export default function Index() {
         await new Promise((resolve) => setTimeout(resolve, 1200))
         await Taro.reLaunch({ url: '/pages/index/index' })
     } catch {
+      setSyncState('error')
       Taro.showToast({ title: t("无法完成操作 Could not complete the action"), icon: 'none' })
     } finally {
       submitLock.current = false
       setSubmitting(false)
+    }
+  }
+
+  const retrySync = async () => {
+    setSyncState('queued')
+    try {
+      const remaining = await flushOutbox()
+      setSyncState(remaining === 0 ? 'synced' : 'error')
+    } catch {
+      setSyncState('error')
     }
   }
 
@@ -470,6 +489,10 @@ export default function Index() {
           ? t("已自动备份 Auto-saved as backup ✓ · 提交后才会进入数据列表 submit to add to My Scouting Data")
           : t("Enter Match # and Team # to start")}
       </Text>
+
+      {matchId && teamNumber && syncState && (
+        <SyncStatus state={syncState} onRetry={syncState === 'error' && pendingCount() > 0 ? retrySync : undefined} />
+      )}
 
       <Button
         className='submit-btn'

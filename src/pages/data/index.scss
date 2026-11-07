@@ -392,6 +392,41 @@
   align-items: center;
 }
 
+// Management-dashboard finish: shared borders and restrained depth replace
+// the old stack of floating rounded rectangles without changing data behavior.
+.event-selector,
+.tab-bar,
+.entry-card,
+.weights-panel,
+.team-card,
+.export-btn {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+}
+
+.event-selector-header { min-height: 58px; }
+.tab-bar { gap: 4px; padding: 5px; }
+.tab-item { min-height: 48px; padding: 11px 8px; border-radius: 8px; font-size: calc(21px * var(--font-scale)); }
+.tab-item.active { background: var(--color-primary-soft); color: var(--color-primary); }
+.search-input { min-height: 52px; box-sizing: border-box; border: 1px solid var(--color-border-strong); border-radius: var(--radius-control); background: var(--color-input-bg); box-shadow: none; }
+.search-input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-focus); }
+.entry-card, .team-card { padding: 20px 22px; }
+.entry-stats { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; padding-top: 12px; border-top: 1px solid var(--color-border); }
+.entry-stat-value, .team-score, .weight-value { font-variant-numeric: tabular-nums; }
+.mode-item { border: 1px solid var(--color-border); border-radius: 999px; box-shadow: none; }
+.mode-item.active { border-color: var(--color-primary); background: var(--color-primary-soft); color: var(--color-primary); }
+.sync-error { border: 1px solid currentColor; background: var(--color-surface-subtle); }
+.empty-state { max-width: 560px; margin: 72px auto 0; padding: 28px; border: 1px dashed var(--color-border-strong); border-radius: var(--radius-panel); background: var(--color-card-bg); line-height: 1.55; }
+
+@media (max-width: 560px) {
+  .entry-card, .team-card, .weights-panel { padding: 16px; }
+  .entry-header, .team-header { align-items: flex-start; }
+  .entry-stats { gap: 6px; }
+  .comparison-grid, .comparison-row { grid-template-columns: minmax(110px,1.2fr) repeat(2,minmax(70px,1fr)); gap: 6px; }
+  .breakdown-label { width: 105px; }
+}
+
 .comparison-grid {
   margin-top: 12px;
   color: var(--color-text);

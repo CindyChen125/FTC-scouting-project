@@ -22,6 +22,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { uploadRobotPhoto, robotPhotoUrl } from '../../supabase/photos'
 import { CURRENT_EVENT_CODE, CURRENT_SEASON, findEvent, eventLabel } from '../../data/events'
 import { readImportedEvents, syncImportedEvents } from '../../data/ftcScout'
+import { readSelectedEventCode, writeSelectedEventCode } from '../../data/selectedEvent'
 import './index.scss'
 
 // Single-choice chips. Tapping the selected chip again clears the answer, so a
@@ -56,7 +57,8 @@ export default function PitScouting() {
   const { userId, profile } = useAuth()
   const scoutName = profile ? profileLabel(profile) : ''
 
-  const [eventCode, setEventCode] = useState(CURRENT_EVENT_CODE)
+  const [eventCode, setEventCode] = useState(readSelectedEventCode)
+  useEffect(() => writeSelectedEventCode(eventCode), [eventCode])
   const [teamNumber, setTeamNumber] = useState('')
   const [data, setData] = useState<PitData>(emptyPitData())
   const [photoUrl, setPhotoUrl] = useState('')

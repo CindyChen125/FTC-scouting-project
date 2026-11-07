@@ -3,7 +3,6 @@ import Taro from '@tarojs/taro'
 import { useEffect } from 'react'
 import { translate as t } from '../../i18n'
 import { useLanguage } from '../../i18n/LanguageContext'
-import LanguagePicker from '../LanguagePicker'
 import './index.scss'
 
 interface AppHeaderProps {
@@ -30,12 +29,11 @@ export default function AppHeader({ title, showBack = false, onSearch }: AppHead
   }
 
   return (
-    <>
     <View className='app-header'>
       <View className='app-header-side'>
         {showBack && (
           <View className='app-header-back' onClick={handleBack}>
-            <Text className='app-header-back-arrow'>‹</Text>
+            <View className='app-header-back-arrow' aria-hidden='true' />
             <Text className='app-header-back-label'>{t("返回 Back")}</Text>
           </View>
         )}
@@ -49,7 +47,5 @@ export default function AppHeader({ title, showBack = false, onSearch }: AppHead
         </View>
       </View>
     </View>
-    <LanguagePicker />
-    </>
   )
 }

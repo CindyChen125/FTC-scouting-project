@@ -53,6 +53,7 @@ const mocks = {
     fetchScoutEntry: async () => null,
     subscribeScoutEntries: (_, done) => { done(entries); return () => {} },
     subscribeScoutEntry: (_, __, ___, ____, done) => { done(entries[0]); return () => {} },
+    flushOutbox: async () => 0,
     pendingCount: () => 0
   },
   'pit': { fetchPitEntry: async () => null, subscribePitEntries: (_, done) => { done(pits); return () => {} } },
@@ -92,11 +93,6 @@ const mount = async (Component) => {
   root = createRoot(mountPoint)
   await flush(() => root.render(h(LanguageProvider, null, h(Component))))
 }
-const changeLanguage = async (index) => {
-  const picker = mountPoint.querySelectorAll('.language-picker button')[index]
-  assert(picker, 'Every screen exposes a language picker')
-  await flush(() => picker.click())
-}
 const rawNote = 'Red / 花粉 {team} $&'
 const entry = {
   eventCode: 'BIOBUZZ-PRACTICE', matchId: 'Q12', teamNumber: '417', alliance: 'red',
@@ -133,74 +129,63 @@ async function main() {
     const placeholders = (value) => [...value.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort()
     assert.deepEqual(placeholders(message.en), placeholders(message.zh), `Placeholder mismatch: ${key}`)
   }
-  for (const language of ['en', 'zh', 'both']) {
-    setCurrentLanguage(language)
-    const before = JSON.stringify(entry)
-    assert(formatNotes(entry.auto.noteTags, rawNote).includes(rawNote))
-    assert.equal(t('teamNumber', { number: rawNote }).includes(rawNote), true)
-    assert.deepEqual(NOTE_OPTIONS.map(noteTagId), ['disconnected', 'mechanical-failure', 'defense', 'early-nectar', 'over-control-limit', 'stuck-on-hive', 'other'])
-    exportEntriesToExcel([entry], 'Example')
-    assert.equal(exportedRows[0][t('Scout')], 'Red')
-    assert.equal(exportedRows[0][t('Overall Notes')], rawNote)
-    exportPitToExcel([pit], 'Example')
-    assert.equal(exportedRows[0][t('Notes')], rawNote)
-    assert.equal(biobuzzRows([entry])[0].raw.reliability, 0)
-    assert.equal(JSON.stringify(entry), before, 'Translation must not mutate stored data')
-  }
+  setCurrentLanguage('both')
+  const before = JSON.stringify(entry)
+  assert(formatNotes(entry.auto.noteTags, rawNote).includes(rawNote))
+  assert.equal(t('teamNumber', { number: rawNote }).includes(rawNote), true)
+  assert.deepEqual(NOTE_OPTIONS.map(noteTagId), ['disconnected', 'mechanical-failure', 'defense', 'early-nectar', 'over-control-limit', 'stuck-on-hive', 'other'])
+  exportEntriesToExcel([entry], 'Example')
+  assert.equal(exportedRows[0][t('Scout')], 'Red')
+  assert.equal(exportedRows[0][t('Overall Notes')], rawNote)
+  exportPitToExcel([pit], 'Example')
+  assert.equal(exportedRows[0][t('Notes')], rawNote)
+  assert.equal(biobuzzRows([entry])[0].raw.reliability, 0)
+  assert.equal(JSON.stringify(entry), before, 'Translation must not mutate stored data')
   entries = [entry, { ...entry, teamNumber: '418' }]
   pits = [pit]
   route = { eventCode: entry.eventCode, matchId: entry.matchId, teamNumber: entry.teamNumber, station: 'Red 1' }
   storage.set('scoutLanguage', 'English')
   await mount(require('../src/pages/index/index').default)
   assert(mountPoint.textContent.includes('Start Scouting'))
-  assert.equal(document.documentElement.lang, 'en')
+  assert(mountPoint.textContent.includes('开始侦查'))
+  assert.equal(document.documentElement.lang, 'zh-CN')
+  assert.equal(storage.get('settings:language'), 'both', 'Legacy preference is replaced by bilingual mode')
+  assert.equal(mountPoint.querySelector('.language-picker'), null, 'Language switching is removed')
   for (const page of ['index', 'scout', 'pit', 'data', 'entry', 'settings', 'admin']) {
     await mount(require(`../src/pages/${page}/index`).default)
     let draft
     const draftKey = `backup:${user.userId}:${entry.eventCode}:${entry.matchId}:${entry.teamNumber}`
     if (page === 'scout') {
-      await flush(() => mountPoint.querySelector('.counter-btn.plus').click())
+      await flush(() => mountPoint.querySelectorAll('.counter-btn')[1].click())
       await flush(() => mountPoint.querySelector('.chip').click())
       draft = JSON.stringify(storage.get(draftKey))
       assert.equal(storage.get(draftKey).auto.cellBalls, 1)
       assert.deepEqual(storage.get(draftKey).auto.noteTags, ['disconnected'])
     }
-    for (const [index, language] of ['en', 'zh', 'both'].entries()) {
-      await changeLanguage(index)
-      assert.equal(storage.get('settings:language'), language)
-      assert.equal(document.documentElement.lang, language === 'en' ? 'en' : 'zh-CN')
-      if (page === 'scout' || page === 'pit') {
-        assert([...mountPoint.querySelectorAll('input')].some((input) => input.value === '417'), 'Language switch retains team number')
-        assert(mountPoint.querySelector('.scout-identity').textContent.includes('Red'), 'Scout names remain unchanged')
-      }
-      // Language choices intentionally show native names in every language.
-      const copy = mountPoint.cloneNode(true)
-      copy.querySelectorAll('.language-picker').forEach((node) => node.remove())
-      if (language === 'en') assert(!/\p{Script=Han}/u.test(copy.textContent.replaceAll(rawNote, '')), `English UI still has Chinese on ${page}`)
-      if (draft) assert.equal(JSON.stringify(storage.get(draftKey)), draft, 'Changing language must not rewrite a draft')
+    assert.equal(mountPoint.querySelector('.language-picker'), null, `No language picker on ${page}`)
+    assert.equal(document.documentElement.lang, 'zh-CN')
+    if (page === 'scout' || page === 'pit') {
+      assert([...mountPoint.querySelectorAll('input')].some((input) => input.value === '417'), 'Bilingual rendering retains team number')
+      assert(mountPoint.querySelector('.scout-identity').textContent.includes('Red'), 'Scout names remain unchanged')
     }
+    if (draft) assert.equal(JSON.stringify(storage.get(draftKey)), draft, 'Bilingual rendering must not rewrite a draft')
     if (page === 'data') {
       await flush(() => mountPoint.querySelectorAll('.tab-item')[1].click())
-      await changeLanguage(0)
       assert(mountPoint.textContent.includes('reported breakdowns'))
-      await changeLanguage(1)
       assert(mountPoint.textContent.includes('场报告故障'))
-      assert(!mountPoint.textContent.includes('reported breakdowns'), 'Memoized ranking text refreshes')
       await flush(() => mountPoint.querySelectorAll('.tab-item')[2].click())
       assert(mountPoint.textContent.includes(rawNote), 'Pit notes remain untouched')
     }
   }
   await mount(require('../src/auth/LoginScreen').default)
-  await changeLanguage(0)
   await flush(() => mountPoint.querySelector('.login-btn').click())
   assert(mountPoint.textContent.includes('Enter your username and password'))
-  await changeLanguage(1)
   assert(mountPoint.textContent.includes('请输入用户名和密码'))
-  assert(!mountPoint.textContent.includes('Enter your username and password'), 'Visible validation updates immediately')
+  assert.equal(mountPoint.querySelector('.language-picker'), null)
   await mount(require('../src/pages/settings/index').default)
   assert.equal(document.documentElement.lang, 'zh-CN', 'Preference survives remount')
   await flush(() => root.unmount())
   dom.window.close()
-  console.log(`Passed: ${Object.keys(messages).length} message pairs, 7 pages in 3 languages, login validation, ranking refresh, exports, legacy preference, stable tags and preserved user content.`)
+  console.log(`Passed: ${Object.keys(messages).length} bilingual message pairs, 7 pages, login validation, rankings, exports, legacy preference migration, stable tags and preserved user content.`)
 }
 main().catch((error) => { console.error(error); process.exitCode = 1 })
