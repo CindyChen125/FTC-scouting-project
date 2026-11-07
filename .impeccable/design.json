@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-07T15:37:33Z",
+  "title": "Design System: FTC Scouting Project",
+  "extensions": {
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Home and authentication titles." },
+      "headline": { "displayName": "Headline", "purpose": "Card and form section headings." },
+      "title": { "displayName": "Title", "purpose": "Navigation-card and subsection titles." },
+      "body": { "displayName": "Body", "purpose": "Bilingual descriptions, notes, and supporting copy." },
+      "field": { "displayName": "Field", "purpose": "High-legibility entry values and text areas." },
+      "label": { "displayName": "Label", "purpose": "Field labels, compact headings, and control text." }
+    },
+    "shadows": [
+      { "name": "panel-ambient", "value": "0 5px 18px rgba(24, 43, 69, .08)", "purpose": "Light-theme card and section separation." },
+      { "name": "panel-ambient-dark", "value": "0 7px 22px rgba(0, 0, 0, .22)", "purpose": "Dark-theme card and section separation." },
+      { "name": "sticky-header", "value": "0 3px 14px var(--color-shadow)", "purpose": "Keeps navigation distinct above scrolling content." },
+      { "name": "primary-lift", "value": "0 5px 14px var(--color-primary-shadow)", "purpose": "Primary submit and administrative actions." },
+      { "name": "focus-ring", "value": "0 0 0 3px var(--color-focus)", "purpose": "Visible keyboard and input focus." }
+    ],
+    "motion": [
+      { "name": "theme", "value": "180ms ease-out", "purpose": "Background and text theme transitions." },
+      { "name": "control", "value": "160ms ease-out", "purpose": "Background, border, opacity, and pressed control transitions." },
+      { "name": "counter", "value": "120ms ease-out", "purpose": "Immediate repeated scoring feedback." }
+    ],
+    "breakpoints": [
+      { "name": "narrow-control", "value": "360px" },
+      { "name": "compact-page", "value": "420px" },
+      { "name": "mobile-header", "value": "560px" },
+      { "name": "form-stack", "value": "620px" },
+      { "name": "home-stack", "value": "680px" },
+      { "name": "centered-content", "value": "900px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "High-commitment submit action with a large bilingual touch target.",
+      "html": "<button class=\"ds-btn-primary\">提交 / Submit</button>",
+      "css": ".ds-btn-primary { min-height: 56px; padding: 14px 22px; border: 0; border-radius: var(--radius-control, 10px); background: var(--color-primary, #2363d1); color: var(--color-primary-contrast, #fff); box-shadow: 0 5px 14px var(--color-primary-shadow, rgba(35,99,209,.22)); font: 760 18px/1.35 ui-sans-serif, system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif; transition: background .16s ease-out, transform .16s ease-out; } .ds-btn-primary:hover { background: var(--color-primary-active, #194fae); } .ds-btn-primary:active { transform: translateY(1px); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-focus, rgba(35,99,209,.16)), 0 5px 14px var(--color-primary-shadow, rgba(35,99,209,.22)); }"
+    },
+    {
+      "name": "Task Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Bordered operational panel for forms and dashboard sections.",
+      "html": "<section class=\"ds-card\"><h3>比赛信息 / Match details</h3><p>填写场次和队号 / Enter match and team.</p></section>",
+      "css": ".ds-card { padding: 22px; border: 1px solid var(--color-border, #d8e0ea); border-radius: var(--radius-panel, 14px); background: var(--color-card-bg, #fff); color: var(--color-text, #132238); box-shadow: var(--shadow-panel, 0 5px 18px rgba(24,43,69,.08)); font-family: ui-sans-serif, system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif; } .ds-card h3 { margin: 0 0 9px; font-size: 22px; line-height: 1.3; } .ds-card h3::after { content: ''; display: block; width: 42px; height: 2px; margin-top: 9px; background: var(--color-accent, #168fb1); } .ds-card p { margin: 14px 0 0; color: var(--color-text-muted, #5e7189); line-height: 1.5; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Large bilingual entry field for rapid match data capture.",
+      "html": "<label class=\"ds-field\"><span>队号 / Team #</span><input placeholder=\"例如 / e.g. 12345\"></label>",
+      "css": ".ds-field { display: grid; gap: 8px; color: var(--color-label, #263b55); font: 630 18px/1.4 ui-sans-serif, system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif; } .ds-field input { min-height: 52px; padding: 13px 15px; border: 1px solid var(--color-border-strong, #bdc9d8); border-radius: var(--radius-control, 10px); background: var(--color-input-bg, #f8fafc); color: var(--color-text, #132238); font-family: inherit; font-size: 20px; font-weight: 400; line-height: 1.35; transition: border-color .16s ease-out, box-shadow .16s ease-out; } .ds-field input:focus { outline: none; border-color: var(--color-primary, #2363d1); box-shadow: 0 0 0 3px var(--color-focus, rgba(35,99,209,.16)); } .ds-field input::placeholder { color: var(--color-text-faint, #7e8da0); }"
+    },
+    {
+      "name": "Selectable Chip",
+      "kind": "chip",
+      "refersTo": "chip-active",
+      "description": "Compact multi-select note control with a clear selected state.",
+      "html": "<button class=\"ds-chip ds-chip-active\">防守强 / Strong defense</button>",
+      "css": ".ds-chip { min-height: 44px; padding: 9px 14px; border: 1px solid var(--color-border, #d8e0ea); border-radius: 999px; background: var(--color-surface-subtle, #f4f7fb); color: var(--color-text-muted, #5e7189); font: 400 16px/1.35 ui-sans-serif, system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif; transition: background .16s ease-out, border-color .16s ease-out; } .ds-chip-active, .ds-chip:hover { border-color: var(--color-primary, #2363d1); background: var(--color-primary-soft, #e9f1ff); color: var(--color-primary, #2363d1); font-weight: 700; } .ds-chip:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-focus, rgba(35,99,209,.16)); }"
+    },
+    {
+      "name": "Scoring Counter",
+      "kind": "custom",
+      "refersTo": "counter-action",
+      "description": "Single-row rapid scoring control with fixed −1, value, +1, +2, +4 order.",
+      "html": "<div class=\"ds-counter\"><button>−1</button><output>12</output><button>+1</button><button>+2</button><button>+4</button></div>",
+      "css": ".ds-counter { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; width: 100%; font-family: ui-sans-serif, system-ui, sans-serif; font-variant-numeric: tabular-nums; } .ds-counter button, .ds-counter output { display: flex; min-width: 0; min-height: 52px; align-items: center; justify-content: center; border-radius: var(--radius-control, 10px); font-weight: 760; } .ds-counter button { border: 1px solid var(--color-primary, #2363d1); background: var(--color-primary-soft, #e9f1ff); color: var(--color-primary, #2363d1); transition: background .12s ease-out, transform .12s ease-out; } .ds-counter output { border: 1px solid var(--color-border, #d8e0ea); background: var(--color-card-bg, #fff); color: var(--color-text, #132238); font-size: 22px; } .ds-counter button:hover { background: var(--color-primary, #2363d1); color: var(--color-primary-contrast, #fff); } .ds-counter button:active { transform: translateY(1px); } .ds-counter button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-focus, rgba(35,99,209,.16)); }"
+    },
+    {
+      "name": "Sync Status",
+      "kind": "custom",
+      "description": "Bilingual synchronization state with color, text, and marker geometry.",
+      "html": "<div class=\"ds-sync ds-sync-queued\" role=\"status\"><span class=\"ds-sync-mark\"></span><span>等待同步 / Waiting to sync</span></div>",
+      "css": ".ds-sync { display: flex; min-height: 44px; align-items: center; gap: 10px; padding: 10px 14px; border: 1px solid var(--color-border, #d8e0ea); border-radius: var(--radius-control, 10px); background: var(--color-surface-subtle, #f4f7fb); color: var(--color-text-muted, #5e7189); font: 400 16px/1.35 ui-sans-serif, system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif; } .ds-sync-mark { width: 14px; height: 14px; flex: 0 0 14px; border: 3px solid currentColor; border-radius: 50%; } .ds-sync-queued { color: var(--color-warning, #986816); } .ds-sync-queued .ds-sync-mark { border-top-color: transparent; }"
+    },
+    {
+      "name": "Sticky App Header",
+      "kind": "nav",
+      "description": "Centered bilingual navigation with balanced side actions.",
+      "html": "<nav class=\"ds-header\"><button>‹ 返回 / Back</button><strong>比赛侦察 / Match Scouting</strong><button>搜索 / Search</button></nav>",
+      "css": ".ds-header { display: grid; grid-template-columns: minmax(112px,1fr) minmax(0,2fr) minmax(112px,1fr); min-height: 64px; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--color-border, #d8e0ea); background: var(--color-card-bg, #fff); color: var(--color-text, #132238); box-shadow: 0 3px 14px var(--color-shadow, rgba(24,43,69,.1)); font-family: ui-sans-serif, system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif; } .ds-header strong { text-align: center; font-size: 20px; } .ds-header button { min-height: 44px; padding: 8px 12px; border: 1px solid var(--color-border, #d8e0ea); border-radius: var(--radius-control, 10px); background: var(--color-surface-subtle, #f4f7fb); color: var(--color-primary, #2363d1); font-weight: 700; } .ds-header button:last-child { justify-self: end; } .ds-header button:hover { background: var(--color-primary-soft, #e9f1ff); } .ds-header button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-focus, rgba(35,99,209,.16)); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Competition Control Desk",
+    "overview": "The shipped interface is a dense but calm engineering dashboard built for repeated use under match pressure. Its authority comes from semantic status, disciplined navy and blue surfaces, tabular numbers, crisp dividers, and a small set of cyan technical marks—not from ornamental science-fiction effects. Every operational label is designed to tolerate permanent Chinese/English display. Light and dark themes keep the same semantic hierarchy, while large inputs, direct actions, and compressed responsive grids preserve fast entry on H5 and WeChat Mini Program screens.",
+    "keyCharacteristics": [
+      "Restrained navy, blue, silver-gray, and neutral surfaces with cyan reserved for technical accents.",
+      "Semantic light/dark theme slots rather than page-specific color choices.",
+      "Bilingual, wrap-safe labels and numeric displays with tabular figures.",
+      "Bordered panels, compact structural rules, and low ambient elevation.",
+      "Direct touch controls optimized for repeated scouting actions."
+    ],
+    "rules": [
+      { "name": "The Cyan Instrument Rule", "body": "Cyan marks technical structure or status only; it never becomes the dominant action or decorative field.", "section": "colors" },
+      { "name": "The Semantic Parity Rule", "body": "New colors enter through reusable semantic light and dark roles; do not hard-code a one-theme-only surface.", "section": "colors" },
+      { "name": "The Status Has Shape Rule", "body": "Success, warning, error, and synchronization states pair color with text and a visible marker or border treatment.", "section": "colors" },
+      { "name": "The Bilingual Integrity Rule", "body": "Chinese and English remain together; labels wrap instead of truncating or shrinking into illegibility.", "section": "typography" },
+      { "name": "The Numeric Readout Rule", "body": "Counters, progress values, and team identifiers use tabular figures for stable scanning.", "section": "typography" },
+      { "name": "The Reachable Control Rule", "body": "Canonical interactive controls are at least 44px tall; primary submit controls are 56px and standard fields/counters are 52px.", "section": "layout" },
+      { "name": "The Bordered Before Floating Rule", "body": "Use a border and tonal separation first; reserve shadows for panels, sticky navigation, focus, and primary commitment actions.", "section": "elevation" },
+      { "name": "The Two-Tier Radius Rule", "body": "New surfaces use the 14px panel or 10px control radius unless they are explicitly a compact badge, chip, or circular status mark.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do route new visual values through the existing semantic theme variables and preserve light/dark parity.",
+      "Do keep Chinese and English visible together and allow labels to wrap safely.",
+      "Do use the 14px panel, 10px control, 8px compact, and 999px chip roles intentionally.",
+      "Do preserve the single-row five-part scoring counter and minimum 44px canonical touch target.",
+      "Do use borders, short rules, tabular numbers, and status geometry for the subtle control-desk character."
+    ],
+    "donts": [
+      "Don't use gradients, glass effects, neon glow, or ornamental science-fiction decoration.",
+      "Don't promote cyan into a dominant button, large background, or decorative field.",
+      "Don't introduce glyph icons, invented kickers, or a display typeface outside the shipped platform sans-serif system.",
+      "Don't rely on color alone for synchronization, validation, warning, or completion states.",
+      "Don't replace direct match-entry controls with hidden menus or multi-step interactions."
+    ]
+  }
+}

@@ -1,75 +1,58 @@
-.home-page {
-  min-height: 100vh;
-  box-sizing: border-box;
-  background: var(--color-bg);
+.home-page { min-height: 100vh; background: var(--color-bg); }
+.home-content { max-width: 1060px; }
+.home-intro { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin: 30px 0 24px; }
+.home-title { display: block; color: var(--color-text); font-size: calc(38px * var(--font-scale)); font-weight: 780; letter-spacing: -0.02em; }
+.home-subtitle { display: block; margin-top: 6px; color: var(--color-text-muted); font-size: calc(21px * var(--font-scale)); }
+.home-system-state { display: flex; align-items: center; gap: 9px; color: var(--color-text-muted); font-size: calc(19px * var(--font-scale)); }
+.home-live-mark { width: 10px; height: 10px; border-radius: 50%; background: var(--color-accent); box-shadow: 0 2px 6px var(--color-accent-soft); }
+.mission-panel { position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) minmax(230px, .42fr); gap: 28px; align-items: stretch; padding: 28px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-panel); background: var(--color-navy); box-shadow: var(--shadow-panel); }
+.mission-panel::after { content: ''; position: absolute; top: 18px; right: 18px; width: 56px; height: 1px; background: var(--color-cyan); opacity: .7; }
+.mission-copy { display: flex; flex-direction: column; justify-content: center; }
+.mission-title { color: #f7fbff; font-size: calc(28px * var(--font-scale)); font-weight: 740; }
+.mission-desc { max-width: 68ch; margin-top: 10px; color: #b9c9dc; font-size: calc(20px * var(--font-scale)); line-height: 1.6; }
+.mission-action { display: flex; min-height: 112px; flex-direction: column; justify-content: center; padding: 20px 22px; border: 1px solid rgba(255,255,255,.2); border-radius: var(--radius-control); background: var(--color-primary); color: #fff; touch-action: manipulation; transition: transform .16s ease-out, background .16s ease-out; }
+.mission-action:active { transform: translateY(1px); background: var(--color-primary-active); }
+.mission-action-title { font-size: calc(27px * var(--font-scale)); font-weight: 780; }
+.mission-action-meta { margin-top: 7px; color: rgba(255,255,255,.78); font-size: calc(18px * var(--font-scale)); }
+.progress-section { margin-top: 22px; padding: 24px; border: 1px solid var(--color-border); border-radius: var(--radius-panel); background: var(--color-card-bg); box-shadow: var(--shadow-panel); }
+.section-heading-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.dashboard-title { display: block; color: var(--color-text); font-size: calc(27px * var(--font-scale)); font-weight: 760; }
+.dashboard-subtitle { display: block; margin-top: 4px; color: var(--color-text-muted); font-size: calc(18px * var(--font-scale)); }
+.event-compact-picker { display: flex; max-width: 360px; min-height: 42px; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-surface-subtle); color: var(--color-text); font-size: calc(18px * var(--font-scale)); }
+.event-compact-picker > text:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-caret { width: 8px; height: 8px; flex: 0 0 auto; border-right: 1px solid var(--color-primary); border-bottom: 1px solid var(--color-primary); transform: rotate(45deg) translateY(-2px); }
+.progress-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); margin-top: 22px; border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); }
+.progress-metric { min-width: 0; padding: 20px 18px; }
+.progress-metric + .progress-metric { border-left: 1px solid var(--color-border); }
+.progress-value { display: block; color: var(--color-primary); font-size: calc(38px * var(--font-scale)); font-weight: 790; line-height: 1; font-variant-numeric: tabular-nums; }
+.progress-label { display: block; margin-top: 9px; color: var(--color-label); font-size: calc(18px * var(--font-scale)); line-height: 1.35; }
+.progress-note, .progress-caveat { display: block; margin-top: 16px; color: var(--color-text-muted); font-size: calc(18px * var(--font-scale)); line-height: 1.5; }
+.progress-note--complete { color: var(--color-success); }
+.progress-caveat { color: var(--color-warning); }
+.missing-team-list { margin-top: 18px; }
+.missing-team-heading { display: block; color: var(--color-label); font-size: calc(18px * var(--font-scale)); font-weight: 700; }
+.missing-team-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.missing-team-chip { padding: 7px 10px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface-subtle); color: var(--color-text); font-size: calc(18px * var(--font-scale)); font-variant-numeric: tabular-nums; }
+.progress-section .sync-status { margin-top: 16px; }
+.home-nav-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; margin-top: 22px; }
+.home-nav-item { position: relative; min-height: 112px; padding: 20px 22px 20px 26px; border: 1px solid var(--color-border); border-radius: var(--radius-panel); background: var(--color-card-bg); box-shadow: var(--shadow-panel); touch-action: manipulation; }
+.home-nav-item::before { content: ''; position: absolute; top: 20px; bottom: 20px; left: 12px; width: 1px; background: var(--color-primary); }
+.home-nav-item:active { background: var(--color-surface-subtle); }
+.home-nav-title { display: block; color: var(--color-text); font-size: calc(23px * var(--font-scale)); font-weight: 730; }
+.home-nav-desc { display: block; margin-top: 7px; color: var(--color-text-muted); font-size: calc(18px * var(--font-scale)); line-height: 1.45; }
+@media (max-width: 680px) {
+  .home-intro { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .mission-panel { grid-template-columns: 1fr; padding: 22px; }
+  .mission-action { min-height: 82px; }
+  .section-heading-row { flex-direction: column; }
+  .event-compact-picker { max-width: 100%; }
+  .progress-section { padding: 20px 16px; }
+  .progress-metric { padding: 18px 9px; }
+  .progress-value { font-size: calc(32px * var(--font-scale)); }
+  .progress-label { font-size: calc(16px * var(--font-scale)); }
+  .home-nav-grid { grid-template-columns: 1fr; }
 }
-
-.home-header {
-  text-align: center;
-  margin: 40px 0 48px;
-}
-
-.home-title {
-  font-size: calc(40px * var(--font-scale));
-  font-weight: bold;
-  color: var(--color-text);
-  display: block;
-}
-
-.home-subtitle {
-  font-size: calc(24px * var(--font-scale));
-  color: var(--color-text-muted);
-  margin-top: 8px;
-  display: block;
-}
-
-.home-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.home-button {
-  display: flex;
-  align-items: center;
-  background: var(--color-card-bg);
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 2px 8px var(--color-shadow);
-
-  &.primary {
-    background: var(--color-primary);
-
-    .home-button-title {
-      color: var(--color-primary-contrast);
-    }
-
-    .home-button-desc {
-      color: rgba(255, 255, 255, 0.8);
-    }
-  }
-}
-
-.home-button-icon {
-  font-size: calc(44px * var(--font-scale));
-  width: 64px;
-  text-align: center;
-  margin-right: 16px;
-}
-
-.home-button-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.home-button-title {
-  font-size: calc(30px * var(--font-scale));
-  font-weight: bold;
-  color: var(--color-text);
-}
-
-.home-button-desc {
-  font-size: calc(22px * var(--font-scale));
-  color: var(--color-text-muted);
-  margin-top: 4px;
+@media (max-width: 380px) {
+  .progress-label { font-size: calc(14px * var(--font-scale)); }
+  .progress-metric { padding-inline: 6px; }
 }

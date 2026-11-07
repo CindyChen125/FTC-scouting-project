@@ -147,3 +147,19 @@
   color: var(--color-primary-contrast);
   font-weight: bold;
 }
+
+.admin-page .section-card { border: 1px solid var(--color-border); border-radius: var(--radius-panel); box-shadow: var(--shadow-panel); }
+.admin-page .section-title { font-weight: 760; letter-spacing: -.012em; }
+.admin-page .field-input { min-height: 52px; box-sizing: border-box; border-width: 1px; border-color: var(--color-border-strong); border-radius: var(--radius-control); }
+.admin-page .field-input:focus { box-shadow: 0 0 0 3px var(--color-focus); }
+.admin-btn { min-height: 54px; border-radius: var(--radius-control); box-shadow: 0 5px 14px var(--color-primary-shadow); }
+.member-row { padding-block: 20px; }
+.member-badge { border: 1px solid var(--color-border); background: var(--color-surface-subtle); }
+.member-badge.admin { border-color: var(--color-primary); background: var(--color-primary-soft); color: var(--color-primary); }
+.member-actions .chip { min-height: 40px; box-sizing: border-box; border: 1px solid var(--color-border); background: var(--color-surface-subtle); }
+.member-actions .chip.primary { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-primary-contrast); }
+
+@media (max-width: 520px) {
+  .admin-page .section-card { padding: 18px 16px; }
+  .member-head { align-items: flex-start; }
+}

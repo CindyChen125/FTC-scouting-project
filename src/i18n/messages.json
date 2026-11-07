@@ -1406,5 +1406,57 @@
   "requestFailed": {
     "en": "Request failed ({status})",
     "zh": "请求失败（{status}）"
+  },
+  "retrySync": {
+    "en": "Retry",
+    "zh": "重试"
+  },
+  "readyNextMatch": {
+    "en": "Ready for the next match",
+    "zh": "准备记录下一场"
+  },
+  "missionDescription": {
+    "en": "Capture match performance quickly, save on this device, and sync safely when connected.",
+    "zh": "快速录入比赛表现，自动保存到本机，并在连接可用时安全同步。"
+  },
+  "openMatchForm": {
+    "en": "Open match form",
+    "zh": "开始比赛记录"
+  },
+  "scoutingProgress": {
+    "en": "Scouting Progress",
+    "zh": "侦查进度"
+  },
+  "submittedEntriesOnly": {
+    "en": "Submitted entries only",
+    "zh": "仅统计已提交记录"
+  },
+  "matchesScouted": {
+    "en": "Matches Scouted",
+    "zh": "已侦查场次"
+  },
+  "teamsCovered": {
+    "en": "Teams Covered",
+    "zh": "已覆盖队伍"
+  },
+  "teamsMissingData": {
+    "en": "Teams Missing Data",
+    "zh": "缺少数据的队伍"
+  },
+  "rosterUnavailable": {
+    "en": "Event roster unavailable; missing-team coverage cannot be determined reliably.",
+    "zh": "赛事队伍名单不可用，无法可靠判断缺少数据的队伍。"
+  },
+  "needsAttention": {
+    "en": "Needs attention",
+    "zh": "待关注队伍"
+  },
+  "allTeamsCovered": {
+    "en": "Every team on the event roster has scouting coverage.",
+    "zh": "赛事名单中的所有队伍均已有侦查记录。"
+  },
+  "offlineProgressCaveat": {
+    "en": "Offline or shared data unavailable; figures may only reflect this device.",
+    "zh": "当前离线或共享数据不可用；数字可能仅反映此设备。"
   }
 }

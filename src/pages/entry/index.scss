@@ -107,3 +107,9 @@
   margin-top: 100px;
   display: block;
 }
+
+.entry-detail-page .header-card, .entry-detail-page .section-card { border: 1px solid var(--color-border); border-radius: var(--radius-panel); box-shadow: var(--shadow-panel); }
+.detail-row { padding-block: 13px; }
+.edit-btn { border-radius: var(--radius-control); }
+.detail-value { font-variant-numeric: tabular-nums; }
+.detail-notes-block { line-height: 1.6; }

@@ -3,7 +3,6 @@ import { View, Text, Input } from '@tarojs/components'
 import { translate as t } from '../i18n'
 import { useLanguage } from '../i18n/LanguageContext'
 import { useAuth } from './AuthContext'
-import LanguagePicker from '../components/LanguagePicker'
 import './LoginScreen.scss'
 
 export default function LoginScreen() {
@@ -42,7 +41,6 @@ export default function LoginScreen() {
   return (
     <View className='login-page'>
       <View className='login-card'>
-        <LanguagePicker />
         <Text className='login-title'>{t("FTC Scouting")}</Text>
         <Text className='login-subtitle'>{t("请登录以继续 Sign in to continue")}</Text>
 

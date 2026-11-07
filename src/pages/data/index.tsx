@@ -25,8 +25,9 @@ import {
   RankingModel,
   RankingWeights
 } from '../../utils/ranking'
-import { EVENTS, CURRENT_EVENT_CODE, CURRENT_SEASON, findEvent, eventLabel, entryEventCode } from '../../data/events'
+import { EVENTS, CURRENT_SEASON, findEvent, eventLabel, entryEventCode } from '../../data/events'
 import { readImportedEvents, syncImportedEvents } from '../../data/ftcScout'
+import { readSelectedEventCode, writeSelectedEventCode } from '../../data/selectedEvent'
 import { officialOpr } from '../../utils/officialOpr'
 import { gameForEntry } from '../../games'
 import { useAuth } from '../../auth/AuthContext'
@@ -66,7 +67,8 @@ export default function CurrentData() {
   // Empty selection = Overall (weighted composite). One or more selected =
   // rank by the average of those factors' scores.
   const [selectedFactors, setSelectedFactors] = useState<string[]>([])
-  const [eventCode, setEventCode] = useState(CURRENT_EVENT_CODE)
+  const [eventCode, setEventCode] = useState(readSelectedEventCode)
+  useEffect(() => writeSelectedEventCode(eventCode), [eventCode])
   const [importedEvents, setImportedEvents] = useState(readImportedEvents)
   useEffect(() => {
     if (!userId) return

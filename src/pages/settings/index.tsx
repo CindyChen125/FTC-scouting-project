@@ -114,8 +114,8 @@ export default function Settings() {
           <View className='settings-row'>
             <Text className='settings-label'>{t("Appearance")}</Text>
             <View className='pill-row'>
-              <View className={`pill ${theme === 'light' ? 'active' : ''}`} onClick={() => setTheme('light')}>{t("☀️ Light")}</View>
-              <View className={`pill ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')}>{t("🌙 Dark")}</View>
+              <View className={`pill ${theme === 'light' ? 'active' : ''}`} onClick={() => setTheme('light')}>{t("Light")}</View>
+              <View className={`pill ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')}>{t("Dark")}</View>
             </View>
           </View>
         </View>
