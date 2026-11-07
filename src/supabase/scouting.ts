@@ -9,6 +9,7 @@ const TABLE = 'scout_entries'
 
 // Postgres columns are snake_case; the app's TypeScript shape is camelCase.
 type Row = {
+  observation_key: string
   event_code: string
   match_id: string
   team_number: string
@@ -24,6 +25,7 @@ type Row = {
 }
 
 const toRow = (entry: MatchScoutEntry): Row => ({
+  observation_key: entry.observationKey ?? entry.scoutedBy ?? 'legacy',
   event_code: entryEventCode(entry),
   match_id: entry.matchId,
   team_number: entry.teamNumber,
@@ -39,6 +41,7 @@ const toRow = (entry: MatchScoutEntry): Row => ({
 })
 
 const toEntry = (row: Row): MatchScoutEntry => ({
+  observationKey: row.observation_key,
   eventCode: row.event_code,
   matchId: row.match_id,
   teamNumber: row.team_number,
@@ -57,7 +60,7 @@ let channelSeq = 0
 
 const push = (entry: MatchScoutEntry) =>
   withTimeout(
-    supabase.from(TABLE).upsert(toRow(entry), { onConflict: 'event_code,match_id,team_number' })
+    supabase.from(TABLE).upsert(toRow(entry), { onConflict: 'event_code,match_id,team_number,observation_key' })
   )
 
 export type SubmitOutcome = 'synced' | 'queued' | 'rejected'
@@ -128,7 +131,7 @@ function localEntries(userId: string | null): MatchScoutEntry[] {
 function mergeEntries(remote: MatchScoutEntry[], userId: string | null): MatchScoutEntry[] {
   const byKey = new Map<string, MatchScoutEntry>()
   const keyOf = (entry: MatchScoutEntry) =>
-    `${entryEventCode(entry)}:${entry.matchId}:${entry.teamNumber}`
+    `${entryEventCode(entry)}:${entry.matchId}:${entry.teamNumber}:${entry.observationKey ?? entry.scoutedBy ?? 'legacy'}`
   for (const entry of localEntries(userId)) {
     byKey.set(keyOf(entry), entry)
   }
@@ -207,7 +210,8 @@ export function subscribeScoutEntry(
   matchId: string,
   teamNumber: string,
   onChange: (entry: MatchScoutEntry | null) => void,
-  onError?: (err: Error) => void
+  onError?: (err: Error) => void,
+  observationKey?: string
 ) {
   return subscribeScoutEntries(
     userId,
@@ -215,7 +219,8 @@ export function subscribeScoutEntry(
       onChange(
         entries.find(
           (e) =>
-            entryEventCode(e) === eventCode && e.matchId === matchId && e.teamNumber === teamNumber
+            entryEventCode(e) === eventCode && e.matchId === matchId && e.teamNumber === teamNumber &&
+            (!observationKey || (e.observationKey ?? e.scoutedBy ?? 'legacy') === observationKey)
         ) ?? null
       ),
     onError
@@ -232,7 +237,7 @@ export async function fetchScoutEntry(
 ): Promise<MatchScoutEntry | null> {
   if (userId) {
     const local = Taro.getStorageSync(scoutEntryStorageKey(userId, eventCode, matchId, teamNumber))
-    if (local) return local as MatchScoutEntry
+    if (local && (!local.scoutedBy || local.scoutedBy === userId)) return local as MatchScoutEntry
   }
 
   try {
@@ -243,6 +248,7 @@ export async function fetchScoutEntry(
         .eq('event_code', eventCode)
         .eq('match_id', matchId)
         .eq('team_number', teamNumber)
+        .eq('observation_key', userId ?? 'legacy')
         .order('updated_at', { ascending: false })
         .limit(1)
     )

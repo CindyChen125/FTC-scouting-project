@@ -1,10 +1,11 @@
 import { DecodeEntry } from '../types/scouting'
 import { GameView, formatNotes, yesNo } from './common'
+import { translate as t } from '../i18n'
 
 // DECODE 2025-2026. Entries are view-only now; this keeps them readable.
 
 const parkStatusLabel = (status: string) =>
-  status === 'partial' ? '半停 Partial' : status === 'full' ? '全停 Full' : '未停靠 None'
+  t(status === 'partial' ? '半停 Partial' : status === 'full' ? '全停 Full' : '未停靠 None')
 
 export const decodeView: GameView<DecodeEntry> = {
   season: 2025,
@@ -13,7 +14,7 @@ export const decodeView: GameView<DecodeEntry> = {
   cardStats: (e) => [
     { label: 'Auto goals', value: String(e.auto.nearGoalsMade + e.auto.farGoalsMade) },
     { label: 'Teleop goals', value: String(e.teleop.nearGoalsMade + e.teleop.farGoalsMade) },
-    { label: 'Endgame', value: e.endgame.parkStatus }
+    { label: 'Endgame', value: parkStatusLabel(e.endgame.parkStatus) }
   ],
 
   detailSections: (e) => [

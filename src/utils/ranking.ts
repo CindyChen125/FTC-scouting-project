@@ -1,6 +1,7 @@
 import { EventTeamResult } from '../types/ranking'
-import { BiobuzzEntry, Season } from '../types/scouting'
+import { BiobuzzEntry, Season , noteTagId } from '../types/scouting'
 import { hiveBalls, flowerBalls, allianceTips, movementPoints } from '../games/biobuzz'
+import { translate as tr } from '../i18n'
 
 export interface RankingFactorDef {
   key: string
@@ -48,17 +49,17 @@ export function computeRankings(
 ): RankedTeam[] {
   const ranges = Object.fromEntries(
     model.factors.map(({ key }) => {
-      const values = rows.map((r) => r.raw[key])
+      const values = rows.map((r) => r.raw[key]).filter(Number.isFinite)
       return [key, [Math.min(...values), Math.max(...values)]]
     })
   )
-  const totalWeight = model.factors.reduce((sum, f) => sum + (weights[f.key] ?? 0), 0)
-
   const ranked = rows.map((row) => {
+    const available = model.factors.filter(({ key }) => Number.isFinite(row.raw[key]))
+    const totalWeight = available.reduce((sum, f) => sum + (weights[f.key] ?? 0), 0)
     const breakdown = Object.fromEntries(
-      model.factors.map(({ key }) => [key, normalize(row.raw[key], ranges[key][0], ranges[key][1])])
+      model.factors.map(({ key }) => [key, Number.isFinite(row.raw[key]) ? normalize(row.raw[key], ranges[key][0], ranges[key][1]) : 50])
     )
-    const weightedSum = model.factors.reduce(
+    const weightedSum = available.reduce(
       (sum, f) => sum + breakdown[f.key] * (weights[f.key] ?? 0),
       0
     )
@@ -88,7 +89,7 @@ export const decodeRows = (teams: EventTeamResult[]): RankRow[] =>
   teams.map((t) => ({
     number: String(t.number),
     title: `${t.number} · ${t.name}`,
-    meta: `${t.wins}-${t.losses}-${t.ties} · quals rank ${t.rank}`,
+    meta: tr('qualificationRank', { wins: t.wins, losses: t.losses, ties: t.ties, rank: t.rank }),
     raw: {
       auto: t.oprAuto,
       teleop: t.oprTeleop,
@@ -107,12 +108,13 @@ export const BIOBUZZ_MODEL: RankingModel = {
     { key: 'auto', label: 'Auto' },
     { key: 'flowers', label: 'Flowers' },
     { key: 'park', label: 'Leave+Park' },
-    { key: 'tips', label: 'Tips' },
+    { key: 'tips', label: 'Alliance tips' },
+    { key: 'reliability', label: 'No reported breakdown' },
     { key: 'consistency', label: 'Consistency' }
   ],
   // Hive shooting drives both match points and two RPs, so it leads. Starting
   // guesses — adjust once real matches show what wins.
-  defaultWeights: { hive: 0.35, auto: 0.2, flowers: 0.15, park: 0.1, tips: 0.1, consistency: 0.1 },
+  defaultWeights: { hive: 0.45, auto: 0.2, flowers: 0.15, park: 0.1, tips: 0, reliability: 0, consistency: 0.1 },
   storageKey: 'rankingWeights:2026'
 }
 
@@ -127,6 +129,15 @@ const stdDev = (values: number[]) => {
 const round1 = (n: number) => Math.round(n * 10) / 10
 
 export function biobuzzRows(entries: BiobuzzEntry[]): RankRow[] {
+  // Use the latest observation per match for rankings; keep every raw record
+  // in the data list and export so disagreements remain reviewable.
+  const perMatch = new Map<string, BiobuzzEntry>()
+  for (const entry of entries) {
+    const key = JSON.stringify([entry.eventCode, entry.matchId, entry.teamNumber.trim()])
+    const previous = perMatch.get(key)
+    if (!previous || entry.updatedAt > previous.updatedAt) perMatch.set(key, entry)
+  }
+  entries = [...perMatch.values()]
   const byTeam = new Map<string, BiobuzzEntry[]>()
   for (const e of entries) {
     const team = e.teamNumber.trim()
@@ -148,16 +159,23 @@ export function biobuzzRows(entries: BiobuzzEntry[]): RankRow[] {
   return teams.map(({ number, list, totals }) => {
     const hive = mean(list.map((e) => e.teleop.cellPollen + e.teleop.cellNectar))
     const flowers = mean(list.map(flowerBalls))
+    const failures = list.filter((entry) =>
+      [...(entry.auto.noteTags ?? []), ...(entry.teleop.noteTags ?? [])].some((tag) => {
+        const id = noteTagId(tag)
+        return id === 'disconnected' || id === 'mechanical-failure'
+      })
+    ).length
     return {
       number,
-      title: `Team ${number}`,
-      meta: `${list.length} ${list.length === 1 ? 'match' : 'matches'} scouted · avg ${round1(mean(list.map(hiveBalls)))} hive / ${round1(flowers)} flower balls`,
+      title: tr('teamNumber', { number }),
+      meta: tr('teamSummary', { count: list.length, failures, hive: round1(mean(list.map(hiveBalls))), flowers: round1(flowers) }),
       raw: {
         hive,
         auto: mean(list.map((e) => e.auto.cellBalls)),
         flowers,
         park: mean(list.map(movementPoints)),
         tips: mean(list.map(allianceTips)),
+        reliability: 1 - failures / list.length,
         consistency: -(list.length >= 2 ? stdDev(totals) : typicalSpread)
       }
     }

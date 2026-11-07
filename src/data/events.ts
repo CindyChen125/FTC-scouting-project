@@ -2,6 +2,8 @@ import fperocResults from './fperocResults.json'
 import caoluResults from './caoluResults.json'
 import { EventResultsData } from '../types/ranking'
 import { Season } from '../types/scouting'
+import { readImportedEvents } from './ftcScout'
+import { translate as t } from '../i18n'
 
 export interface EventInfo {
   code: string
@@ -25,6 +27,9 @@ export const EVENTS: EventInfo[] = [
 export const CURRENT_EVENT_CODE = EVENTS[0].code
 export const CURRENT_SEASON: Season = 2026
 
+// Imported event names are official content, not interface messages.
+export const eventLabel = (event: EventInfo) => event.code === 'BIOBUZZ-PRACTICE' ? t('BIOBUZZ 练习赛 Practice & Scrimmages') : event.name
+
 // Entries saved before events were tracked have no eventCode. They all came
 // from KDays, so they stay there however CURRENT_EVENT_CODE changes.
 export const LEGACY_EVENT_CODE = 'FPEROC'
@@ -33,4 +38,5 @@ export const entryEventCode = (entry: { eventCode?: string }) =>
   entry.eventCode ?? LEGACY_EVENT_CODE
 
 export const findEvent = (code: string): EventInfo =>
-  EVENTS.find((e) => e.code === code) ?? EVENTS[0]
+  EVENTS.find((e) => e.code === code) ??
+  { code, name: readImportedEvents().find((event) => event.code === code)?.name ?? code, season: CURRENT_SEASON }

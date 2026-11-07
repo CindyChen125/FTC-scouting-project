@@ -14,6 +14,7 @@
 // stays optically centred.
 .app-header-side {
   width: 168px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
 
@@ -46,11 +47,14 @@
   font-size: calc(22px * var(--font-scale));
   color: var(--color-primary);
   font-weight: bold;
-  white-space: nowrap;
+  white-space: normal;
+  text-align: center;
 }
 
 .app-header-title {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
   text-align: center;
   font-size: calc(28px * var(--font-scale));
   font-weight: bold;
@@ -58,12 +62,13 @@
 }
 
 .app-header-icon-btn {
-  width: 56px;
-  height: 56px;
+  min-width: 56px;
+  min-height: 56px;
+  padding: 0 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: 22px;
 }
 
 .app-header-icon {

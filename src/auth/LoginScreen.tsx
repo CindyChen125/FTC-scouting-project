@@ -1,13 +1,18 @@
 import { useState } from 'react'
 import { View, Text, Input } from '@tarojs/components'
+import { translate as t } from '../i18n'
+import { useLanguage } from '../i18n/LanguageContext'
 import { useAuth } from './AuthContext'
+import LanguagePicker from '../components/LanguagePicker'
 import './LoginScreen.scss'
 
 export default function LoginScreen() {
+  useLanguage()
   const { signIn } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [serverError, setServerError] = useState('')
   const [busy, setBusy] = useState(false)
 
   const submit = async () => {
@@ -17,6 +22,7 @@ export default function LoginScreen() {
     }
     setBusy(true)
     setError('')
+    setServerError('')
     try {
       await signIn(username, password)
       // AuthProvider redirects into the app once the session lands.
@@ -25,8 +31,9 @@ export default function LoginScreen() {
       setError(
         /invalid login/i.test(message)
           ? '用户名或密码错误 Wrong username or password'
-          : `登录失败 Sign-in failed: ${message}`
+          : 'signInFailed'
       )
+      setServerError(message)
     } finally {
       setBusy(false)
     }
@@ -35,15 +42,16 @@ export default function LoginScreen() {
   return (
     <View className='login-page'>
       <View className='login-card'>
-        <Text className='login-title'>FTC Scouting</Text>
-        <Text className='login-subtitle'>请登录以继续 Sign in to continue</Text>
+        <LanguagePicker />
+        <Text className='login-title'>{t("FTC Scouting")}</Text>
+        <Text className='login-subtitle'>{t("请登录以继续 Sign in to continue")}</Text>
 
         <View className='login-field'>
-          <Text className='login-label'>用户名 Username</Text>
+          <Text className='login-label'>{t("用户名 Username")}</Text>
           <Input
             className='login-input'
             value={username}
-            placeholder='your username'
+            placeholder={t("your username")}
             // @ts-expect-error h5-only DOM attribute
             autoComplete='username'
             onInput={(e) => setUsername(e.detail.value)}
@@ -51,7 +59,7 @@ export default function LoginScreen() {
         </View>
 
         <View className='login-field'>
-          <Text className='login-label'>密码 Password</Text>
+          <Text className='login-label'>{t("密码 Password")}</Text>
           <Input
             className='login-input'
             password
@@ -64,15 +72,13 @@ export default function LoginScreen() {
           />
         </View>
 
-        {!!error && <Text className='login-error'>{error}</Text>}
+        {!!error && <Text className='login-error'>{t(error, { error: t(serverError) })}</Text>}
 
         <View className={`login-btn ${busy ? 'busy' : ''}`} onClick={busy ? undefined : submit}>
-          {busy ? '登录中… Signing in…' : '登录 Sign In'}
+          {busy ? t("登录中… Signing in…") : t("登录 Sign In")}
         </View>
 
-        <Text className='login-hint'>
-          账号由管理员创建 Accounts are created by your team admin.
-        </Text>
+        <Text className='login-hint'>{t("账号由管理员创建 Accounts are created by your team admin.")}</Text>
       </View>
     </View>
   )

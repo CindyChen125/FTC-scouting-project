@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { View, Text, Input } from '@tarojs/components'
 import Taro from '@tarojs/taro'
+import { translate as t } from '../../i18n'
+import { useLanguage } from '../../i18n/LanguageContext'
 import AppHeader from '../../components/AppHeader'
 import { useAuth } from '../../auth/AuthContext'
 import { Profile, UserRole, profileLabel } from '../../types/scouting'
@@ -17,9 +19,10 @@ import {
 import './index.scss'
 
 const toast = (title: string, icon: 'success' | 'none' = 'none') =>
-  Taro.showToast({ title, icon })
+  Taro.showToast({ title: t(title), icon })
 
 export default function Admin() {
+  useLanguage()
   const { isAdmin, userId, loading } = useAuth()
   const [members, setMembers] = useState<Profile[]>([])
   const [counts, setCounts] = useState<Record<string, number>>({})
@@ -57,9 +60,9 @@ export default function Admin() {
   if (!loading && !isAdmin) {
     return (
       <View className='admin-page'>
-        <AppHeader title='Admin' showBack />
+        <AppHeader title={t("Admin")} showBack />
         <View className='page-content'>
-          <Text className='empty-state'>仅管理员可见 Admins only.</Text>
+          <Text className='empty-state'>{t("仅管理员可见 Admins only.")}</Text>
         </View>
       </View>
     )
@@ -80,7 +83,7 @@ export default function Admin() {
 
   const addScout = () => {
     if (!newUsername.trim() || newPassword.length < 6) {
-      toast('用户名必填，密码至少6位 Username required, password min 6')
+      toast(t("用户名必填，密码至少6位 Username required, password min 6"))
       return
     }
     run(
@@ -91,7 +94,7 @@ export default function Admin() {
           password: newPassword,
           role: 'scout'
         }),
-      '已创建 Scout created ✓'
+      t("已创建 Scout created ✓")
     ).then(() => {
       setNewUsername('')
       setNewDisplayName('')
@@ -126,16 +129,16 @@ export default function Admin() {
     const value = draft.trim()
     if (editing?.kind === 'rename') {
       if (!value) {
-        toast('名字不能为空 Name required')
+        toast(t("名字不能为空 Name required"))
         return
       }
-      run(() => setProfileDisplayName(member.userId, value), '已更新 Renamed ✓').then(closeEditor)
+      run(() => setProfileDisplayName(member.userId, value), t("已更新 Renamed ✓")).then(closeEditor)
     } else {
       if (value.length < 6) {
-        toast('密码至少6位 Password min 6')
+        toast(t("密码至少6位 Password min 6"))
         return
       }
-      run(() => resetScoutPassword(member.userId, value), '密码已重置 Password reset ✓').then(
+      run(() => resetScoutPassword(member.userId, value), t("密码已重置 Password reset ✓")).then(
         closeEditor
       )
     }
@@ -143,85 +146,77 @@ export default function Admin() {
 
   const confirmDelete = (member: Profile) => {
     Taro.showModal({
-      title: '删除账号 Delete account',
-      content: `永久删除 ${profileLabel(member)}？他们提交的数据会保留，但不再显示姓名。Permanently delete this account? Their submitted entries stay, but lose the name link.`,
-      confirmText: '删除',
-      cancelText: '取消',
+      title: t("删除账号 Delete account"),
+      content: t('deleteAccount', { name: profileLabel(member) }),
+      confirmText: t("删除"),
+      cancelText: t("取消"),
       confirmColor: '#e05252',
       success: (res) => {
-        if (res.confirm) run(() => deleteScout(member.userId), '已删除 Deleted ✓')
+        if (res.confirm) run(() => deleteScout(member.userId), t("已删除 Deleted ✓"))
       }
     })
   }
 
   return (
     <View className='admin-page'>
-      <AppHeader title='Admin' showBack />
+      <AppHeader title={t("Admin")} showBack />
 
       <View className='page-content'>
         <View className='section-card'>
-          <Text className='section-title'>添加侦查员 Add scout</Text>
+          <Text className='section-title'>{t("添加侦查员 Add scout")}</Text>
           <View className='field-row'>
-            <Text className='field-label'>用户名 Username</Text>
+            <Text className='field-label'>{t("用户名 Username")}</Text>
             <Input
               className='field-input'
               value={newUsername}
-              placeholder='e.g. alice'
+              placeholder={t("e.g. alice")}
               // @ts-expect-error h5-only DOM attribute
               autoComplete='off'
               onInput={(e) => setNewUsername(e.detail.value)}
             />
           </View>
           <View className='field-row'>
-            <Text className='field-label'>显示名 Display name</Text>
+            <Text className='field-label'>{t("显示名 Display name")}</Text>
             <Input
               className='field-input'
               value={newDisplayName}
-              placeholder='e.g. Alice Wang'
+              placeholder={t("e.g. Alice Wang")}
               // @ts-expect-error h5-only DOM attribute
               autoComplete='off'
               onInput={(e) => setNewDisplayName(e.detail.value)}
             />
           </View>
           <View className='field-row'>
-            <Text className='field-label'>初始密码 Starting password</Text>
+            <Text className='field-label'>{t("初始密码 Starting password")}</Text>
             <Input
               className='field-input'
               value={newPassword}
-              placeholder='min 6 characters'
+              placeholder={t("min 6 characters")}
               // @ts-expect-error h5-only DOM attribute
               autoComplete='off'
               onInput={(e) => setNewPassword(e.detail.value)}
             />
           </View>
-          <View className={`admin-btn ${busy ? 'busy' : ''}`} onClick={busy ? undefined : addScout}>
-            添加 Add scout
-          </View>
-          <Text className='admin-hint'>
-            把用户名和密码给队员。密码只有你能设置 —— 队员忘记了就用下面的「重置密码」重新设一个。
-            Give them the username and password. Only you can set passwords — if a scout forgets
-            theirs, use 重置密码 below to set a new one (passwords are stored hashed and can never
-            be read back, not even by you).
-          </Text>
+          <View className={`admin-btn ${busy ? 'busy' : ''}`} onClick={busy ? undefined : addScout}>{t("添加 Add scout")}</View>
+          <Text className='admin-hint'>{t("把用户名和密码给队员。密码只有你能设置 —— 队员忘记了就用下面的「重置密码」重新设一个。 Give them the username and password. Only you can set passwords — if a scout forgets theirs, use 重置密码 below to set a new one (passwords are stored hashed and can never be read back, not even by you).")}</Text>
         </View>
 
         <View className='section-card'>
-          <Text className='section-title'>队员 Members ({members.length})</Text>
+          <Text className='section-title'>{t("队员 Members (")}{members.length})</Text>
 
           {members.map((member) => (
             <View className='member-row' key={member.userId}>
               <View className='member-head'>
                 <Text className='member-name'>
                   {profileLabel(member)}
-                  {member.userId === userId ? '（你 you）' : ''}
+                  {member.userId === userId ? t("（你 you）") : ''}
                 </Text>
                 <Text className={`member-badge ${member.role}`}>
-                  {member.role === 'admin' ? '管理员 Admin' : '侦查员 Scout'}
+                  {member.role === 'admin' ? t("管理员 Admin") : t("侦查员 Scout")}
                 </Text>
               </View>
               <Text className='member-meta'>
-                @{member.username} · {counts[member.userId] ?? 0} 场 matches
-                {member.isActive ? '' : ' · 已停用 deactivated'}
+                @{member.username} · {counts[member.userId] ?? 0}{t("场 matches")}{member.isActive ? '' : t(" · 已停用 deactivated")}
               </Text>
 
               {editing?.userId === member.userId && (
@@ -230,7 +225,7 @@ export default function Admin() {
                     className='field-input'
                     value={draft}
                     placeholder={
-                      editing.kind === 'rename' ? '新的显示名 New display name' : '新密码 New password (min 6)'
+                      editing.kind === 'rename' ? t("新的显示名 New display name") : t("新密码 New password (min 6)")
                     }
                     // @ts-expect-error h5-only DOM attribute
                     autoComplete='off'
@@ -238,36 +233,31 @@ export default function Admin() {
                     onConfirm={() => saveEditor(member)}
                   />
                   {editing.kind === 'password' && (
-                    <Text className='admin-hint'>
-                      记下这个密码再保存 —— 保存后就看不到了。
-                      Write this down before saving — it can't be shown again.
-                    </Text>
+                    <Text className='admin-hint'>{t("记下这个密码再保存 —— 保存后就看不到了。 Write this down before saving — it can't be shown again.")}</Text>
                   )}
                   <View className='member-actions'>
-                    <View className='chip primary' onClick={() => saveEditor(member)}>保存 Save</View>
+                    <View className='chip primary' onClick={() => saveEditor(member)}>{t("保存 Save")}</View>
                     {editing.kind === 'password' && (
-                      <View className='chip' onClick={() => setDraft(generatePassword())}>
-                        换一个 New suggestion
-                      </View>
+                      <View className='chip' onClick={() => setDraft(generatePassword())}>{t("换一个 New suggestion")}</View>
                     )}
-                    <View className='chip' onClick={closeEditor}>取消 Cancel</View>
+                    <View className='chip' onClick={closeEditor}>{t("取消 Cancel")}</View>
                   </View>
                 </View>
               )}
 
               <View className='member-actions'>
-                <View className='chip' onClick={() => openEditor(member, 'rename')}>重命名 Rename</View>
-                <View className='chip' onClick={() => openEditor(member, 'password')}>重置密码 Password</View>
+                <View className='chip' onClick={() => openEditor(member, 'rename')}>{t("重命名 Rename")}</View>
+                <View className='chip' onClick={() => openEditor(member, 'password')}>{t("重置密码 Password")}</View>
                 <View
                   className='chip'
                   onClick={() =>
                     run(
                       () => setProfileActive(member.userId, !member.isActive),
-                      member.isActive ? '已停用 Deactivated ✓' : '已启用 Reactivated ✓'
+                      member.isActive ? t("已停用 Deactivated ✓") : t("已启用 Reactivated ✓")
                     )
                   }
                 >
-                  {member.isActive ? '停用 Deactivate' : '启用 Reactivate'}
+                  {member.isActive ? t("停用 Deactivate") : t("启用 Reactivate")}
                 </View>
                 <View
                   className='chip'
@@ -278,16 +268,14 @@ export default function Admin() {
                           member.userId,
                           (member.role === 'admin' ? 'scout' : 'admin') as UserRole
                         ),
-                      '角色已更新 Role updated ✓'
+                      t("角色已更新 Role updated ✓")
                     )
                   }
                 >
-                  {member.role === 'admin' ? '降为侦查员 Make scout' : '设为管理员 Make admin'}
+                  {member.role === 'admin' ? t("降为侦查员 Make scout") : t("设为管理员 Make admin")}
                 </View>
                 {member.userId !== userId && (
-                  <View className='chip danger' onClick={() => confirmDelete(member)}>
-                    删除 Delete
-                  </View>
+                  <View className='chip danger' onClick={() => confirmDelete(member)}>{t("删除 Delete")}</View>
                 )}
               </View>
             </View>

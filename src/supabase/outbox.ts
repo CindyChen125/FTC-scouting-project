@@ -9,7 +9,8 @@ import { MatchScoutEntry } from '../types/scouting'
 export function createOutbox<T>(storageKey: string, keyOf: (item: T) => string) {
   const read = (): Record<string, T> => {
     try {
-      return (Taro.getStorageSync(storageKey) as Record<string, T>) || {}
+      const stored = (Taro.getStorageSync(storageKey) as Record<string, T>) || {}
+      return Object.fromEntries(Object.values(stored).map((item) => [keyOf(item), item]))
     } catch {
       return {}
     }
@@ -38,7 +39,7 @@ export function createOutbox<T>(storageKey: string, keyOf: (item: T) => string) 
 // The key deliberately keeps '' for entries without an eventCode: changing it
 // would strand anything already queued under the old key.
 export const outboxKey = (entry: MatchScoutEntry) =>
-  `${entry.eventCode ?? ''}:${entry.matchId}:${entry.teamNumber}`
+  `${entry.eventCode ?? ''}:${entry.matchId}:${entry.teamNumber}:${entry.observationKey ?? entry.scoutedBy ?? 'legacy'}`
 
 const matchOutbox = createOutbox<MatchScoutEntry>('outbox', outboxKey)
 

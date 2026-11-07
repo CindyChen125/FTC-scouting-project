@@ -384,3 +384,22 @@
   font-size: calc(24px * var(--font-scale));
   color: var(--color-text);
 }
+.comparison-grid,
+.comparison-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: center;
+}
+
+.comparison-grid {
+  margin-top: 12px;
+  color: var(--color-text);
+}
+
+.comparison-row {
+  grid-column: 1 / -1;
+  padding-block: 8px;
+  border-top: 1px solid var(--color-border);
+  font-variant-numeric: tabular-nums;
+}
