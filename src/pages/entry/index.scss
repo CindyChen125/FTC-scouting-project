@@ -5,7 +5,7 @@
 
 .header-card {
   background: var(--color-card-bg);
-  border-radius: 16px;
+  border-radius: var(--radius-panel);
   padding: 20px;
   margin-bottom: 16px;
   box-shadow: 0 2px 8px var(--color-shadow);
@@ -19,48 +19,48 @@
 }
 
 .detail-title {
-  font-size: calc(32px * var(--font-scale));
-  font-weight: bold;
+  font-size: var(--type-headline);
+  font-weight: 700;
   color: var(--color-text);
 }
 
 .edit-btn {
   padding: 10px 18px;
-  border-radius: 20px;
+  border-radius: 999px;
   background: var(--color-primary);
   color: var(--color-primary-contrast);
-  font-size: calc(22px * var(--font-scale));
-  font-weight: bold;
+  font-size: var(--type-body);
+  font-weight: 700;
 }
 
 .entry-alliance {
   display: inline-block;
-  font-size: calc(22px * var(--font-scale));
+  font-size: var(--type-compact);
   padding: 6px 14px;
-  border-radius: 20px;
+  border-radius: 999px;
   color: #fff;
   margin-bottom: 14px;
 
   &.red {
-    background: #e05252;
+    background: var(--color-alliance-red);
   }
 
   &.blue {
-    background: #4a7dff;
+    background: var(--color-alliance-blue);
   }
 }
 
 .section-card {
   background: var(--color-card-bg);
-  border-radius: 16px;
+  border-radius: var(--radius-panel);
   padding: 20px;
   margin-bottom: 16px;
   box-shadow: 0 2px 8px var(--color-shadow);
 }
 
 .section-title {
-  font-size: calc(30px * var(--font-scale));
-  font-weight: bold;
+  font-size: var(--type-headline);
+  font-weight: 700;
   color: var(--color-text);
   margin-bottom: 16px;
   display: block;
@@ -81,13 +81,13 @@
 }
 
 .detail-label {
-  font-size: calc(24px * var(--font-scale));
+  font-size: var(--type-compact);
   color: var(--color-text-muted);
   flex-shrink: 0;
 }
 
 .detail-value {
-  font-size: calc(26px * var(--font-scale));
+  font-size: var(--type-body);
   color: var(--color-text);
   font-weight: bold;
   text-align: right;
@@ -95,7 +95,7 @@
 
 .detail-notes-block {
   display: block;
-  font-size: calc(26px * var(--font-scale));
+  font-size: var(--type-body);
   color: var(--color-text);
   white-space: pre-wrap;
 }
@@ -103,7 +103,7 @@
 .empty-state {
   text-align: center;
   color: var(--color-text-faint);
-  font-size: calc(26px * var(--font-scale));
+  font-size: var(--type-body);
   margin-top: 100px;
   display: block;
 }
@@ -113,3 +113,9 @@
 .edit-btn { border-radius: var(--radius-control); }
 .detail-value { font-variant-numeric: tabular-nums; }
 .detail-notes-block { line-height: 1.6; }
+
+@media (max-width: 520px) {
+  .detail-row { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .detail-label { flex-shrink: 1; }
+  .detail-value { text-align: left; }
+}

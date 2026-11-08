@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Button, Picker, View, Text, Input, Textarea, Image } from '@tarojs/components'
+import { useEffect, useRef, useState } from 'react'
+import { Button, View, Text, Input, Textarea, Image } from '@tarojs/components'
 import Taro, { useLoad } from '@tarojs/taro'
 import { translate as t } from '../../i18n'
 import { useLanguage } from '../../i18n/LanguageContext'
@@ -20,9 +20,8 @@ import {
 import { submitPitEntry, fetchPitEntry } from '../../supabase/pit'
 import { useAuth } from '../../auth/AuthContext'
 import { uploadRobotPhoto, robotPhotoUrl } from '../../supabase/photos'
-import { CURRENT_EVENT_CODE, CURRENT_SEASON, findEvent, eventLabel } from '../../data/events'
-import { readImportedEvents, syncImportedEvents } from '../../data/ftcScout'
-import { readSelectedEventCode, writeSelectedEventCode } from '../../data/selectedEvent'
+import { CURRENT_SEASON, findEvent, eventLabel } from '../../data/events'
+import { useActiveEvent } from '../../data/ActiveEventContext'
 import './index.scss'
 
 // Single-choice chips. Tapping the selected chip again clears the answer, so a
@@ -54,11 +53,13 @@ function ChoiceField<T extends string>({ label, options, value, onChange }: {
 
 export default function PitScouting() {
   useLanguage()
+  const explicitEvent = useRef(false)
+  const eventLocked = useRef(false)
   const { userId, profile } = useAuth()
+  const { activeEvent, offline: activeEventOffline } = useActiveEvent()
   const scoutName = profile ? profileLabel(profile) : ''
 
-  const [eventCode, setEventCode] = useState(readSelectedEventCode)
-  useEffect(() => writeSelectedEventCode(eventCode), [eventCode])
+  const [eventCode, setEventCode] = useState(activeEvent.code)
   const [teamNumber, setTeamNumber] = useState('')
   const [data, setData] = useState<PitData>(emptyPitData())
   const [photoUrl, setPhotoUrl] = useState('')
@@ -79,7 +80,10 @@ export default function PitScouting() {
     // Opened from a card in the Pit tab. Pit questions are BIOBUZZ-only.
     if (options?.eventCode) {
       const code = decodeURIComponent(options.eventCode)
-      if (findEvent(code).code === code && findEvent(code).season === CURRENT_SEASON) setEventCode(code)
+      if (findEvent(code).code === code && findEvent(code).season === CURRENT_SEASON) {
+        explicitEvent.current = true
+        setEventCode(code)
+      }
     }
     if (options?.teamNumber) setTeamNumber(decodeURIComponent(options.teamNumber))
   })
@@ -137,6 +141,12 @@ export default function PitScouting() {
 
   const patch = (p: Partial<PitData>) => setData((prev) => ({ ...prev, ...p }))
 
+  const formStarted = !!teamNumber.trim() || JSON.stringify(data) !== JSON.stringify(emptyPitData())
+  useEffect(() => {
+    if (formStarted) eventLocked.current = true
+    if (!explicitEvent.current && !eventLocked.current) setEventCode(activeEvent.code)
+  }, [activeEvent.code, formStarted])
+
   const toggleAuto = (action: AutoAction) =>
     setData((prev) => ({
       ...prev,
@@ -191,43 +201,16 @@ export default function PitScouting() {
   }
 
   const hasTeam = !!teamNumber.trim()
-  const [importedEvents, setImportedEvents] = useState(readImportedEvents)
-  useEffect(() => {
-    if (!userId) return
-    let active = true
-    syncImportedEvents().then((events) => { if (active) setImportedEvents(events) }).catch(() => {})
-    return () => { active = false }
-  }, [userId])
-  const roster = importedEvents.find((event) => event.code === eventCode)?.teams ?? []
-  const openPit = (code: string, team = '') => {
-    Taro.redirectTo({ url: `/pages/pit/index?eventCode=${encodeURIComponent(code)}&teamNumber=${encodeURIComponent(team)}` })
-      .catch(() => Taro.showToast({ title: t("Could not open pit profile"), icon: 'none' }))
-  }
-
   return (
     <View className='scout-page'>
       <AppHeader title={t("Pit Scouting")} showBack />
 
       <View className='page-content'>
         <View className='header-card'>
-          <Text className='event-badge'>{eventLabel(findEvent(eventCode))}</Text>
-          {importedEvents.length > 0 && (
-            <Picker textProps={{ okText: t('Confirm'), cancelText: t('Cancel') }} mode='selector' range={[t("Practice"), ...importedEvents.map((event) => event.name)]}
-              onChange={(e) => openPit(importedEvents[Number(e.detail.value) - 1]?.code ?? CURRENT_EVENT_CODE)}
-            >
-              <Button size='mini'>{t("选择赛事 Choose event")}</Button>
-            </Picker>
-          )}
-          {roster.length > 0 && (
-            <Picker textProps={{ okText: t('Confirm'), cancelText: t('Cancel') }} mode='selector' range={roster}
-              onChange={(e) => {
-                const team = roster[Number(e.detail.value)]
-                if (team) openPit(eventCode, team)
-              }}
-            >
-              <Button size='mini'>{t("选择队伍 Choose team")}</Button>
-            </Picker>
-          )}
+          <View className='event-context-row'>
+            <Text className='event-badge'>{t('当前赛事 Active event')}: {eventLabel(findEvent(eventCode))}</Text>
+            {activeEventOffline && <Text className='event-offline'>{t('离线缓存 Offline cache')}</Text>}
+          </View>
           <View className='field-row'>
             <Text className='field-label'>{t("队号 Team #")}</Text>
             <Input
@@ -331,9 +314,7 @@ export default function PitScouting() {
           </View>
         </View>
 
-        <Text className='save-hint'>
-          {hasTeam ? t("已自动备份 Auto-saved as backup ✓") : t("Enter Team # to start")}
-        </Text>
+        {hasTeam && <Text className='save-hint'>{t('已自动备份 Auto-saved ✓')}</Text>}
 
         <View className={`submit-btn ${hasTeam ? '' : 'disabled'}`} onClick={handleSubmit}>{t("提交 Submit")}</View>
       </View>

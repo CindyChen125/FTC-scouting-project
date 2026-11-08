@@ -5,7 +5,7 @@
 
 .event-selector {
   background: var(--color-card-bg);
-  border-radius: 16px;
+  border-radius: var(--radius-panel);
   margin-bottom: 16px;
   box-shadow: 0 2px 8px var(--color-shadow);
   overflow: hidden;
@@ -19,10 +19,14 @@
 }
 
 .event-selector-name {
-  font-size: calc(26px * var(--font-scale));
-  font-weight: bold;
+  display: block;
+  margin-top: 2px;
+  font-size: calc(20px * var(--font-scale));
+  font-weight: 700;
   color: var(--color-text);
 }
+
+.event-selector-context { display: block; color: var(--color-text-muted); font-size: var(--type-compact); }
 
 .event-selector-arrow {
   font-size: calc(22px * var(--font-scale));
@@ -36,7 +40,7 @@
 
 .event-selector-option {
   padding: 16px 20px;
-  font-size: calc(24px * var(--font-scale));
+  font-size: var(--type-body);
   color: var(--color-text-muted);
 
   &.active {
@@ -52,7 +56,7 @@
 .tab-bar {
   display: flex;
   background: var(--color-card-bg);
-  border-radius: 16px;
+  border-radius: var(--radius-panel);
   padding: 8px;
   margin-bottom: 16px;
   box-shadow: 0 2px 8px var(--color-shadow);
@@ -62,7 +66,7 @@
   flex: 1;
   text-align: center;
   padding: 18px 0;
-  border-radius: 12px;
+  border-radius: var(--radius-control);
   font-size: calc(28px * var(--font-scale));
   color: var(--color-text-muted);
 
@@ -76,16 +80,16 @@
 .search-input {
   background: var(--color-card-bg);
   color: var(--color-text);
-  border-radius: 12px;
+  border-radius: var(--radius-control);
   padding: 16px;
-  font-size: calc(26px * var(--font-scale));
+  font-size: calc(20px * var(--font-scale));
   margin-bottom: 16px;
   box-shadow: 0 2px 8px var(--color-shadow);
 }
 
 .entry-card {
   background: var(--color-card-bg);
-  border-radius: 16px;
+  border-radius: var(--radius-panel);
   padding: 20px;
   margin-bottom: 16px;
   box-shadow: 0 2px 8px var(--color-shadow);
@@ -104,28 +108,28 @@
 }
 
 .entry-title {
-  font-size: calc(30px * var(--font-scale));
-  font-weight: bold;
+  font-size: var(--type-title);
+  font-weight: 700;
   color: var(--color-text);
 }
 
 .entry-alliance {
-  font-size: calc(22px * var(--font-scale));
+  font-size: var(--type-compact);
   padding: 6px 14px;
-  border-radius: 20px;
+  border-radius: 999px;
   color: #fff;
 
   &.red {
-    background: #e05252;
+    background: var(--color-alliance-red);
   }
 
   &.blue {
-    background: #4a7dff;
+    background: var(--color-alliance-blue);
   }
 }
 
 .entry-meta {
-  font-size: calc(24px * var(--font-scale));
+  font-size: var(--type-compact);
   color: var(--color-text-muted);
   display: block;
   margin-bottom: 4px;
@@ -143,20 +147,20 @@
 }
 
 .entry-stat-label {
-  font-size: calc(20px * var(--font-scale));
+  font-size: var(--type-compact);
   color: var(--color-text-faint);
 }
 
 .entry-stat-value {
-  font-size: calc(28px * var(--font-scale));
-  font-weight: bold;
+  font-size: var(--type-title);
+  font-weight: 700;
   color: var(--color-primary);
 }
 
 .empty-state {
   text-align: center;
   color: var(--color-text-faint);
-  font-size: calc(26px * var(--font-scale));
+  font-size: var(--type-body);
   margin-top: 100px;
   display: block;
 }
@@ -164,11 +168,11 @@
 .export-btn {
   text-align: center;
   padding: 16px 0;
-  border-radius: 12px;
+  border-radius: var(--radius-control);
   background: var(--color-card-bg);
   color: var(--color-primary);
-  font-size: calc(24px * var(--font-scale));
-  font-weight: bold;
+  font-size: var(--type-body);
+  font-weight: 700;
   margin-bottom: 16px;
   box-shadow: 0 2px 8px var(--color-shadow);
 
@@ -181,9 +185,9 @@
   display: block;
   background: var(--color-card-bg);
   color: var(--color-danger);
-  border-radius: 12px;
+  border-radius: var(--radius-control);
   padding: 16px;
-  font-size: calc(22px * var(--font-scale));
+  font-size: var(--type-compact);
   margin-bottom: 16px;
 }
 
@@ -193,14 +197,14 @@
 
 .rankings-event-name {
   display: block;
-  font-size: calc(30px * var(--font-scale));
-  font-weight: bold;
+  font-size: var(--type-headline);
+  font-weight: 700;
   color: var(--color-text);
 }
 
 .rankings-event-meta {
   display: block;
-  font-size: calc(22px * var(--font-scale));
+  font-size: var(--type-compact);
   color: var(--color-text-muted);
   margin-top: 4px;
 }
@@ -214,8 +218,8 @@
 
 .mode-item {
   padding: 10px 18px;
-  border-radius: 20px;
-  font-size: calc(22px * var(--font-scale));
+  border-radius: 999px;
+  font-size: var(--type-body);
   color: var(--color-text-muted);
   background: var(--color-card-bg);
   box-shadow: 0 2px 8px var(--color-shadow);
@@ -229,14 +233,14 @@
 
 .mode-hint {
   display: block;
-  font-size: calc(20px * var(--font-scale));
+  font-size: var(--type-compact);
   color: var(--color-text-muted);
   margin-bottom: 16px;
 }
 
 .weights-panel {
   background: var(--color-card-bg);
-  border-radius: 16px;
+  border-radius: var(--radius-panel);
   padding: 20px;
   margin-bottom: 16px;
   box-shadow: 0 2px 8px var(--color-shadow);
@@ -250,13 +254,13 @@
 }
 
 .weights-panel-title {
-  font-size: calc(26px * var(--font-scale));
-  font-weight: bold;
+  font-size: var(--type-title);
+  font-weight: 700;
   color: var(--color-text);
 }
 
 .weights-reset {
-  font-size: calc(22px * var(--font-scale));
+  font-size: var(--type-compact);
   color: var(--color-primary);
 }
 
@@ -272,26 +276,26 @@
 }
 
 .weight-label {
-  font-size: calc(22px * var(--font-scale));
+  font-size: var(--type-body);
   color: var(--color-label);
 }
 
 .weight-value {
-  font-size: calc(22px * var(--font-scale));
-  font-weight: bold;
+  font-size: var(--type-body);
+  font-weight: 700;
   color: var(--color-primary);
 }
 
 .weights-note {
   display: block;
-  font-size: calc(20px * var(--font-scale));
+  font-size: var(--type-compact);
   color: var(--color-text-faint);
   margin-top: 4px;
 }
 
 .team-card {
   background: var(--color-card-bg);
-  border-radius: 16px;
+  border-radius: var(--radius-panel);
   padding: 20px;
   margin-bottom: 16px;
   box-shadow: 0 2px 8px var(--color-shadow);
@@ -305,8 +309,8 @@
 }
 
 .team-composite-rank {
-  font-size: calc(28px * var(--font-scale));
-  font-weight: bold;
+  font-size: var(--type-title);
+  font-weight: 700;
   color: var(--color-text-faint);
   min-width: 56px;
 }
@@ -318,20 +322,20 @@
 }
 
 .team-title {
-  font-size: calc(28px * var(--font-scale));
-  font-weight: bold;
+  font-size: var(--type-title);
+  font-weight: 700;
   color: var(--color-text);
 }
 
 .team-meta {
-  font-size: calc(22px * var(--font-scale));
+  font-size: var(--type-compact);
   color: var(--color-text-muted);
   margin-top: 2px;
 }
 
 .team-score {
-  font-size: calc(34px * var(--font-scale));
-  font-weight: bold;
+  font-size: var(--type-headline);
+  font-weight: 700;
   color: var(--color-primary);
 }
 
@@ -353,7 +357,7 @@
 }
 
 .breakdown-label {
-  font-size: calc(20px * var(--font-scale));
+  font-size: var(--type-compact);
   color: var(--color-text-faint);
   width: 130px;
   flex-shrink: 0;
@@ -362,7 +366,7 @@
 .breakdown-bar-track {
   flex: 1;
   height: 12px;
-  border-radius: 6px;
+  border-radius: 999px;
   background: var(--color-input-bg);
   overflow: hidden;
 }
@@ -370,7 +374,7 @@
 .breakdown-bar-fill {
   height: 100%;
   background: var(--color-primary);
-  border-radius: 6px;
+  border-radius: 999px;
 }
 
 .pit-facts {
@@ -381,7 +385,7 @@
 }
 
 .pit-fact {
-  font-size: calc(24px * var(--font-scale));
+  font-size: var(--type-body);
   color: var(--color-text);
 }
 .comparison-grid,
@@ -425,12 +429,15 @@
   .entry-stats { gap: 6px; }
   .comparison-grid, .comparison-row { grid-template-columns: minmax(110px,1.2fr) repeat(2,minmax(70px,1fr)); gap: 6px; }
   .breakdown-label { width: 105px; }
+  .tab-item { font-size: var(--type-compact); }
 }
 
 .comparison-grid {
   margin-top: 12px;
   color: var(--color-text);
 }
+
+.weights-panel button, .comparison-grid button { font-size: var(--type-compact); font-weight: 600; }
 
 .comparison-row {
   grid-column: 1 / -1;

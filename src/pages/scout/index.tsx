@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Button, View, Text, Input, Picker, Textarea } from '@tarojs/components'
+import { Button, View, Text, Input, Textarea } from '@tarojs/components'
 import Taro, { useLoad } from '@tarojs/taro'
 import { translate as t } from '../../i18n'
 import { useLanguage } from '../../i18n/LanguageContext'
@@ -24,9 +24,8 @@ import {
 } from '../../types/scouting'
 import { submitScoutEntry, fetchScoutEntry, flushOutbox, pendingCount } from '../../supabase/scouting'
 import { useAuth } from '../../auth/AuthContext'
-import { CURRENT_EVENT_CODE, CURRENT_SEASON, findEvent, eventLabel } from '../../data/events'
-import { importEvent, readImportedEvents, syncImportedEvents, STATIONS, Station } from '../../data/ftcScout'
-import { readSelectedEventCode, writeSelectedEventCode } from '../../data/selectedEvent'
+import { CURRENT_SEASON, findEvent, eventLabel } from '../../data/events'
+import { useActiveEvent } from '../../data/ActiveEventContext'
 import './index.scss'
 
 // Tap-to-count, so a scout can keep their eyes on the robot instead of typing.
@@ -129,25 +128,15 @@ function NoteMultiField({ tags, text, onChange }: { tags: string[], text: string
 export default function Index() {
   useLanguage()
   const submitLock = useRef(false)
+  const explicitEvent = useRef(false)
+  const eventLocked = useRef(false)
   const [submitting, setSubmitting] = useState(false)
   const { userId, profile } = useAuth()
+  const { activeEvent, offline: activeEventOffline } = useActiveEvent()
   const scoutName = profile ? profileLabel(profile) : ''
 
-  const [eventCode, setEventCode] = useState(readSelectedEventCode)
-  const [importedEvents, setImportedEvents] = useState(readImportedEvents)
-  useEffect(() => {
-    if (!userId) return
-    let active = true
-    syncImportedEvents().then((events) => { if (active) setImportedEvents(events) }).catch(() => {})
-    return () => { active = false }
-  }, [userId])
-  const [importCode, setImportCode] = useState('')
-  const [importing, setImporting] = useState(false)
-  const [station, setStation] = useState<Station>('Red 1')
-  const importedEvent = importedEvents.find((event) => event.code === eventCode)
-  const schedule = importedEvent?.matches ?? []
+  const [eventCode, setEventCode] = useState(activeEvent.code)
   const [matchId, setMatchId] = useState('')
-  const scheduleIndex = schedule.findIndex((match) => `Q${match.number}` === matchId)
   const [teamNumber, setTeamNumber] = useState('')
   const [alliance, setAlliance] = useState<Alliance>('red')
 
@@ -157,7 +146,16 @@ export default function Index() {
   const [overallNotes, setOverallNotes] = useState('')
   const [syncState, setSyncState] = useState<SyncState | null>(null)
 
-  useEffect(() => writeSelectedEventCode(eventCode), [eventCode])
+  const formStarted = !!matchId || !!teamNumber || !!overallNotes ||
+    auto.leave || auto.cellBalls > 0 || auto.allianceTips > 0 || auto.park || auto.noteTags.length > 0 || !!auto.noteText ||
+    teleop.cellPollen > 0 || teleop.cellNectar > 0 || teleop.allianceTips > 0 || teleop.noteTags.length > 0 || !!teleop.noteText ||
+    (teleop.minorFouls ?? 0) > 0 || (teleop.majorFouls ?? 0) > 0 ||
+    endgame.flowerPollen > 0 || endgame.flowerNectar > 0 || endgame.park
+
+  useEffect(() => {
+    if (formStarted) eventLocked.current = true
+    if (!explicitEvent.current && !eventLocked.current) setEventCode(activeEvent.code)
+  }, [activeEvent.code, formStarted])
 
   useLoad((options) => {
     console.log('Match scouting page loaded.')
@@ -166,15 +164,13 @@ export default function Index() {
     // rather than overwritten with BIOBUZZ-shaped data.
     if (options?.eventCode) {
       const code = decodeURIComponent(options.eventCode)
-      if (findEvent(code).code === code && findEvent(code).season === CURRENT_SEASON) setEventCode(code)
+      if (findEvent(code).code === code && findEvent(code).season === CURRENT_SEASON) {
+        explicitEvent.current = true
+        setEventCode(code)
+      }
     }
     if (options?.matchId) setMatchId(decodeURIComponent(options.matchId))
     if (options?.teamNumber) setTeamNumber(decodeURIComponent(options.teamNumber))
-    const selected = STATIONS.find((s) => s === decodeURIComponent(options?.station ?? ''))
-    if (selected) {
-      setStation(selected)
-      setAlliance(selected.startsWith('Red') ? 'red' : 'blue')
-    }
   })
 
   // The author of a loaded entry, preserved so editing someone else's work
@@ -312,9 +308,6 @@ export default function Index() {
           icon: outcome === 'synced' ? 'success' : 'none'
         })
 
-        // Keep the selected station and schedule available between matches.
-        if (scheduleIndex >= 0) return
-
         // Back to the home screen, ready for the next match. reLaunch rather
         // than navigateBack because this page can be opened either from home
         // or from an entry's Edit button, and "back" should mean home either
@@ -344,70 +337,16 @@ export default function Index() {
   const patchTeleop = (patch: Partial<TeleopData>) => setTeleop((prev) => ({ ...prev, ...patch }))
   const patchEndgame = (patch: Partial<EndgameData>) => setEndgame((prev) => ({ ...prev, ...patch }))
 
-  const openScheduledMatch = (index: number, position = station, code = eventCode) => {
-    const match = importedEvents.find((event) => event.code === code)?.matches[index]
-    const team = match?.teams[position] ?? ''
-    const query = `eventCode=${encodeURIComponent(code)}&station=${encodeURIComponent(position)}`
-    const matchQuery = match ? `&matchId=Q${match.number}&teamNumber=${team}` : ''
-    Taro.redirectTo({ url: `/pages/scout/index?${query}${matchQuery}` }).catch(() => {
-      Taro.showToast({ title: t("Could not open match"), icon: 'none' })
-    })
-  }
-
-  const loadSchedule = async () => {
-    if (importing) return
-    setImporting(true)
-    try {
-      const event = await importEvent(importCode)
-      setImportedEvents(readImportedEvents())
-      Taro.showToast({ title: t('importedMatches', { count: event.matches.length }), icon: 'none' })
-    } catch (error) {
-      Taro.showToast({ title: t(error instanceof Error ? error.message : 'Event import failed'), icon: 'none' })
-    } finally {
-      setImporting(false)
-    }
-  }
-
   return (
     <View className='scout-page'>
       <AppHeader title={t('开始侦查 Start Scouting')} showBack />
 
       <View className='page-content'>
       <View className='header-card'>
-        <Text className='event-badge'>{eventLabel(findEvent(eventCode))}</Text>
-        <TextField label={t("FTCScout 赛事代码 Event code")} value={importCode} onChange={setImportCode} placeholder={t("Event code")} />
-        <Button size='mini' loading={importing} disabled={importing || !importCode.trim()} onClick={loadSchedule}>{t("导入或刷新赛事 Import / refresh")}</Button>
-        {importedEvents.length > 0 && (
-          <Picker textProps={{ okText: t('Confirm'), cancelText: t('Cancel') }} mode='selector' range={[t("Practice"), ...importedEvents.map((event) => event.name)]}
-            onChange={(e) => {
-              const event = importedEvents[Number(e.detail.value) - 1]
-              openScheduledMatch(0, station, event?.code ?? CURRENT_EVENT_CODE)
-            }}
-          >
-            <Button size='mini'>{t("选择赛事 Choose event")}</Button>
-          </Picker>
-        )}
-        {schedule.length > 0 && (
-          <View className='field-row'>
-            <Picker textProps={{ okText: t('Confirm'), cancelText: t('Cancel') }} mode='selector' range={STATIONS.map((position) => t(position))} value={STATIONS.indexOf(station)}
-              onChange={(e) => {
-                const position = STATIONS[Number(e.detail.value)]
-                if (position && position !== station) openScheduledMatch(Math.max(scheduleIndex, 0), position)
-              }}
-            >
-              <Button size='mini'>{t('位置 Station:')} {t(station)}</Button>
-            </Picker>
-            <Picker textProps={{ okText: t('Confirm'), cancelText: t('Cancel') }} mode='selector' range={schedule.map((match) => `Q${match.number}`)}
-              onChange={(e) => openScheduledMatch(Number(e.detail.value))}
-            >
-              <Button size='mini'>{t('matchSchedule', { matches: schedule.length, teams: importedEvent?.teams?.length ?? 0 })}</Button>
-            </Picker>
-            <Button size='mini' disabled={scheduleIndex >= schedule.length - 1} onClick={() => openScheduledMatch(scheduleIndex + 1)}>{t("下一场 Next match")}</Button>
-            {schedule[scheduleIndex]?.redScore !== undefined && schedule[scheduleIndex]?.blueScore !== undefined && (
-              <Text>{t('officialScore', { red: schedule[scheduleIndex].redScore!, blue: schedule[scheduleIndex].blueScore! })}</Text>
-            )}
-          </View>
-        )}
+        <View className='event-context-row'>
+          <Text className='event-badge'>{t('当前赛事 Active event')}: {eventLabel(findEvent(eventCode))}</Text>
+          {activeEventOffline && <Text className='event-offline'>{t('离线缓存 Offline cache')}</Text>}
+        </View>
         <View className='two-col'>
           <TextField
             label={t("比赛场次 Match #")}
@@ -424,8 +363,8 @@ export default function Index() {
         <View className='field-row'>
           <Text className='field-label'>{t("联盟 Alliance")}</Text>
           <View className='pill-row'>
-            <View className={`pill ${alliance === 'red' ? 'active' : ''}`} onClick={() => setAlliance('red')}>{t("Red")}</View>
-            <View className={`pill ${alliance === 'blue' ? 'active' : ''}`} onClick={() => setAlliance('blue')}>{t("Blue")}</View>
+            <View className={`pill alliance-option red ${alliance === 'red' ? 'selected' : ''}`} onClick={() => setAlliance('red')}>{t("Red")}</View>
+            <View className={`pill alliance-option blue ${alliance === 'blue' ? 'selected' : ''}`} onClick={() => setAlliance('blue')}>{t("Blue")}</View>
           </View>
         </View>
         <View className='field-row'>
@@ -484,11 +423,7 @@ export default function Index() {
         </View>
       </View>
 
-      <Text className='save-hint'>
-        {matchId && teamNumber
-          ? t("已自动备份 Auto-saved as backup ✓ · 提交后才会进入数据列表 submit to add to My Scouting Data")
-          : t("Enter Match # and Team # to start")}
-      </Text>
+      {matchId && teamNumber && <Text className='save-hint'>{t('已自动备份 Auto-saved ✓')}</Text>}
 
       {matchId && teamNumber && syncState && (
         <SyncStatus state={syncState} onRetry={syncState === 'error' && pendingCount() > 0 ? retrySync : undefined} />
