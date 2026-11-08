@@ -1,15 +1,21 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-07T15:37:33Z",
+  "generatedAt": "2026-11-08T01:44:54Z",
   "title": "Design System: FTC Scouting Project",
   "extensions": {
+    "colorMeta": {
+      "alliance-red": { "role": "secondary", "displayName": "Alliance Red", "canonical": "#a93d49", "tonalRamp": ["#3b1118", "#5b1d27", "#7c2935", "#a93d49", "#c86670", "#df9299", "#efc1c5", "#faecee"] },
+      "alliance-blue": { "role": "secondary", "displayName": "Alliance Blue", "canonical": "#245fbd", "tonalRamp": ["#0d2141", "#123466", "#19488e", "#245fbd", "#4d7ed0", "#7fa2df", "#b6c8ed", "#e8eef9"] },
+      "dark-alliance-red": { "role": "secondary", "displayName": "Alliance Red — Dark", "canonical": "#ae414d", "tonalRamp": ["#3c1219", "#5d1f28", "#802c38", "#ae414d", "#cb6973", "#e0959c", "#efc3c7", "#faedef"] },
+      "dark-alliance-blue": { "role": "secondary", "displayName": "Alliance Blue — Dark", "canonical": "#2d64be", "tonalRamp": ["#0f2241", "#163566", "#20498f", "#2d64be", "#5682d0", "#86a5df", "#bacbed", "#e9eff9"] }
+    },
     "typographyMeta": {
       "display": { "displayName": "Display", "purpose": "Home and authentication titles." },
       "headline": { "displayName": "Headline", "purpose": "Card and form section headings." },
       "title": { "displayName": "Title", "purpose": "Navigation-card and subsection titles." },
       "body": { "displayName": "Body", "purpose": "Bilingual descriptions, notes, and supporting copy." },
       "field": { "displayName": "Field", "purpose": "High-legibility entry values and text areas." },
-      "label": { "displayName": "Label", "purpose": "Field labels, compact headings, and control text." }
+      "compact": { "displayName": "Compact", "purpose": "Metadata, status chips, administrative hints, and dense controls." }
     },
     "shadows": [
       { "name": "panel-ambient", "value": "0 5px 18px rgba(24, 43, 69, .08)", "purpose": "Light-theme card and section separation." },
@@ -26,6 +32,7 @@
     "breakpoints": [
       { "name": "narrow-control", "value": "360px" },
       { "name": "compact-page", "value": "420px" },
+      { "name": "admin-stack", "value": "520px" },
       { "name": "mobile-header", "value": "560px" },
       { "name": "form-stack", "value": "620px" },
       { "name": "home-stack", "value": "680px" },
@@ -74,6 +81,20 @@
       "css": ".ds-counter { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; width: 100%; font-family: ui-sans-serif, system-ui, sans-serif; font-variant-numeric: tabular-nums; } .ds-counter button, .ds-counter output { display: flex; min-width: 0; min-height: 52px; align-items: center; justify-content: center; border-radius: var(--radius-control, 10px); font-weight: 760; } .ds-counter button { border: 1px solid var(--color-primary, #2363d1); background: var(--color-primary-soft, #e9f1ff); color: var(--color-primary, #2363d1); transition: background .12s ease-out, transform .12s ease-out; } .ds-counter output { border: 1px solid var(--color-border, #d8e0ea); background: var(--color-card-bg, #fff); color: var(--color-text, #132238); font-size: 22px; } .ds-counter button:hover { background: var(--color-primary, #2363d1); color: var(--color-primary-contrast, #fff); } .ds-counter button:active { transform: translateY(1px); } .ds-counter button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-focus, rgba(35,99,209,.16)); }"
     },
     {
+      "name": "Alliance Selector",
+      "kind": "custom",
+      "description": "Paired FTC alliance controls whose selected state uses semantic red or blue while retaining text labels.",
+      "html": "<div class=\"ds-alliance\"><button class=\"ds-alliance-red ds-selected\">红方 / Red</button><button class=\"ds-alliance-blue\">蓝方 / Blue</button></div>",
+      "css": ".ds-alliance { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-family: ui-sans-serif, system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif; } .ds-alliance button { min-height: 50px; padding: 10px 12px; border: 1px solid var(--color-border, #d8e0ea); border-radius: var(--radius-control, 10px); background: var(--color-surface-subtle, #f4f7fb); color: var(--color-text-muted, #5e7189); font-size: 16px; line-height: 1.35; transition: background .16s ease-out, border-color .16s ease-out; } .ds-alliance-red.ds-selected { border-color: var(--color-alliance-red, #a93d49); background: var(--color-alliance-red, #a93d49); color: #fff; font-weight: 700; } .ds-alliance-blue.ds-selected { border-color: var(--color-alliance-blue, #245fbd); background: var(--color-alliance-blue, #245fbd); color: #fff; font-weight: 700; } .ds-alliance button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-focus, rgba(35,99,209,.16)); }"
+    },
+    {
+      "name": "Event Context",
+      "kind": "custom",
+      "description": "Separates the remembered viewed event from the centrally active event with explicit bilingual labels.",
+      "html": "<section class=\"ds-event-context\"><span>查看赛事 / Viewed event</span><strong>Singapore Qualifier · 当前 / Active</strong><button>选择赛事 / Choose event</button></section>",
+      "css": ".ds-event-context { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 4px 14px; align-items: center; padding: 18px 20px; border: 1px solid var(--color-border, #d8e0ea); border-radius: var(--radius-panel, 14px); background: var(--color-card-bg, #fff); color: var(--color-text, #132238); box-shadow: var(--shadow-panel, 0 5px 18px rgba(24,43,69,.08)); font-family: ui-sans-serif, system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif; } .ds-event-context span { color: var(--color-text-muted, #5e7189); font-size: 16px; } .ds-event-context strong { grid-column: 1; font-size: 20px; line-height: 1.35; } .ds-event-context button { grid-column: 2; grid-row: 1 / span 2; min-height: 44px; padding: 9px 14px; border: 1px solid var(--color-primary, #2363d1); border-radius: var(--radius-control, 10px); background: var(--color-primary-soft, #e9f1ff); color: var(--color-primary, #2363d1); font-weight: 700; } .ds-event-context button:hover { background: var(--color-primary, #2363d1); color: var(--color-primary-contrast, #fff); } .ds-event-context button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-focus, rgba(35,99,209,.16)); }"
+    },
+    {
       "name": "Sync Status",
       "kind": "custom",
       "description": "Bilingual synchronization state with color, text, and marker geometry.",
@@ -90,10 +111,11 @@
   ],
   "narrative": {
     "northStar": "The Competition Control Desk",
-    "overview": "The shipped interface is a dense but calm engineering dashboard built for repeated use under match pressure. Its authority comes from semantic status, disciplined navy and blue surfaces, tabular numbers, crisp dividers, and a small set of cyan technical marks—not from ornamental science-fiction effects. Every operational label is designed to tolerate permanent Chinese/English display. Light and dark themes keep the same semantic hierarchy, while large inputs, direct actions, and compressed responsive grids preserve fast entry on H5 and WeChat Mini Program screens.",
+    "overview": "The shipped interface is a dense but calm engineering dashboard built for repeated use under match pressure. Its authority comes from semantic status, disciplined navy and blue surfaces, tabular numbers, crisp dividers, and a small set of cyan technical marks—not from ornamental science-fiction effects. Every operational label is designed to tolerate permanent Chinese/English display. A shared theme root carries font scaling and light/dark variables through both H5 and WeChat Mini Program component trees, while large inputs, direct actions, and compressed responsive grids preserve fast entry on either platform.",
     "keyCharacteristics": [
       "Restrained navy, blue, silver-gray, and neutral surfaces with cyan reserved for technical accents.",
       "Semantic light/dark theme slots rather than page-specific color choices.",
+      "Distinct active-event status and viewed-event selection, stated in text rather than inferred from color.",
       "Bilingual, wrap-safe labels and numeric displays with tabular figures.",
       "Bordered panels, compact structural rules, and low ambient elevation.",
       "Direct touch controls optimized for repeated scouting actions."
@@ -102,14 +124,17 @@
       { "name": "The Cyan Instrument Rule", "body": "Cyan marks technical structure or status only; it never becomes the dominant action or decorative field.", "section": "colors" },
       { "name": "The Semantic Parity Rule", "body": "New colors enter through reusable semantic light and dark roles; do not hard-code a one-theme-only surface.", "section": "colors" },
       { "name": "The Status Has Shape Rule", "body": "Success, warning, error, and synchronization states pair color with text and a visible marker or border treatment.", "section": "colors" },
+      { "name": "The Alliance Is Semantic Rule", "body": "Red and blue identify FTC alliances only. Use the paired alliance tokens for selected controls and badges, with readable text labels retained.", "section": "colors" },
       { "name": "The Bilingual Integrity Rule", "body": "Chinese and English remain together; labels wrap instead of truncating or shrinking into illegibility.", "section": "typography" },
       { "name": "The Numeric Readout Rule", "body": "Counters, progress values, and team identifiers use tabular figures for stable scanning.", "section": "typography" },
+      { "name": "The Six-Role Scale Rule", "body": "Reuse display, headline, title, field, body, and compact variables before introducing a one-off size; local weight changes express emphasis without creating another role.", "section": "typography" },
       { "name": "The Reachable Control Rule", "body": "Canonical interactive controls are at least 44px tall; primary submit controls are 56px and standard fields/counters are 52px.", "section": "layout" },
       { "name": "The Bordered Before Floating Rule", "body": "Use a border and tonal separation first; reserve shadows for panels, sticky navigation, focus, and primary commitment actions.", "section": "elevation" },
       { "name": "The Two-Tier Radius Rule", "body": "New surfaces use the 14px panel or 10px control radius unless they are explicitly a compact badge, chip, or circular status mark.", "section": "shapes" }
     ],
     "dos": [
       "Do route new visual values through the existing semantic theme variables and preserve light/dark parity.",
+      "Do distinguish the central active event from a user's remembered viewed event with explicit bilingual context labels.",
       "Do keep Chinese and English visible together and allow labels to wrap safely.",
       "Do use the 14px panel, 10px control, 8px compact, and 999px chip roles intentionally.",
       "Do preserve the single-row five-part scoring counter and minimum 44px canonical touch target.",
@@ -120,6 +145,7 @@
       "Don't promote cyan into a dominant button, large background, or decorative field.",
       "Don't introduce glyph icons, invented kickers, or a display typeface outside the shipped platform sans-serif system.",
       "Don't rely on color alone for synchronization, validation, warning, or completion states.",
+      "Don't use alliance red or blue as generic status, decoration, or primary-action color.",
       "Don't replace direct match-entry controls with hidden menus or multi-step interactions."
     ]
   }

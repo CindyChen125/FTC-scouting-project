@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
-import { View, Text, Input } from '@tarojs/components'
+import { View, Text, Input, Picker } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { translate as t } from '../../i18n'
 import { useLanguage } from '../../i18n/LanguageContext'
 import AppHeader from '../../components/AppHeader'
 import { useAuth } from '../../auth/AuthContext'
 import { Profile, UserRole, profileLabel } from '../../types/scouting'
+import { CURRENT_SEASON } from '../../data/events'
+import { useActiveEvent } from '../../data/ActiveEventContext'
+import { createCompetitionEvent, activateCompetitionEvent } from '../../supabase/events'
+import { importEvent } from '../../data/ftcScout'
 import {
   fetchProfiles,
   fetchScoutCounts,
@@ -24,6 +28,7 @@ const toast = (title: string, icon: 'success' | 'none' = 'none') =>
 export default function Admin() {
   useLanguage()
   const { isAdmin, userId, loading } = useAuth()
+  const { activeEvent, events, offline: eventsOffline, refresh: refreshEvents } = useActiveEvent()
   const [members, setMembers] = useState<Profile[]>([])
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [busy, setBusy] = useState(false)
@@ -31,6 +36,10 @@ export default function Admin() {
   const [newUsername, setNewUsername] = useState('')
   const [newDisplayName, setNewDisplayName] = useState('')
   const [newPassword, setNewPassword] = useState('')
+  const [eventName, setEventName] = useState('')
+  const [eventSeason, setEventSeason] = useState(CURRENT_SEASON)
+  const [ftcScoutCode, setFtcScoutCode] = useState('')
+  const [eventBusy, setEventBusy] = useState(false)
 
   // Taro's H5 showModal has no `editable` support, so anything needing typed
   // input is an inline field revealed under the member instead of a prompt.
@@ -102,6 +111,49 @@ export default function Admin() {
     })
   }
 
+  const createEvent = async () => {
+    const name = eventName.trim()
+    const code = ftcScoutCode.trim().toUpperCase()
+    if (!name) {
+      toast('赛事名称必填 Event name required')
+      return
+    }
+    if (code && !/^[A-Z0-9]{2,24}$/.test(code)) {
+      toast('FTCScout 代码格式无效 Invalid FTCScout code')
+      return
+    }
+
+    setEventBusy(true)
+    try {
+      await createCompetitionEvent({ name, season: eventSeason, ftcScoutCode: code || undefined })
+      let importWarning = false
+      if (code) {
+        try { await importEvent(code, eventSeason) } catch { importWarning = true }
+      }
+      await refreshEvents()
+      setEventName('')
+      setFtcScoutCode('')
+      toast(importWarning ? '赛事已创建；赛程导入失败 Event created; schedule import failed' : '赛事已创建 Event created', importWarning ? 'none' : 'success')
+    } catch (error) {
+      toast((error as Error).message)
+    } finally {
+      setEventBusy(false)
+    }
+  }
+
+  const activateEvent = async (eventId: string) => {
+    setEventBusy(true)
+    try {
+      await activateCompetitionEvent(eventId)
+      await refreshEvents()
+      toast('已启用赛事 Event activated', 'success')
+    } catch (error) {
+      toast((error as Error).message)
+    } finally {
+      setEventBusy(false)
+    }
+  }
+
   // Readable rather than maximally random: these get spoken across a noisy
   // venue, so no characters that are easy to confuse (0/O, 1/l/I).
   const generatePassword = () => {
@@ -162,6 +214,68 @@ export default function Admin() {
       <AppHeader title={t("Admin")} showBack />
 
       <View className='page-content'>
+        <View className='section-card event-management'>
+          <View className='section-heading-inline'>
+            <Text className='section-title'>{t('赛事管理 Event Management')}</Text>
+            <Text className='active-event-chip'>{t('当前 Active')}: {activeEvent.name}</Text>
+          </View>
+
+          <View className='event-form-grid'>
+            <View className='field-row'>
+              <Text className='field-label'>{t('赛事名称 Event name')}</Text>
+              <Input
+                className='field-input'
+                value={eventName}
+                placeholder={t('例如：杭州资格赛 2 Hangzhou Qualifier 2')}
+                onInput={(event) => setEventName(event.detail.value)}
+              />
+            </View>
+            <View className='field-row'>
+              <Text className='field-label'>{t('赛季 Season')}</Text>
+              <Picker
+                textProps={{ okText: t('Confirm'), cancelText: t('Cancel') }}
+                mode='selector'
+                range={[String(CURRENT_SEASON), '2025']}
+                value={eventSeason === CURRENT_SEASON ? 0 : 1}
+                onChange={(event) => setEventSeason(Number(event.detail.value) === 0 ? CURRENT_SEASON : 2025)}
+              >
+                <View className='field-input picker-field'>{eventSeason}</View>
+              </Picker>
+            </View>
+            <View className='field-row'>
+              <Text className='field-label'>{t('FTCScout 代码（可选） FTCScout code (optional)')}</Text>
+              <Input
+                className='field-input'
+                value={ftcScoutCode}
+                placeholder='CNSHOS'
+                onInput={(event) => setFtcScoutCode(event.detail.value.toUpperCase())}
+              />
+            </View>
+          </View>
+          <View className={`admin-btn ${eventBusy ? 'busy' : ''}`} onClick={eventBusy ? undefined : createEvent}>
+            {eventBusy ? t('处理中 Working…') : t('创建赛事 Create event')}
+          </View>
+          {eventsOffline && <Text className='admin-error'>{t('离线时无法管理赛事 Event management requires a connection.')}</Text>}
+
+          <View className='event-list'>
+            {events.map((event) => (
+              <View className={`event-row ${event.isActive ? 'active' : ''}`} key={event.id}>
+                <View className='event-row-copy'>
+                  <Text className='event-row-name'>{event.name}</Text>
+                  <Text className='event-row-meta'>{event.season} · {event.code}{event.ftcScoutCode ? ` · FTCScout ${event.ftcScoutCode}` : ''}</Text>
+                </View>
+                {event.isActive ? (
+                  <Text className='active-event-chip'>{t('当前 Active')}</Text>
+                ) : (
+                  <View className={`chip primary ${eventBusy ? 'busy' : ''}`} onClick={eventBusy ? undefined : () => activateEvent(event.id)}>
+                    {t('启用 Activate')}
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
+        </View>
+
         <View className='section-card'>
           <Text className='section-title'>{t("添加侦查员 Add scout")}</Text>
           <View className='field-row'>
@@ -198,7 +312,7 @@ export default function Admin() {
             />
           </View>
           <View className={`admin-btn ${busy ? 'busy' : ''}`} onClick={busy ? undefined : addScout}>{t("添加 Add scout")}</View>
-          <Text className='admin-hint'>{t("把用户名和密码给队员。密码只有你能设置 —— 队员忘记了就用下面的「重置密码」重新设一个。 Give them the username and password. Only you can set passwords — if a scout forgets theirs, use 重置密码 below to set a new one (passwords are stored hashed and can never be read back, not even by you).")}</Text>
+          <Text className='admin-hint'>{t('密码无法查看；忘记后请重置。 Passwords cannot be viewed; reset them if forgotten.')}</Text>
         </View>
 
         <View className='section-card'>

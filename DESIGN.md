@@ -21,6 +21,8 @@ colors:
   warning: "#986816"
   success: "#26734d"
   info: "#356a9e"
+  alliance-red: "#a93d49"
+  alliance-blue: "#245fbd"
   disabled: "#e8edf3"
   border: "#d8e0ea"
   border-strong: "#bdc9d8"
@@ -43,6 +45,8 @@ colors:
   dark-warning: "#e9bd67"
   dark-success: "#73d0a1"
   dark-info: "#8dbce8"
+  dark-alliance-red: "#ae414d"
+  dark-alliance-blue: "#2d64be"
   dark-disabled: "#182536"
   dark-border: "#293b50"
   dark-border-strong: "#3b5068"
@@ -74,11 +78,11 @@ typography:
     fontSize: "calc(24px * var(--font-scale))"
     fontWeight: 400
     lineHeight: 1.35
-  label:
+  compact:
     fontFamily: "ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif"
-    fontSize: "calc(18px * var(--font-scale))"
-    fontWeight: 700
-    lineHeight: 1.35
+    fontSize: "calc(16px * var(--font-scale))"
+    fontWeight: 400
+    lineHeight: 1.4
 rounded:
   compact: "8px"
   control: "10px"
@@ -137,12 +141,13 @@ components:
 
 The shipped interface is a dense but calm engineering dashboard built for repeated use under match pressure. Its authority comes from semantic status, disciplined navy and blue surfaces, tabular numbers, crisp dividers, and a small set of cyan technical marks—not from ornamental science-fiction effects.
 
-Every operational label is designed to tolerate permanent Chinese/English display. Light and dark themes keep the same semantic hierarchy, while large inputs, direct actions, and compressed responsive grids preserve fast entry on H5 and WeChat Mini Program screens.
+Every operational label is designed to tolerate permanent Chinese/English display. A shared theme root carries font scaling and light/dark variables through both H5 and WeChat Mini Program component trees, while large inputs, direct actions, and compressed responsive grids preserve fast entry on either platform.
 
 **Key Characteristics:**
 
 - Restrained navy, blue, silver-gray, and neutral surfaces with cyan reserved for technical accents.
 - Semantic light/dark theme slots rather than page-specific color choices.
+- Distinct active-event status and viewed-event selection, stated in text rather than inferred from color.
 - Bilingual, wrap-safe labels and numeric displays with tabular figures.
 - Bordered panels, compact structural rules, and low ambient elevation.
 - Direct touch controls optimized for repeated scouting actions.
@@ -161,6 +166,7 @@ Blue carries primary action and selection, navy anchors the mission panel, and n
 
 - **Mission Navy:** A high-contrast operational field used for the home mission panel.
 - **Technical Cyan:** A rare accent for short rules and live/status marks.
+- **Alliance Red / Alliance Blue:** Professional competition semantics for selected alliance controls and compact entry badges; both have explicit dark-theme counterparts.
 
 ### Neutral
 
@@ -178,6 +184,8 @@ Blue carries primary action and selection, navy anchors the mission panel, and n
 
 **The Status Has Shape Rule.** Success, warning, error, and synchronization states pair color with text and a visible marker or border treatment.
 
+**The Alliance Is Semantic Rule.** Red and blue identify FTC alliances only. Use the paired alliance tokens for selected controls and badges, with readable text labels retained.
+
 ## Typography
 
 **Display Font:** Platform UI sans-serif with Segoe UI, PingFang SC, and Microsoft YaHei fallbacks
@@ -191,9 +199,9 @@ Blue carries primary action and selection, navy anchors the mission panel, and n
 - **Display** (780, scaled 38px, -0.02em): Home and authentication titles.
 - **Headline** (770, scaled 28px, -0.015em): Card and form section headings.
 - **Title** (730, scaled 23px): Navigation-card and subsection titles.
-- **Body** (400, scaled 18px, 1.5): Descriptions, notes, progress labels, and bilingual supporting copy.
 - **Field** (400, scaled 24px): High-legibility entry values and text areas.
-- **Label** (700, scaled 18px): Field labels, compact headings, and control text.
+- **Body** (400, scaled 18px, 1.5): Descriptions, field labels when bolded locally, notes, progress labels, and bilingual supporting copy.
+- **Compact** (400, scaled 16px, 1.4): Metadata, administrative hints, status chips, entry badges, and dense control labels; components may raise its weight for emphasis.
 
 ### Named Rules
 
@@ -201,11 +209,15 @@ Blue carries primary action and selection, navy anchors the mission panel, and n
 
 **The Numeric Readout Rule.** Counters, progress values, and team identifiers use tabular figures for stable scanning.
 
+**The Six-Role Scale Rule.** Reuse display, headline, title, field, body, and compact variables before introducing a one-off size; local weight changes express emphasis without creating another role.
+
 ## Layout
 
 Page content uses 22px padding by default, narrows to 14–16px on small screens, and centers within a 980px content column from 900px upward. Home expands to 1060px; the scouting form narrows to 860px. Repeated panel gaps cluster around 18–22px, with 8–14px used inside compact control groups.
 
 Desktop grids collapse deliberately: the home mission panel moves from a split layout to one column at 680px, two-column form fields collapse at 620px, and navigation cards become a single stack. The five-part scoring control remains one horizontal row—−1, current value, +1, +2, +4—even at narrow widths, reducing gaps and type size rather than changing the interaction model.
+
+The compact Event Management surface uses a three-column name/season/code grid and inline active status above a divided event list. At 520px it becomes a single-column form; event rows and their activation action stack without reducing the 44px target.
 
 **The Reachable Control Rule.** Canonical interactive controls are at least 44px tall; primary submit controls are 56px and standard fields/counters are 52px.
 
@@ -241,6 +253,7 @@ The form language uses gently engineered corners: 14px for panels, 10px for cont
 
 - **Style:** Fully rounded, subtle-surface multi-select controls with muted text.
 - **State:** Active chips use soft blue, a blue border, blue text, and increased weight. Status and team badges use compact 8px corners rather than pill geometry.
+- **Alliance State:** Match-entry red and blue choices remain neutral while unselected, then fill with the corresponding alliance token and white text when selected. Entry badges reuse the same semantic pair.
 
 ### Cards / Containers
 
@@ -259,6 +272,10 @@ The form language uses gently engineered corners: 14px for panels, 10px for cont
 
 The application header is sticky, centered, bordered, and shadowed, with balanced side rails. Back and search controls use bilingual text, subtle surfaces, and engineered CSS arrows rather than ornamental glyphs. Home navigation uses panel cards with a single slim blue rule as the directional cue.
 
+### Event Context
+
+The central active event is a shared application status, cached for resilient entry and shown with explicit bilingual Active text. The data dashboard's viewed event is a separate remembered browsing choice; it may differ from the active event and is labeled Viewed event, with the active item annotated rather than silently forcing selection. Admin Event Management presents creation fields, a success-bordered active chip, divided event rows, and a direct Activate action.
+
 ### Sync Status
 
 Synchronization uses a bordered subtle-surface container, explicit bilingual status text, and a circular marker. Local, queued, synced, and error states map to info, warning, success, and danger colors; queued and synced states alter the marker geometry so color is never the only signal.
@@ -272,6 +289,7 @@ Each scoring field is one five-column row: −1, value, +1, +2, +4. Action cells
 ### Do:
 
 - **Do** route new visual values through the existing semantic theme variables and preserve light/dark parity.
+- **Do** distinguish the central active event from a user's remembered viewed event with explicit bilingual context labels.
 - **Do** keep Chinese and English visible together and allow labels to wrap safely.
 - **Do** use the 14px panel, 10px control, 8px compact, and 999px chip roles intentionally.
 - **Do** preserve the single-row five-part scoring counter and minimum 44px canonical touch target.
@@ -283,4 +301,5 @@ Each scoring field is one five-column row: −1, value, +1, +2, +4. Action cells
 - **Don't** promote cyan into a dominant button, large background, or decorative field.
 - **Don't** introduce glyph icons, invented kickers, or a display typeface outside the shipped platform sans-serif system.
 - **Don't** rely on color alone for synchronization, validation, warning, or completion states.
+- **Don't** use alliance red or blue as generic status, decoration, or primary-action color.
 - **Don't** replace direct match-entry controls with hidden menus or multi-step interactions.

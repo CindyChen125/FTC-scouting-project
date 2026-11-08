@@ -1,5 +1,6 @@
 import { PropsWithChildren, createContext, useContext, useEffect, useMemo, useState } from 'react'
 import Taro from '@tarojs/taro'
+import { View } from '@tarojs/components'
 
 export type ThemeMode = 'light' | 'dark'
 
@@ -61,7 +62,16 @@ export function ThemeProvider({ children }: PropsWithChildren<any>) {
     [theme, fontScalePercent]
   )
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+  return (
+    <ThemeContext.Provider value={value}>
+      <View
+        className={`theme-root ${theme === 'dark' ? 'theme-dark' : ''}`}
+        style={`--font-scale: ${fontScalePercent / 100};`}
+      >
+        {children}
+      </View>
+    </ThemeContext.Provider>
+  )
 }
 
 export function useTheme() {

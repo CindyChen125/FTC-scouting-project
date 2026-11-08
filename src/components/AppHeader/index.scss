@@ -30,3 +30,10 @@
   .app-header-title { font-size: calc(21px * var(--font-scale)); }
   .app-header-icon-btn { min-width: 54px; padding-inline: 5px; }
 }
+
+@media (max-width: 380px) {
+  .app-header-side { width: 88px; }
+  .app-header-back { gap: 5px; padding-inline: 7px; }
+  .app-header-back-label { font-size: calc(14px * var(--font-scale)); }
+  .app-header-title { font-size: var(--type-body); }
+}

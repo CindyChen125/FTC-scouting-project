@@ -13,6 +13,7 @@ export interface ScheduledMatch {
 export interface ImportedEvent {
   code: string
   name: string
+  season?: number
   matches: ScheduledMatch[]
   teams?: string[]
 }
@@ -20,7 +21,7 @@ const key = 'ftcScoutEvents:2026'
 export const readImportedEvents = (): ImportedEvent[] => Taro.getStorageSync(key) || []
 
 export async function syncImportedEvents(): Promise<ImportedEvent[]> {
-  const { data, error } = await withTimeout(supabase.from('event_imports').select('data').eq('season', 2026))
+  const { data, error } = await withTimeout(supabase.from('event_imports').select('data'))
   if (error) throw error
   const merged = new Map(readImportedEvents().map((event) => [event.code, event]))
   for (const row of data ?? []) {
@@ -31,17 +32,17 @@ export async function syncImportedEvents(): Promise<ImportedEvent[]> {
   return events
 }
 
-export async function importEvent(input: string): Promise<ImportedEvent> {
+export async function importEvent(input: string, season = 2026): Promise<ImportedEvent> {
   const code = input.trim().toUpperCase()
   if (!/^[A-Z0-9]{2,24}$/.test(code)) throw new Error('Enter an FTCScout event code.')
-  const url = `https://api.ftcscout.org/rest/v1/events/2026/${code}`
+  const url = `https://api.ftcscout.org/rest/v1/events/${season}/${code}`
   const [event, schedule, roster] = await Promise.all([
     Taro.request<{ name: string }>({ url, timeout: 10000 }),
     Taro.request<unknown>({ url: `${url}/matches`, timeout: 10000 }),
     Taro.request<unknown>({ url: `${url}/teams`, timeout: 10000 }).catch(() => null)
   ])
   if (event.statusCode !== 200 || schedule.statusCode !== 200 || !Array.isArray(schedule.data)) {
-    throw new Error('Could not load this BIOBUZZ event. Check the code and your connection.')
+    throw new Error('Could not load this event. Check the code and your connection.')
   }
   const matches: ScheduledMatch[] = []
   for (const match of schedule.data) {
@@ -66,10 +67,10 @@ export async function importEvent(input: string): Promise<ImportedEvent> {
     : []
   const teams = [...new Set([...listedTeams, ...matches.flatMap((match) => Object.values(match.teams))])]
     .sort((a, b) => Number(a) - Number(b))
-  const result = { code, name: event.data?.name || code, matches: matches.sort((a, b) => a.number - b.number), teams }
+  const result = { code, name: event.data?.name || code, season, matches: matches.sort((a, b) => a.number - b.number), teams }
   Taro.setStorageSync(key, [...readImportedEvents().filter((e) => e.code !== code), result])
   const { error } = await withTimeout(supabase.from('event_imports').upsert({
-    season: 2026, code, data: result, updated_at: new Date().toISOString()
+    season, code, data: result, updated_at: new Date().toISOString()
   }, { onConflict: 'season,code' }))
   if (error) throw new Error('Saved on this device, but sharing failed. Check database setup and retry import.')
   return result

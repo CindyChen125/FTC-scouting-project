@@ -27,7 +27,8 @@ import {
 } from '../../utils/ranking'
 import { EVENTS, CURRENT_SEASON, findEvent, eventLabel, entryEventCode } from '../../data/events'
 import { readImportedEvents, syncImportedEvents } from '../../data/ftcScout'
-import { readSelectedEventCode, writeSelectedEventCode } from '../../data/selectedEvent'
+import { readViewedEventCode, writeViewedEventCode } from '../../data/selectedEvent'
+import { useActiveEvent } from '../../data/ActiveEventContext'
 import { officialOpr } from '../../utils/officialOpr'
 import { gameForEntry } from '../../games'
 import { useAuth } from '../../auth/AuthContext'
@@ -57,6 +58,7 @@ const loadStoredWeights = (model: RankingModel): RankingWeights => {
 export default function CurrentData() {
   const { language } = useLanguage()
   const { userId } = useAuth()
+  const { activeEvent, events: managedEvents } = useActiveEvent()
   const [mainTab, setMainTab] = useState<MainTab>('mine')
   const [entries, setEntries] = useState<MatchScoutEntry[]>([])
   const [pitEntries, setPitEntries] = useState<PitEntry[]>([])
@@ -67,8 +69,8 @@ export default function CurrentData() {
   // Empty selection = Overall (weighted composite). One or more selected =
   // rank by the average of those factors' scores.
   const [selectedFactors, setSelectedFactors] = useState<string[]>([])
-  const [eventCode, setEventCode] = useState(readSelectedEventCode)
-  useEffect(() => writeSelectedEventCode(eventCode), [eventCode])
+  const [eventCode, setEventCode] = useState(() => readViewedEventCode(activeEvent.code))
+  useEffect(() => writeViewedEventCode(eventCode), [eventCode])
   const [importedEvents, setImportedEvents] = useState(readImportedEvents)
   useEffect(() => {
     if (!userId) return
@@ -78,6 +80,7 @@ export default function CurrentData() {
   }, [userId])
   const eventOptions = [...new Set([
     ...EVENTS.map((event) => event.code),
+    ...managedEvents.map((event) => event.code),
     ...importedEvents.map((event) => event.code),
     ...entries.map(entryEventCode),
     ...pitEntries.map((entry) => entry.eventCode)
@@ -240,7 +243,10 @@ export default function CurrentData() {
       <View className='page-content'>
         <View className='event-selector'>
           <View className='event-selector-header' onClick={() => setEventPickerOpen((open) => !open)}>
-            <Text className='event-selector-name'>{eventLabel(selectedEvent)}</Text>
+            <View>
+              <Text className='event-selector-context'>{t('查看赛事 Viewed event')}</Text>
+              <Text className='event-selector-name'>{eventLabel(selectedEvent)}{eventCode === activeEvent.code ? ` · ${t('当前 Active')}` : ''}</Text>
+            </View>
             <Text className='event-selector-arrow'>{eventPickerOpen ? '▴' : '▾'}</Text>
           </View>
           {eventPickerOpen && (
@@ -251,7 +257,7 @@ export default function CurrentData() {
                   className={`event-selector-option ${ev.code === eventCode ? 'active' : ''}`}
                   onClick={() => selectEvent(ev.code)}
                 >
-                  {eventLabel(ev)}
+                  {eventLabel(ev)}{ev.code === activeEvent.code ? ` · ${t('当前 Active')}` : ''}
                 </View>
               ))}
             </View>
@@ -473,14 +479,14 @@ export default function CurrentData() {
                     />
                   </View>
                 ))}
-                <Text className='weights-note'>{t("Sliders are relative to each other — percentages shown are each factor's share of the total, so they always add up to 100%.")}</Text>
+                <Text className='weights-note'>{t('权重合计 100%。 Weights total 100%.')}</Text>
               </View>
             )}
 
             {visibleRankedTeams.length === 0 && (
               <Text className='empty-state'>
                 {rankRows.length === 0
-                  ? t("No scouting data for this event yet — rankings appear once matches are submitted.")
+                  ? t('noEventEntries', { event: eventLabel(selectedEvent) })
                   : t("No teams match your search.")}
               </Text>
             )}
@@ -532,7 +538,7 @@ export default function CurrentData() {
                 {visiblePitEntries.length === 0 && (
                   <Text className='empty-state'>
                     {eventPitEntries.length === 0
-                      ? t("No pit scouting for this event yet. Use 赛前侦查 Pit Scouting on the home screen.")
+                      ? t('该赛事暂无赛前数据。 No pit data for this event.')
                       : t("No teams match your search.")}
                   </Text>
                 )}

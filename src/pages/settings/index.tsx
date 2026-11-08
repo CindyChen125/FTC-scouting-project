@@ -102,7 +102,7 @@ export default function Settings() {
             </View>
           ) : (
             <View className='settings-row'>
-              <Text className='settings-value'>{t("忘记密码请联系管理员 Forgot your password? Ask your team admin to reset it.")}</Text>
+              <Text className='settings-value'>{t('忘记密码请联系管理员。 Password resets: team admin.')}</Text>
               <View className='pill-row'>
                 <View className='pill' onClick={confirmSignOut}>{t("退出登录 Sign out")}</View>
               </View>
@@ -133,7 +133,6 @@ export default function Settings() {
               value={fontScalePercent}
               onChange={setFontScalePercent}
             />
-            <Text className='settings-note'>{t("Adjusts text size across the whole app.")}</Text>
           </View>
         </View>
 

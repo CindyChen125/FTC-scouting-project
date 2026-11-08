@@ -9,9 +9,16 @@ export interface EventInfo {
   code: string
   name: string
   season: Season
+  ftcScoutCode?: string
   // Official quals results baked in from ftcscout.org. Only past DECODE events
   // have these; BIOBUZZ events are ranked from our own scouting instead.
   results?: EventResultsData
+}
+
+export interface CompetitionEvent extends EventInfo {
+  id: string
+  isActive: boolean
+  createdAt?: string
 }
 
 // Every event we have scouting entries for, newest season first. Add a new
@@ -27,6 +34,14 @@ export const EVENTS: EventInfo[] = [
 export const CURRENT_EVENT_CODE = EVENTS[0].code
 export const CURRENT_SEASON: Season = 2026
 
+let managedEvents: CompetitionEvent[] = []
+
+export const registerManagedEvents = (events: CompetitionEvent[]) => {
+  managedEvents = events
+}
+
+export const managedEventList = () => managedEvents
+
 // Imported event names are official content, not interface messages.
 export const eventLabel = (event: EventInfo) => event.code === 'BIOBUZZ-PRACTICE' ? t('BIOBUZZ 练习赛 Practice & Scrimmages') : event.name
 
@@ -38,5 +53,6 @@ export const entryEventCode = (entry: { eventCode?: string }) =>
   entry.eventCode ?? LEGACY_EVENT_CODE
 
 export const findEvent = (code: string): EventInfo =>
+  managedEvents.find((e) => e.code === code) ??
   EVENTS.find((e) => e.code === code) ??
   { code, name: readImportedEvents().find((event) => event.code === code)?.name ?? code, season: CURRENT_SEASON }

@@ -46,8 +46,15 @@ const components = Object.fromEntries(['View', 'Text', 'Button', 'Input', 'Texta
 const mocks = {
   '@tarojs/taro': taro,
   '@tarojs/components': components,
-  'AuthContext': { useAuth: () => ({ userId: user.userId, profile: user, isAdmin: true, loading: false, signIn: async () => {} }) },
+  'AuthContext': { useAuth: () => ({ userId: user.userId, profile: user, isAdmin: user.role === 'admin', loading: false, signIn: async () => {} }) },
   'ThemeContext': { useTheme: () => ({ theme: 'light', fontScalePercent: 100 }), FONT_SCALE_MIN: 80, FONT_SCALE_MAX: 140, FONT_SCALE_STEP: 5 },
+  'ActiveEventContext': { useActiveEvent: () => ({
+    activeEvent: { id: 'event-active', code: 'BIOBUZZ-PRACTICE', name: 'BIOBUZZ Practice', season: 2026, isActive: true },
+    events: [{ id: 'event-active', code: 'BIOBUZZ-PRACTICE', name: 'BIOBUZZ Practice', season: 2026, isActive: true }],
+    loading: false,
+    offline: false,
+    refresh: async () => {}
+  }) },
   'ftcScout': { readImportedEvents: () => [], syncImportedEvents: async () => [], STATIONS: ['Red 1', 'Red 2', 'Blue 1', 'Blue 2'] },
   'scouting': {
     fetchScoutEntry: async () => null,
@@ -69,7 +76,7 @@ const originalLoad = Module._load
 Module._load = function (request, parent, ...args) {
   if (mocks[request]) return mocks[request]
   const name = path.basename(request)
-  if (/AuthContext|ThemeContext|ftcScout$|supabase\/(scouting|pit|admin|photos)$/.test(request) && mocks[name]) return mocks[name]
+  if (/AuthContext|ThemeContext|ActiveEventContext|ftcScout$|supabase\/(scouting|pit|admin|photos)$/.test(request) && mocks[name]) return mocks[name]
   return originalLoad.call(this, request, parent, ...args)
 }
 for (const extension of ['.ts', '.tsx']) require.extensions[extension] = (module, filename) => {
@@ -80,7 +87,8 @@ for (const extension of ['.ts', '.tsx']) require.extensions[extension] = (module
 require.extensions['.scss'] = () => {}
 const { translate: t, setCurrentLanguage } = require('../src/i18n')
 const { LanguageProvider } = require('../src/i18n/LanguageContext')
-const { NOTE_OPTIONS, noteTagId, emptyAuto, emptyTeleop, emptyEndgame } = require('../src/types/scouting')
+const { NOTE_OPTIONS, noteTagId, emptyAuto, emptyTeleop, emptyEndgame, scoutBackupKey } = require('../src/types/scouting')
+const { pitBackupKey } = require('../src/types/pit')
 const { formatNotes } = require('../src/games/common')
 const { exportEntriesToExcel, exportPitToExcel } = require('../src/utils/exportEntries')
 const { biobuzzRows } = require('../src/utils/ranking')
@@ -134,6 +142,16 @@ async function main() {
   assert(formatNotes(entry.auto.noteTags, rawNote).includes(rawNote))
   assert.equal(t('teamNumber', { number: rawNote }).includes(rawNote), true)
   assert.deepEqual(NOTE_OPTIONS.map(noteTagId), ['disconnected', 'mechanical-failure', 'defense', 'early-nectar', 'over-control-limit', 'stuck-on-hive', 'other'])
+  assert.notEqual(
+    scoutBackupKey(user.userId, 'EVENT-A', 'Q1', '417'),
+    scoutBackupKey(user.userId, 'EVENT-B', 'Q1', '417'),
+    'Match drafts must remain event-scoped'
+  )
+  assert.notEqual(
+    pitBackupKey(user.userId, 'EVENT-A', '417'),
+    pitBackupKey(user.userId, 'EVENT-B', '417'),
+    'Pit drafts must remain event-scoped'
+  )
   exportEntriesToExcel([entry], 'Example')
   assert.equal(exportedRows[0][t('Scout')], 'Red')
   assert.equal(exportedRows[0][t('Overall Notes')], rawNote)
@@ -184,6 +202,18 @@ async function main() {
   assert.equal(mountPoint.querySelector('.language-picker'), null)
   await mount(require('../src/pages/settings/index').default)
   assert.equal(document.documentElement.lang, 'zh-CN', 'Preference survives remount')
+  await mount(require('../src/pages/admin/index').default)
+  assert(mountPoint.textContent.includes('Event Management'), 'Admins can access Event Management')
+  user.role = 'scout'
+  await mount(require('../src/pages/admin/index').default)
+  assert.equal(mountPoint.querySelector('.event-management'), null, 'Regular scouts cannot access Event Management controls')
+  assert(mountPoint.textContent.includes('Admins only'))
+  user.role = 'admin'
+  const eventSql = fs.readFileSync(path.join(__dirname, '../supabase/event-management.sql'), 'utf8')
+  assert(eventSql.includes('if not is_admin()'), 'Event RPCs enforce administrator access server-side')
+  assert(eventSql.includes('competition_events_single_active'), 'Database enforces one active event')
+  assert(eventSql.includes('supabase_realtime add table public.competition_events'), 'Active event changes publish through realtime')
+  assert(!/delete from public\.scout_entries|delete from public\.pit_entries/i.test(eventSql), 'Event migration is non-destructive')
   await flush(() => root.unmount())
   dom.window.close()
   console.log(`Passed: ${Object.keys(messages).length} bilingual message pairs, 7 pages, login validation, rankings, exports, legacy preference migration, stable tags and preserved user content.`)

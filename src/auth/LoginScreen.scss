@@ -11,7 +11,7 @@
   width: 100%;
   max-width: 620px;
   background: var(--color-card-bg);
-  border-radius: 16px;
+  border-radius: var(--radius-panel);
   padding: 40px 28px;
   box-shadow: 0 2px 8px var(--color-shadow);
 }
@@ -24,21 +24,14 @@
   color: var(--color-text);
 }
 
-.login-subtitle {
-  display: block;
-  text-align: center;
-  font-size: calc(24px * var(--font-scale));
-  color: var(--color-text-muted);
-  margin: 8px 0 32px;
-}
-
 .login-field {
   margin-bottom: 20px;
 }
 
 .login-label {
   display: block;
-  font-size: calc(24px * var(--font-scale));
+  font-size: var(--type-body);
+  font-weight: 700;
   color: var(--color-label);
   margin-bottom: 8px;
 }
@@ -48,7 +41,7 @@
   color: var(--color-text);
   border-radius: 10px;
   padding: 16px;
-  font-size: calc(28px * var(--font-scale));
+  font-size: calc(20px * var(--font-scale));
   border: 2px solid var(--color-border);
 
   &:focus {
@@ -59,7 +52,7 @@
 .login-error {
   display: block;
   color: var(--color-danger);
-  font-size: calc(22px * var(--font-scale));
+  font-size: var(--type-compact);
   margin-bottom: 16px;
 }
 
@@ -70,8 +63,8 @@
   text-align: center;
   background: var(--color-primary);
   color: var(--color-primary-contrast);
-  font-size: calc(30px * var(--font-scale));
-  font-weight: bold;
+  font-size: calc(20px * var(--font-scale));
+  font-weight: 700;
 
   &.busy {
     opacity: 0.6;
@@ -81,14 +74,14 @@
 .login-hint {
   display: block;
   text-align: center;
-  font-size: calc(20px * var(--font-scale));
+  font-size: var(--type-compact);
   color: var(--color-text-faint);
   margin-top: 20px;
 }
 
 .login-card { border: 1px solid var(--color-border); border-radius: var(--radius-panel); box-shadow: var(--shadow-panel); }
 .login-card::before { content: ''; display: block; width: 58px; height: 2px; margin: 0 auto 22px; background: var(--color-accent); }
-.login-title { font-size: calc(38px * var(--font-scale)); letter-spacing: -.025em; }
+.login-title { margin-bottom: 28px; font-size: var(--type-display); font-weight: 700; letter-spacing: -.025em; }
 .login-input { min-height: 54px; box-sizing: border-box; border-width: 1px; border-color: var(--color-border-strong); border-radius: var(--radius-control); }
 .login-input:focus { box-shadow: 0 0 0 3px var(--color-focus); }
 .login-btn { min-height: 56px; border-radius: var(--radius-control); box-shadow: 0 5px 14px var(--color-primary-shadow); }

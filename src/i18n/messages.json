@@ -1458,5 +1458,141 @@
   "offlineProgressCaveat": {
     "en": "Offline or shared data unavailable; figures may only reflect this device.",
     "zh": "当前离线或共享数据不可用；数字可能仅反映此设备。"
+  },
+  "当前赛事 Active event": {
+    "en": "Active event",
+    "zh": "当前赛事"
+  },
+  "当前 Active": {
+    "en": "Active",
+    "zh": "当前"
+  },
+  "离线缓存 Offline cache": {
+    "en": "Offline cache",
+    "zh": "离线缓存"
+  },
+  "查看赛事 Viewed event": {
+    "en": "Viewed event",
+    "zh": "查看赛事"
+  },
+  "赛事管理 Event Management": {
+    "en": "Event Management",
+    "zh": "赛事管理"
+  },
+  "赛事名称 Event name": {
+    "en": "Event name",
+    "zh": "赛事名称"
+  },
+  "赛季 Season": {
+    "en": "Season",
+    "zh": "赛季"
+  },
+  "FTCScout 代码（可选） FTCScout code (optional)": {
+    "en": "FTCScout code (optional)",
+    "zh": "FTCScout 代码（可选）"
+  },
+  "例如：杭州资格赛 2 Hangzhou Qualifier 2": {
+    "en": "e.g. Hangzhou Qualifier 2",
+    "zh": "例如：杭州资格赛 2"
+  },
+  "创建赛事 Create event": {
+    "en": "Create event",
+    "zh": "创建赛事"
+  },
+  "处理中 Working…": {
+    "en": "Working…",
+    "zh": "处理中…"
+  },
+  "启用 Activate": {
+    "en": "Activate",
+    "zh": "启用"
+  },
+  "赛事名称必填 Event name required": {
+    "en": "Event name required",
+    "zh": "赛事名称必填"
+  },
+  "FTCScout 代码格式无效 Invalid FTCScout code": {
+    "en": "Invalid FTCScout code",
+    "zh": "FTCScout 代码格式无效"
+  },
+  "赛事已创建 Event created": {
+    "en": "Event created",
+    "zh": "赛事已创建"
+  },
+  "赛事已创建；赛程导入失败 Event created; schedule import failed": {
+    "en": "Event created; schedule import failed",
+    "zh": "赛事已创建；赛程导入失败"
+  },
+  "已启用赛事 Event activated": {
+    "en": "Event activated",
+    "zh": "已启用赛事"
+  },
+  "离线时无法管理赛事 Event management requires a connection.": {
+    "en": "Event management requires a connection.",
+    "zh": "离线时无法管理赛事。"
+  },
+  "密码无法查看；忘记后请重置。 Passwords cannot be viewed; reset them if forgotten.": {
+    "en": "Passwords cannot be viewed; reset them if forgotten.",
+    "zh": "密码无法查看；忘记后请重置。"
+  },
+  "已自动备份 Auto-saved ✓": {
+    "en": "Auto-saved ✓",
+    "zh": "已自动备份 ✓"
+  },
+  "权重合计 100%。 Weights total 100%.": {
+    "en": "Weights total 100%.",
+    "zh": "权重合计 100%。"
+  },
+  "该赛事暂无赛前数据。 No pit data for this event.": {
+    "en": "No pit data for this event.",
+    "zh": "该赛事暂无赛前数据。"
+  },
+  "账号由管理员创建。 Accounts: team admin.": {
+    "en": "Accounts: team admin.",
+    "zh": "账号由管理员创建。"
+  },
+  "忘记密码请联系管理员。 Password resets: team admin.": {
+    "en": "Password resets: team admin.",
+    "zh": "忘记密码请联系管理员。"
+  },
+  "Could not load this event. Check the code and your connection.": {
+    "en": "Could not load this event. Check the code and your connection.",
+    "zh": "无法载入赛事，请检查代码和网络连接。"
+  },
+  "Administrator access required": {
+    "en": "Administrator access required",
+    "zh": "需要管理员权限"
+  },
+  "Event name is required": {
+    "en": "Event name is required",
+    "zh": "赛事名称必填"
+  },
+  "Invalid season": {
+    "en": "Invalid season",
+    "zh": "赛季无效"
+  },
+  "Invalid FTCScout event code": {
+    "en": "Invalid FTCScout event code",
+    "zh": "FTCScout 赛事代码无效"
+  },
+  "An event with this name already exists for the season": {
+    "en": "An event with this name already exists for the season",
+    "zh": "该赛季已有同名赛事"
+  },
+  "This FTCScout event is already registered": {
+    "en": "This FTCScout event is already registered",
+    "zh": "该 FTCScout 赛事已登记"
+  },
+  "Event not found": {
+    "en": "Event not found",
+    "zh": "未找到赛事"
+  },
+  "Event was not created": {
+    "en": "Event was not created",
+    "zh": "赛事创建失败"
+  },
+  "Event was not activated": {
+    "en": "Event was not activated",
+    "zh": "赛事启用失败"
   }
 }

@@ -5,7 +5,7 @@
 
 .section-card {
   background: var(--color-card-bg);
-  border-radius: 16px;
+  border-radius: var(--radius-panel);
   padding: 20px;
   margin-bottom: 16px;
   box-shadow: 0 2px 8px var(--color-shadow);
@@ -13,8 +13,8 @@
 
 .section-title {
   display: block;
-  font-size: calc(30px * var(--font-scale));
-  font-weight: bold;
+  font-size: var(--type-headline);
+  font-weight: 700;
   color: var(--color-text);
   margin-bottom: 16px;
 }
@@ -25,7 +25,8 @@
 
 .field-label {
   display: block;
-  font-size: calc(24px * var(--font-scale));
+  font-size: var(--type-body);
+  font-weight: 700;
   color: var(--color-label);
   margin-bottom: 8px;
 }
@@ -35,7 +36,7 @@
   color: var(--color-text);
   border-radius: 10px;
   padding: 16px;
-  font-size: calc(28px * var(--font-scale));
+  font-size: var(--type-field);
   border: 2px solid var(--color-border);
 
   &:focus {
@@ -45,12 +46,12 @@
 
 .admin-btn {
   padding: 18px 0;
-  border-radius: 12px;
+  border-radius: var(--radius-control);
   text-align: center;
   background: var(--color-primary);
   color: var(--color-primary-contrast);
-  font-size: calc(28px * var(--font-scale));
-  font-weight: bold;
+  font-size: calc(20px * var(--font-scale));
+  font-weight: 700;
 
   &.busy {
     opacity: 0.6;
@@ -59,7 +60,9 @@
 
 .admin-hint {
   display: block;
-  font-size: calc(20px * var(--font-scale));
+  max-width: 68ch;
+  font-size: var(--type-compact);
+  line-height: 1.5;
   color: var(--color-text-faint);
   margin-top: 12px;
 }
@@ -82,15 +85,15 @@
 }
 
 .member-name {
-  font-size: calc(28px * var(--font-scale));
-  font-weight: bold;
+  font-size: var(--type-title);
+  font-weight: 700;
   color: var(--color-text);
 }
 
 .member-badge {
-  font-size: calc(20px * var(--font-scale));
+  font-size: var(--type-compact);
   padding: 4px 12px;
-  border-radius: 20px;
+  border-radius: 999px;
   background: var(--color-input-bg);
   color: var(--color-text-muted);
 
@@ -103,7 +106,7 @@
 
 .member-meta {
   display: block;
-  font-size: calc(22px * var(--font-scale));
+  font-size: var(--type-compact);
   color: var(--color-text-muted);
   margin: 6px 0 12px;
 }
@@ -116,9 +119,9 @@
 
 .chip {
   padding: 10px 16px;
-  border-radius: 20px;
+  border-radius: 999px;
   background: var(--color-input-bg);
-  font-size: calc(20px * var(--font-scale));
+  font-size: var(--type-compact);
   color: var(--color-text-muted);
 
   &.danger {
@@ -133,7 +136,7 @@
 .empty-state {
   text-align: center;
   color: var(--color-text-faint);
-  font-size: calc(26px * var(--font-scale));
+  font-size: var(--type-body);
   margin-top: 100px;
   display: block;
 }
@@ -159,7 +162,27 @@
 .member-actions .chip { min-height: 40px; box-sizing: border-box; border: 1px solid var(--color-border); background: var(--color-surface-subtle); }
 .member-actions .chip.primary { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-primary-contrast); }
 
+.section-heading-inline { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 16px; }
+.section-heading-inline .section-title { margin-bottom: 0; }
+.event-form-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(120px, .45fr) minmax(0, .8fr); gap: 14px; }
+.picker-field { display: flex; align-items: center; }
+.active-event-chip { display: inline-flex; max-width: 420px; align-items: center; padding: 7px 10px; border: 1px solid var(--color-success); border-radius: 8px; background: var(--color-surface-subtle); color: var(--color-success); font-size: var(--type-compact); line-height: 1.35; }
+.admin-error { display: block; margin-top: 10px; color: var(--color-danger); font-size: var(--type-compact); }
+.event-list { margin-top: 18px; border-top: 1px solid var(--color-border); }
+.event-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 15px 0; border-bottom: 1px solid var(--color-border); }
+.event-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.event-row-copy { min-width: 0; }
+.event-row-name { display: block; color: var(--color-text); font-size: calc(20px * var(--font-scale)); font-weight: 700; line-height: 1.35; }
+.event-row-meta { display: block; margin-top: 4px; color: var(--color-text-muted); font-size: var(--type-compact); line-height: 1.4; font-variant-numeric: tabular-nums; }
+.event-row .chip { flex: 0 0 auto; min-height: 44px; display: flex; align-items: center; }
+.event-row.active .event-row-name { color: var(--color-success); }
+.busy { pointer-events: none; opacity: .6; }
+
 @media (max-width: 520px) {
   .admin-page .section-card { padding: 18px 16px; }
   .member-head { align-items: flex-start; }
+  .section-heading-inline, .event-row { align-items: stretch; flex-direction: column; }
+  .event-form-grid { grid-template-columns: 1fr; gap: 0; }
+  .active-event-chip { max-width: none; }
+  .event-row .chip { justify-content: center; }
 }

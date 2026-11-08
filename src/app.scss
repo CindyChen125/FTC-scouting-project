@@ -21,6 +21,8 @@
   --color-warning: #986816;
   --color-success: #26734d;
   --color-info: #356a9e;
+  --color-alliance-red: #a93d49;
+  --color-alliance-blue: #245fbd;
   --color-disabled-bg: #e8edf3;
   --color-border: #d8e0ea;
   --color-border-strong: #bdc9d8;
@@ -29,9 +31,15 @@
   --radius-panel: 14px;
   --radius-control: 10px;
   --shadow-panel: 0 5px 18px rgba(24, 43, 69, .08);
+  --type-display: calc(38px * var(--font-scale));
+  --type-headline: calc(28px * var(--font-scale));
+  --type-title: calc(23px * var(--font-scale));
+  --type-field: calc(24px * var(--font-scale));
+  --type-body: calc(18px * var(--font-scale));
+  --type-compact: calc(16px * var(--font-scale));
 }
 
-:root.theme-dark {
+:root.theme-dark, .theme-dark {
   --color-bg: #09121e;
   --color-card-bg: #111d2c;
   --color-surface-subtle: #172638;
@@ -53,6 +61,8 @@
   --color-warning: #e9bd67;
   --color-success: #73d0a1;
   --color-info: #8dbce8;
+  --color-alliance-red: #ae414d;
+  --color-alliance-blue: #2d64be;
   --color-disabled-bg: #182536;
   --color-border: #293b50;
   --color-border-strong: #3b5068;
@@ -68,8 +78,14 @@ html, body, page {
   font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  font-size: var(--type-body);
+  line-height: 1.5;
   transition: background-color .18s ease-out, color .18s ease-out;
 }
+
+.theme-root { min-height: 100vh; background: var(--color-bg); color: var(--color-text); font-family: inherit; }
+page, view, text, input, textarea, button { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+input, textarea, button { color: inherit; }
 
 * { box-sizing: border-box; }
 ::selection { background: var(--color-primary); color: var(--color-primary-contrast); }
