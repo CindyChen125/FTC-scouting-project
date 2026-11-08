@@ -2,7 +2,7 @@ import Taro from '@tarojs/taro'
 import { supabase } from './config'
 import { MatchScoutEntry, scoutEntryStorageKey, scoutEntryKeyPrefix } from '../types/scouting'
 import { entryEventCode } from '../data/events'
-import { withTimeout, isPermanentRejection } from './timeout'
+import { withTimeout, classifySyncFailure, SyncFailure } from './timeout'
 import { enqueue, dequeue, pendingEntries, pendingCount } from './outbox'
 
 const TABLE = 'scout_entries'
@@ -63,52 +63,52 @@ const push = (entry: MatchScoutEntry) =>
     supabase.from(TABLE).upsert(toRow(entry), { onConflict: 'event_code,match_id,team_number,observation_key' })
   )
 
-export type SubmitOutcome = 'synced' | 'queued' | 'rejected'
+export interface SubmitOutcome {
+  status: 'synced' | 'queued' | 'error'
+  failure?: SyncFailure
+}
+
+export interface FlushOutcome {
+  pending: number
+  failure?: SyncFailure
+}
 
 // Submits an entry. The caller writes the local copy; this shares it with the
 // rest of the team.
 //
-//   synced   — it reached the server
-//   queued   — no signal, saved and retried automatically (the venue case)
-//   rejected — the server refused and always will, e.g. the account was
-//              deleted or deactivated. Queuing that would retry forever and
-//              let the UI keep claiming success for data nobody else will see.
+//   synced — it reached the server
+//   queued — no signal; saved and retried automatically (the venue case)
+//   error  — the server responded with a schema, permission or data problem;
+//            the local/outbox copy is deliberately retained for later retry.
 export async function submitScoutEntry(entry: MatchScoutEntry): Promise<SubmitOutcome> {
   try {
     const { error } = await push(entry)
     if (error) throw error
     dequeue(entry)
-    return 'synced'
+    return { status: 'synced' }
   } catch (err) {
-    if (isPermanentRejection(err)) {
-      dequeue(entry)
-      return 'rejected'
-    }
     enqueue(entry)
-    return 'queued'
+    const failure = classifySyncFailure(err)
+    return { status: failure.kind === 'network' ? 'queued' : 'error', failure }
   }
 }
 
 // Retries everything queued. Returns how many are still pending afterwards.
-export async function flushOutbox(): Promise<number> {
+export async function flushOutbox(): Promise<FlushOutcome> {
+  let failure: SyncFailure | undefined
   for (const entry of pendingEntries()) {
     try {
       const { error } = await push(entry)
       if (error) throw error
       dequeue(entry)
     } catch (err) {
-      if (isPermanentRejection(err)) {
-        // Will never succeed for this account. Drop it from the queue so one
-        // dead entry can't block every later submission from syncing; the
-        // local copy stays on the device and still exports.
-        dequeue(entry)
-        continue
-      }
-      // Still offline — stop and leave the rest queued for the next attempt.
+      // Schema, permission and validation failures are not "offline", but the
+      // entry must still remain retryable after an admin fixes the cause.
+      failure = classifySyncFailure(err)
       break
     }
   }
-  return pendingCount()
+  return { pending: pendingCount(), failure }
 }
 
 export { pendingCount }
@@ -179,8 +179,8 @@ export function subscribeScoutEntries(
   }
 
   // Anything queued from an earlier offline session goes out now.
-  flushOutbox().then((stillPending) => {
-    if (stillPending === 0) load()
+  flushOutbox().then(({ pending }) => {
+    if (pending === 0) load()
   })
 
   emit()

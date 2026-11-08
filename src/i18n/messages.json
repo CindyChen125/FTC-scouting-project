@@ -1594,5 +1594,37 @@
   "Event was not activated": {
     "en": "Event was not activated",
     "zh": "赛事启用失败"
+  },
+  "无犯规 No Fouls": {
+    "en": "No Fouls",
+    "zh": "无犯规"
+  },
+  "少量犯规 Few Fouls (1–3)": {
+    "en": "Few Fouls (1–3)",
+    "zh": "少量犯规（1–3 次）"
+  },
+  "多次犯规 Many Fouls (>3)": {
+    "en": "Many Fouls (>3)",
+    "zh": "多次犯规（超过 3 次）"
+  },
+  "未能同步；数据仍在本机 Sync failed — data remains local": {
+    "en": "Sync failed — data remains local",
+    "zh": "未能同步；数据仍在本机"
+  },
+  "永久所有者账号：不可降级、停用或删除 Permanent owner — cannot be demoted, deactivated, or deleted.": {
+    "en": "Permanent owner — cannot be demoted, deactivated, or deleted.",
+    "zh": "永久所有者账号：不可降级、停用或删除。"
+  },
+  "旧管理员账号已锁定；请按迁移说明人工审核 Legacy admin locked — review using the migration guide.": {
+    "en": "Legacy admin locked — review using the migration guide.",
+    "zh": "旧管理员账号已锁定；请按迁移说明人工审核。"
+  },
+  " · 所有者 Owner": {
+    "en": " · Owner",
+    "zh": " · 所有者"
+  },
+  " · 受限旧管理员 Restricted legacy admin": {
+    "en": " · Restricted legacy admin",
+    "zh": " · 受限旧管理员"
   }
 }

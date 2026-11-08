@@ -40,7 +40,7 @@ export default function Home() {
       if (active) setImportedEvents(events)
     }).catch(() => setDataMayBePartial(true))
     if (typeof flushOutbox === 'function') {
-      flushOutbox().then((count) => { if (active) setQueued(count) })
+      flushOutbox().then(({ pending }) => { if (active) setQueued(pending) })
     }
     return () => { active = false }
   }, [])

@@ -21,10 +21,13 @@
   background: transparent;
 }
 
-.sync-status-label {
+.sync-status-copy {
   min-width: 0;
   flex: 1;
 }
+
+.sync-status-label, .sync-status-detail { display: block; overflow-wrap: anywhere; }
+.sync-status-detail { margin-top: 3px; font-size: var(--type-compact); line-height: 1.35; opacity: .86; }
 
 .sync-status--local { color: var(--color-info); }
 .sync-status--queued { color: var(--color-warning); }
