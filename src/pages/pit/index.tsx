@@ -177,9 +177,9 @@ export default function PitScouting() {
         Taro.setStorageSync(pitEntryStorageKey(userId, eventCode, team), entry)
 
         const outcome = await submitPitEntry(entry)
-        if (outcome === 'rejected') {
+        if (outcome.status === 'error') {
           Taro.showToast({
-            title: t("未能提交：账号无权限，请重新登录 Rejected — sign in again"),
+            title: t('未能同步；数据仍在本机 Sync failed — data remains local'),
             icon: 'none'
           })
           return
@@ -187,10 +187,10 @@ export default function PitScouting() {
 
         Taro.showToast({
           title:
-            outcome === 'synced'
+            outcome.status === 'synced'
               ? t("已提交 Submitted ✓")
               : t("已保存，联网后自动上传 Saved — uploads when back online"),
-          icon: outcome === 'synced' ? 'success' : 'none'
+          icon: outcome.status === 'synced' ? 'success' : 'none'
         })
 
         setTimeout(() => {

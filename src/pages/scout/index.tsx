@@ -7,6 +7,7 @@ import AppHeader from '../../components/AppHeader'
 import SyncStatus, { SyncState } from '../../components/SyncStatus'
 import {
   Alliance,
+  FoulCategory,
   AutoData,
   TeleopData,
   EndgameData,
@@ -20,16 +21,24 @@ import {
   NOTE_OPTIONS,
   NOTE_OTHER,
   noteTagId,
-  noteTagLabel
+  noteTagLabel,
+  foulCategoryFor,
+  foulCategoryLabel
 } from '../../types/scouting'
 import { submitScoutEntry, fetchScoutEntry, flushOutbox, pendingCount } from '../../supabase/scouting'
+import type { SyncFailure } from '../../supabase/timeout'
 import { useAuth } from '../../auth/AuthContext'
 import { CURRENT_SEASON, findEvent, eventLabel } from '../../data/events'
 import { useActiveEvent } from '../../data/ActiveEventContext'
 import './index.scss'
 
 // Tap-to-count, so a scout can keep their eyes on the robot instead of typing.
-function CounterField({ label, value, onChange }: { label: string, value: number, onChange: (n: number) => void }) {
+function CounterField({ label, value, onChange, steps = [1, 2, 4] }: {
+  label: string
+  value: number
+  onChange: (n: number) => void
+  steps?: number[]
+}) {
   useLanguage()
   return (
     <View className='field-row'>
@@ -42,11 +51,32 @@ function CounterField({ label, value, onChange }: { label: string, value: number
           −1
         </View>
         <Text className='counter-value'>{value}</Text>
-        <View className='counter-btn' onClick={() => onChange(value + 1)}>
-          +1
-        </View>
-        {[2, 4].map((step) => (
+        {steps.map((step) => (
           <View key={step} className='counter-btn' onClick={() => onChange(value + step)}>+{step}</View>
+        ))}
+      </View>
+    </View>
+  )
+}
+
+const FOUL_OPTIONS: FoulCategory[] = ['none', 'few', 'many']
+
+function FoulCategoryField({ value, onChange }: { value: FoulCategory, onChange: (v: FoulCategory) => void }) {
+  useLanguage()
+  return (
+    <View className='field-row'>
+      <Text className='field-label'>{t('裁判判罚（全场） Referee-called fouls (whole match)')}</Text>
+      <View className='foul-choice-row'>
+        {FOUL_OPTIONS.map((option) => (
+          <View
+            key={option}
+            className={`foul-choice ${value === option ? 'active' : ''}`}
+            role='button'
+            aria-pressed={value === option}
+            onClick={() => onChange(option)}
+          >
+            {t(foulCategoryLabel(option))}
+          </View>
         ))}
       </View>
     </View>
@@ -145,11 +175,12 @@ export default function Index() {
   const [endgame, setEndgame] = useState<EndgameData>(emptyEndgame())
   const [overallNotes, setOverallNotes] = useState('')
   const [syncState, setSyncState] = useState<SyncState | null>(null)
+  const [syncFailure, setSyncFailure] = useState<SyncFailure | undefined>()
 
   const formStarted = !!matchId || !!teamNumber || !!overallNotes ||
     auto.leave || auto.cellBalls > 0 || auto.allianceTips > 0 || auto.park || auto.noteTags.length > 0 || !!auto.noteText ||
     teleop.cellPollen > 0 || teleop.cellNectar > 0 || teleop.allianceTips > 0 || teleop.noteTags.length > 0 || !!teleop.noteText ||
-    (teleop.minorFouls ?? 0) > 0 || (teleop.majorFouls ?? 0) > 0 ||
+    foulCategoryFor(teleop) !== 'none' ||
     endgame.flowerPollen > 0 || endgame.flowerNectar > 0 || endgame.park
 
   useEffect(() => {
@@ -186,7 +217,12 @@ export default function Index() {
     setScoutedBy((saved.scoutedBy as string) ?? null)
     setOriginalScoutName((saved.scoutName as string) ?? null)
     setAuto({ ...emptyAuto(), ...(saved.auto as Partial<AutoData>), noteTags: (saved.auto?.noteTags ?? []).map(noteTagLabel) })
-    setTeleop({ ...emptyTeleop(), ...(saved.teleop as Partial<TeleopData>), noteTags: (saved.teleop?.noteTags ?? []).map(noteTagLabel) })
+    setTeleop({
+      ...emptyTeleop(),
+      ...(saved.teleop as Partial<TeleopData>),
+      foulCategory: foulCategoryFor(saved.teleop ?? {}),
+      noteTags: (saved.teleop?.noteTags ?? []).map(noteTagLabel)
+    })
     setEndgame({ ...emptyEndgame(), ...(saved.endgame as Partial<EndgameData>) })
     setOverallNotes((saved.overallNotes as string) ?? '')
   }
@@ -197,7 +233,10 @@ export default function Index() {
   // the shared Supabase copy. Merge onto empty defaults so older saves
   // (or fields added since) still fill in.
   useEffect(() => {
-    if (!matchId || !teamNumber || !userId) return
+    if (!matchId || !teamNumber || !userId) {
+      setLoadedIdentity('')
+      return
+    }
     const local =
       Taro.getStorageSync(scoutBackupKey(userId, eventCode, matchId, teamNumber)) ||
       Taro.getStorageSync(scoutEntryStorageKey(userId, eventCode, matchId, teamNumber))
@@ -207,14 +246,17 @@ export default function Index() {
       return
     }
     let cancelled = false
-    fetchScoutEntry(userId, eventCode, matchId, teamNumber).then((remote) => {
-      if (!cancelled) {
-        applyLoaded(remote ?? { alliance })
-        setLoadedIdentity(identity)
-      }
-    })
+    const timer = setTimeout(() => {
+      fetchScoutEntry(userId, eventCode, matchId, teamNumber).then((remote) => {
+        if (!cancelled) {
+          applyLoaded(remote ?? { alliance })
+          setLoadedIdentity(identity)
+        }
+      })
+    }, 450)
     return () => {
       cancelled = true
+      clearTimeout(timer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventCode, matchId, teamNumber, userId])
@@ -288,24 +330,24 @@ export default function Index() {
         // resolved meant a scout whose account had been removed saw "已提交
         // Submitted ✓" for entries the server was rejecting.
         const outcome = await submitScoutEntry(entry)
-        if (outcome === 'rejected') {
+        setSyncFailure(outcome.failure)
+        if (outcome.status === 'error') {
           setSyncState('error')
-          // Stay on the form so the scout actually sees why it failed.
           Taro.showToast({
-            title: t("未能提交：账号无权限，请重新登录 Rejected — sign in again"),
+            title: t('未能同步；数据仍在本机 Sync failed — data remains local'),
             icon: 'none'
           })
           return
         }
 
-        setSyncState(outcome === 'synced' ? 'synced' : 'queued')
+        setSyncState(outcome.status === 'synced' ? 'synced' : 'queued')
 
         Taro.showToast({
           title:
-            outcome === 'synced'
+            outcome.status === 'synced'
               ? t("已提交 Submitted ✓")
               : t("已保存，联网后自动上传 Saved — uploads when back online"),
-          icon: outcome === 'synced' ? 'success' : 'none'
+          icon: outcome.status === 'synced' ? 'success' : 'none'
         })
 
         // Back to the home screen, ready for the next match. reLaunch rather
@@ -326,8 +368,9 @@ export default function Index() {
   const retrySync = async () => {
     setSyncState('queued')
     try {
-      const remaining = await flushOutbox()
-      setSyncState(remaining === 0 ? 'synced' : 'error')
+      const result = await flushOutbox()
+      setSyncFailure(result.failure)
+      setSyncState(result.pending === 0 ? 'synced' : result.failure?.kind === 'network' ? 'queued' : 'error')
     } catch {
       setSyncState('error')
     }
@@ -358,7 +401,13 @@ export default function Index() {
             placeholder='12'
             numeric
           />
-          <TextField label={t("队号 Team #")} value={teamNumber} onChange={setTeamNumber} placeholder='417' />
+          <TextField
+            label={t("队号 Team #")}
+            value={teamNumber}
+            onChange={(value) => setTeamNumber(value.replace(/\D/g, ''))}
+            placeholder='417'
+            numeric
+          />
         </View>
         <View className='field-row'>
           <Text className='field-label'>{t("联盟 Alliance")}</Text>
@@ -382,7 +431,7 @@ export default function Index() {
 
         <YesNoField label={t("远离 Leave (离开场地边墙 off the wall)")} value={auto.leave} onChange={(v) => patchAuto({ leave: v })} />
         <CounterField label={t("射入蜂房 Balls into hive")} value={auto.cellBalls} onChange={(n) => patchAuto({ cellBalls: n })} />
-        <CounterField label={t("联盟蜂巢翻转 Alliance hive tips (整个联盟 whole alliance)")} value={auto.allianceTips} onChange={(n) => patchAuto({ allianceTips: n })} />
+        <CounterField label={t("联盟蜂巢翻转 Alliance hive tips (整个联盟 whole alliance)")} value={auto.allianceTips} onChange={(n) => patchAuto({ allianceTips: n })} steps={[1]} />
         <YesNoField label={t("自动停泊装载区 Auto park in loading zone")} value={auto.park} onChange={(v) => patchAuto({ park: v })} />
 
         <NoteMultiField tags={auto.noteTags} text={auto.noteText} onChange={patchAuto} />
@@ -396,7 +445,7 @@ export default function Index() {
           <CounterField label={t("花粉 Pollen")} value={teleop.cellPollen} onChange={(n) => patchTeleop({ cellPollen: n })} />
           <CounterField label={t("花蜜 Nectar")} value={teleop.cellNectar} onChange={(n) => patchTeleop({ cellNectar: n })} />
         </View>
-        <CounterField label={t("联盟蜂巢翻转 Alliance hive tips (整个联盟 whole alliance)")} value={teleop.allianceTips} onChange={(n) => patchTeleop({ allianceTips: n })} />
+        <CounterField label={t("联盟蜂巢翻转 Alliance hive tips (整个联盟 whole alliance)")} value={teleop.allianceTips} onChange={(n) => patchTeleop({ allianceTips: n })} steps={[1]} />
 
         <Text className='subsection-title'>{t('放入花朵 Balls into flowers')}</Text>
         <View className='two-col'>
@@ -406,9 +455,7 @@ export default function Index() {
         <YesNoField label={t("停泊装载区 Park in loading zone")} value={endgame.park} onChange={(v) => patchEndgame({ park: v })} />
 
         <NoteMultiField tags={teleop.noteTags} text={teleop.noteText} onChange={patchTeleop} />
-        <Text className='subsection-title'>{t('裁判判罚（全场） Referee-called fouls (whole match)')}</Text>
-        <CounterField label={t("小犯规 Minor fouls")} value={teleop.minorFouls ?? 0} onChange={(n) => patchTeleop({ minorFouls: n })} />
-        <CounterField label={t("大犯规 Major fouls")} value={teleop.majorFouls ?? 0} onChange={(n) => patchTeleop({ majorFouls: n })} />
+        <FoulCategoryField value={foulCategoryFor(teleop)} onChange={(foulCategory) => patchTeleop({ foulCategory })} />
       </View>
 
       <View className='section-card'>
@@ -426,7 +473,7 @@ export default function Index() {
       {matchId && teamNumber && <Text className='save-hint'>{t('已自动备份 Auto-saved ✓')}</Text>}
 
       {matchId && teamNumber && syncState && (
-        <SyncStatus state={syncState} onRetry={syncState === 'error' && pendingCount() > 0 ? retrySync : undefined} />
+        <SyncStatus state={syncState} failure={syncFailure} onRetry={syncState === 'error' && pendingCount() > 0 ? retrySync : undefined} />
       )}
 
       <Button

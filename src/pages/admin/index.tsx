@@ -5,7 +5,7 @@ import { translate as t } from '../../i18n'
 import { useLanguage } from '../../i18n/LanguageContext'
 import AppHeader from '../../components/AppHeader'
 import { useAuth } from '../../auth/AuthContext'
-import { Profile, UserRole, profileLabel } from '../../types/scouting'
+import { Profile, profileLabel } from '../../types/scouting'
 import { CURRENT_SEASON } from '../../data/events'
 import { useActiveEvent } from '../../data/ActiveEventContext'
 import { createCompetitionEvent, activateCompetitionEvent } from '../../supabase/events'
@@ -17,7 +17,6 @@ import {
   resetScoutPassword,
   deleteScout,
   setProfileActive,
-  setProfileRole,
   setProfileDisplayName
 } from '../../supabase/admin'
 import './index.scss'
@@ -100,8 +99,7 @@ export default function Admin() {
         createScout({
           username: newUsername.trim(),
           displayName: newDisplayName.trim() || newUsername.trim(),
-          password: newPassword,
-          role: 'scout'
+          password: newPassword
         }),
       t("已创建 Scout created ✓")
     ).then(() => {
@@ -359,39 +357,28 @@ export default function Admin() {
                 </View>
               )}
 
-              <View className='member-actions'>
-                <View className='chip' onClick={() => openEditor(member, 'rename')}>{t("重命名 Rename")}</View>
-                <View className='chip' onClick={() => openEditor(member, 'password')}>{t("重置密码 Password")}</View>
-                <View
-                  className='chip'
-                  onClick={() =>
-                    run(
-                      () => setProfileActive(member.userId, !member.isActive),
-                      member.isActive ? t("已停用 Deactivated ✓") : t("已启用 Reactivated ✓")
-                    )
-                  }
-                >
-                  {member.isActive ? t("停用 Deactivate") : t("启用 Reactivate")}
-                </View>
-                <View
-                  className='chip'
-                  onClick={() =>
-                    run(
-                      () =>
-                        setProfileRole(
-                          member.userId,
-                          (member.role === 'admin' ? 'scout' : 'admin') as UserRole
-                        ),
-                      t("角色已更新 Role updated ✓")
-                    )
-                  }
-                >
-                  {member.role === 'admin' ? t("降为侦查员 Make scout") : t("设为管理员 Make admin")}
-                </View>
-                {member.userId !== userId && (
+              {member.userId === userId ? (
+                <Text className='member-protection'>{t('永久所有者账号：不可降级、停用或删除 Permanent owner — cannot be demoted, deactivated, or deleted.')}</Text>
+              ) : member.role !== 'scout' ? (
+                <Text className='member-protection'>{t('旧管理员账号已锁定；请按迁移说明人工审核 Legacy admin locked — review using the migration guide.')}</Text>
+              ) : (
+                <View className='member-actions'>
+                  <View className='chip' onClick={() => openEditor(member, 'rename')}>{t("重命名 Rename")}</View>
+                  <View className='chip' onClick={() => openEditor(member, 'password')}>{t("重置密码 Password")}</View>
+                  <View
+                    className='chip'
+                    onClick={() =>
+                      run(
+                        () => setProfileActive(member.userId, !member.isActive),
+                        member.isActive ? t("已停用 Deactivated ✓") : t("已启用 Reactivated ✓")
+                      )
+                    }
+                  >
+                    {member.isActive ? t("停用 Deactivate") : t("启用 Reactivate")}
+                  </View>
                   <View className='chip danger' onClick={() => confirmDelete(member)}>{t("删除 Delete")}</View>
-                )}
-              </View>
+                </View>
+              )}
             </View>
           ))}
         </View>

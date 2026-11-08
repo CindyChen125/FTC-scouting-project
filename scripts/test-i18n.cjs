@@ -19,6 +19,7 @@ let route = {}
 let entries = []
 let pits = []
 let exportedRows
+let fetchScoutEntryCalls = 0
 const taro = {
   getStorageSync: (key) => storage.get(key),
   setStorageSync: (key, value) => storage.set(key, value),
@@ -57,7 +58,7 @@ const mocks = {
   }) },
   'ftcScout': { readImportedEvents: () => [], syncImportedEvents: async () => [], STATIONS: ['Red 1', 'Red 2', 'Blue 1', 'Blue 2'] },
   'scouting': {
-    fetchScoutEntry: async () => null,
+    fetchScoutEntry: async () => { fetchScoutEntryCalls += 1; return null },
     subscribeScoutEntries: (_, done) => { done(entries); return () => {} },
     subscribeScoutEntry: (_, __, ___, ____, done) => { done(entries[0]); return () => {} },
     flushOutbox: async () => 0,
@@ -87,8 +88,10 @@ for (const extension of ['.ts', '.tsx']) require.extensions[extension] = (module
 require.extensions['.scss'] = () => {}
 const { translate: t, setCurrentLanguage } = require('../src/i18n')
 const { LanguageProvider } = require('../src/i18n/LanguageContext')
-const { NOTE_OPTIONS, noteTagId, emptyAuto, emptyTeleop, emptyEndgame, scoutBackupKey } = require('../src/types/scouting')
+const { NOTE_OPTIONS, noteTagId, emptyAuto, emptyTeleop, emptyEndgame, scoutBackupKey, foulCategoryFor } = require('../src/types/scouting')
 const { pitBackupKey } = require('../src/types/pit')
+const { outboxKey } = require('../src/supabase/outbox')
+const { classifySyncFailure } = require('../src/supabase/timeout')
 const { formatNotes } = require('../src/games/common')
 const { exportEntriesToExcel, exportPitToExcel } = require('../src/utils/exportEntries')
 const { biobuzzRows } = require('../src/utils/ranking')
@@ -142,6 +145,18 @@ async function main() {
   assert(formatNotes(entry.auto.noteTags, rawNote).includes(rawNote))
   assert.equal(t('teamNumber', { number: rawNote }).includes(rawNote), true)
   assert.deepEqual(NOTE_OPTIONS.map(noteTagId), ['disconnected', 'mechanical-failure', 'defense', 'early-nectar', 'over-control-limit', 'stuck-on-hive', 'other'])
+  assert.equal(foulCategoryFor({ minorFouls: 0, majorFouls: 0 }), 'none')
+  assert.equal(foulCategoryFor({ minorFouls: 1, majorFouls: 2 }), 'few')
+  assert.equal(foulCategoryFor({ minorFouls: 2, majorFouls: 2 }), 'many')
+  assert.equal(foulCategoryFor({ foulCategory: 'few', minorFouls: 99 }), 'few')
+  assert.notEqual(
+    outboxKey({ ...entry, observationKey: 'scout-a' }),
+    outboxKey({ ...entry, observationKey: 'scout-b' }),
+    'Independent scout observations must have different outbox identities'
+  )
+  assert.equal(classifySyncFailure({ code: '42703', message: 'column observation_key does not exist' }).kind, 'schema')
+  assert.equal(classifySyncFailure({ code: '42501', message: 'row-level security' }).kind, 'permission')
+  assert.equal(classifySyncFailure(new Error('Request timed out')).kind, 'network')
   assert.notEqual(
     scoutBackupKey(user.userId, 'EVENT-A', 'Q1', '417'),
     scoutBackupKey(user.userId, 'EVENT-B', 'Q1', '417'),
@@ -174,11 +189,36 @@ async function main() {
     let draft
     const draftKey = `backup:${user.userId}:${entry.eventCode}:${entry.matchId}:${entry.teamNumber}`
     if (page === 'scout') {
+      await flush(() => new Promise((resolve) => setTimeout(resolve, 500)))
+      assert.equal(fetchScoutEntryCalls, 1, 'Initial complete identity performs one remote lookup')
+      const counterLines = mountPoint.querySelectorAll('.counter-line')
+      assert.equal(counterLines[0].children.length, 5, 'Balls into hive keeps −1, value, +1, +2, +4')
+      assert.equal(counterLines[1].children.length, 3, 'Hive tips has only −1, value, +1')
+      assert.equal(mountPoint.querySelectorAll('.foul-choice').length, 3, 'Fouls uses exactly three choices')
+      assert(mountPoint.querySelector('.foul-choice.active').textContent.includes('No Fouls'), 'No Fouls is selected by default')
       await flush(() => mountPoint.querySelectorAll('.counter-btn')[1].click())
       await flush(() => mountPoint.querySelector('.chip').click())
       draft = JSON.stringify(storage.get(draftKey))
       assert.equal(storage.get(draftKey).auto.cellBalls, 1)
       assert.deepEqual(storage.get(draftKey).auto.noteTags, ['disconnected'])
+
+      const teamInput = [...mountPoint.querySelectorAll('input')].find((input) => input.value === '417')
+      const setValue = Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, 'value').set
+      const callsBeforeTyping = fetchScoutEntryCalls
+      await flush(() => {
+        for (const value of ['3', '32', '321', '3212', '32123']) {
+          setValue.call(teamInput, value)
+          teamInput.dispatchEvent(new dom.window.Event('input', { bubbles: true }))
+        }
+      })
+      await flush(() => new Promise((resolve) => setTimeout(resolve, 500)))
+      assert.equal(fetchScoutEntryCalls - callsBeforeTyping, 1, 'Rapid team typing is debounced to one remote lookup')
+      await flush(() => {
+        setValue.call(teamInput, '417')
+        teamInput.dispatchEvent(new dom.window.Event('input', { bubbles: true }))
+      })
+      await flush(() => new Promise((resolve) => setTimeout(resolve, 500)))
+      draft = JSON.stringify(storage.get(draftKey))
     }
     assert.equal(mountPoint.querySelector('.language-picker'), null, `No language picker on ${page}`)
     assert.equal(document.documentElement.lang, 'zh-CN')
@@ -214,6 +254,26 @@ async function main() {
   assert(eventSql.includes('competition_events_single_active'), 'Database enforces one active event')
   assert(eventSql.includes('supabase_realtime add table public.competition_events'), 'Active event changes publish through realtime')
   assert(!/delete from public\.scout_entries|delete from public\.pit_entries/i.test(eventSql), 'Event migration is non-destructive')
+  const observationSql = fs.readFileSync(path.join(__dirname, '../supabase/scout-observation-key-migration.sql'), 'utf8')
+  assert(observationSql.includes('add column if not exists observation_key'), 'Observation migration adds the missing column')
+  assert(observationSql.includes("scouted_by::text, 'legacy'"), 'Observation migration backfills historical keys')
+  assert(observationSql.includes('primary key (event_code, match_id, team_number, observation_key)'), 'Observation migration matches the client conflict target')
+  assert(!/delete from|truncate/i.test(observationSql), 'Observation migration preserves historical rows')
+  const ownerSql = fs.readFileSync(path.join(__dirname, '../supabase/owner-admin-migration.sql'), 'utf8')
+  assert(ownerSql.includes('create table if not exists public.app_owner'), 'Owner migration stores one stable owner UUID')
+  assert(ownerSql.includes('select public.is_owner()'), 'Existing admin checks become owner-only')
+  assert(ownerSql.includes("'scout'"), 'New account profiles default to Scout')
+  const adminFunction = fs.readFileSync(path.join(__dirname, '../supabase/functions/admin-users/index.ts'), 'utf8')
+  assert(adminFunction.includes("owner?.user_id !== caller.id"), 'Account Edge Function checks the configured owner')
+  assert(!adminFunction.includes("role === 'admin' ? 'admin'"), 'Account creation cannot promote a new Admin')
+  const adminPage = fs.readFileSync(path.join(__dirname, '../src/pages/admin/index.tsx'), 'utf8')
+  assert(!adminPage.includes('setProfileRole'), 'Admin UI has no role mutation control')
+  assert(!adminPage.includes('Make admin'), 'Admin UI has no promotion action')
+  const html = fs.readFileSync(path.join(__dirname, '../src/index.html'), 'utf8')
+  assert(html.includes('./static/brand/favicon.svg'), 'Favicon uses a GitHub Pages-safe relative URL')
+  for (const asset of ['favicon.svg', 'favicon-16.png', 'favicon-32.png', 'apple-touch-icon.png']) {
+    assert(fs.existsSync(path.join(__dirname, '../src/static/brand', asset)), `Favicon asset exists: ${asset}`)
+  }
   await flush(() => root.unmount())
   dom.window.close()
   console.log(`Passed: ${Object.keys(messages).length} bilingual message pairs, 7 pages, login validation, rankings, exports, legacy preference migration, stable tags and preserved user content.`)

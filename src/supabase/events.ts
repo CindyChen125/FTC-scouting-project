@@ -23,15 +23,23 @@ const fromRow = (row: EventRow): CompetitionEvent => ({
   createdAt: row.created_at
 })
 
-export async function fetchCompetitionEvents(): Promise<CompetitionEvent[]> {
-  const { data, error } = await withTimeout(
-    supabase
-      .from('competition_events')
-      .select('id, code, name, season, ftcscout_code, is_active, created_at')
-      .order('created_at', { ascending: false })
-  )
-  if (error) throw error
-  return ((data ?? []) as EventRow[]).map(fromRow)
+let eventsRequest: Promise<CompetitionEvent[]> | null = null
+
+export function fetchCompetitionEvents(): Promise<CompetitionEvent[]> {
+  if (eventsRequest) return eventsRequest
+  eventsRequest = (async () => {
+    const { data, error } = await withTimeout(
+      supabase
+        .from('competition_events')
+        .select('id, code, name, season, ftcscout_code, is_active, created_at')
+        .order('created_at', { ascending: false })
+    )
+    if (error) throw error
+    return ((data ?? []) as EventRow[]).map(fromRow)
+  })().finally(() => {
+    eventsRequest = null
+  })
+  return eventsRequest
 }
 
 export async function createCompetitionEvent(input: {

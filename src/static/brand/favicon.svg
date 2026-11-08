@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="FTC Scouting lightning mark">
+  <style>
+    .frame { fill: #2363d1; }
+    .bolt { fill: #ffffff; }
+    @media (prefers-color-scheme: dark) {
+      .frame { fill: #6b9cff; }
+      .bolt { fill: #07111f; }
+    }
+  </style>
+  <path class="frame" d="M11 4h42l7 7v42l-7 7H11l-7-7V11z"/>
+  <path class="bolt" d="M35.8 8 15.2 35.3h13.2L24.7 56 48.8 27.4H35.1z"/>
+</svg>
