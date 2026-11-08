@@ -5,7 +5,7 @@
 
 .settings-section {
   background: var(--color-card-bg);
-  border-radius: 16px;
+  border-radius: var(--radius-panel);
   padding: 20px;
   margin-bottom: 20px;
   box-shadow: 0 2px 8px var(--color-shadow);
@@ -24,15 +24,15 @@
 }
 
 .settings-label {
-  font-size: calc(26px * var(--font-scale));
+  font-size: var(--type-body);
   color: var(--color-label);
   margin-bottom: 12px;
 }
 
 .settings-value {
-  font-size: calc(26px * var(--font-scale));
+  font-size: var(--type-body);
   color: var(--color-primary);
-  font-weight: bold;
+  font-weight: 600;
 }
 
 .pill-row {
@@ -46,13 +46,13 @@
   padding: 16px 0;
   border-radius: 10px;
   background: var(--color-input-bg);
-  font-size: calc(26px * var(--font-scale));
+  font-size: var(--type-body);
   color: var(--color-text-muted);
 
   &.active {
     background: var(--color-primary);
     color: var(--color-primary-contrast);
-    font-weight: bold;
+    font-weight: 700;
   }
 }
 
@@ -61,13 +61,13 @@
   color: #fff;
   text-align: center;
   padding: 18px 0;
-  border-radius: 12px;
-  font-size: calc(28px * var(--font-scale));
-  font-weight: bold;
+  border-radius: var(--radius-control);
+  font-size: var(--type-body);
+  font-weight: 700;
 }
 
 .settings-note {
-  font-size: calc(22px * var(--font-scale));
+  font-size: var(--type-compact);
   color: var(--color-text-faint);
   margin-top: 12px;
   display: block;
@@ -78,7 +78,7 @@
   color: var(--color-text);
   border-radius: 10px;
   padding: 16px;
-  font-size: calc(26px * var(--font-scale));
+  font-size: calc(20px * var(--font-scale));
   border: 2px solid var(--color-border);
   margin: 10px 0;
 
@@ -89,7 +89,7 @@
 
 .settings-section { border: 1px solid var(--color-border); border-radius: var(--radius-panel); box-shadow: var(--shadow-panel); }
 .settings-section + .settings-section { margin-top: 14px; }
-.settings-label { color: var(--color-text); font-weight: 720; }
+.settings-label { color: var(--color-text); font-weight: 700; }
 .settings-value { line-height: 1.5; }
 .settings-input { min-height: 52px; box-sizing: border-box; border-width: 1px; border-color: var(--color-border-strong); border-radius: var(--radius-control); }
 .settings-input:focus { box-shadow: 0 0 0 3px var(--color-focus); }

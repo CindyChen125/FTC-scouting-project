@@ -5,7 +5,7 @@
 .header-card::before { content: ''; position: absolute; top: 0; left: 22px; right: 22px; height: 2px; background: var(--color-primary); opacity: .65; }
 .field-row { display: flex; min-width: 0; flex-direction: column; margin-bottom: 18px; }
 .field-row:last-child { margin-bottom: 0; }
-.field-label { margin-bottom: 8px; color: var(--color-label); font-size: calc(22px * var(--font-scale)); font-weight: 630; line-height: 1.4; }
+.field-label { margin-bottom: 8px; color: var(--color-label); font-size: var(--type-body); font-weight: 700; line-height: 1.4; }
 .field-input, .field-textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--color-border-strong); border-radius: var(--radius-control); background: var(--color-input-bg); color: var(--color-text); font-size: calc(24px * var(--font-scale)); transition: border-color .16s ease-out, box-shadow .16s ease-out; }
 .field-input { min-height: 52px; padding: 13px 15px; }
 .field-input:focus, .field-textarea:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-focus); outline: none; }
@@ -19,9 +19,12 @@
 .pill-row { display: flex; gap: 10px; }
 .pill { display: flex; min-height: 50px; flex: 1; align-items: center; justify-content: center; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-surface-subtle); color: var(--color-text-muted); font-size: calc(21px * var(--font-scale)); text-align: center; touch-action: manipulation; }
 .pill.active { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-primary-contrast); font-weight: 730; }
-.section-title { display: block; margin-bottom: 20px; color: var(--color-text); font-size: calc(28px * var(--font-scale)); font-weight: 770; letter-spacing: -.015em; }
+.alliance-option.selected { color: #fff; font-weight: 700; }
+.alliance-option.red.selected { border-color: var(--color-alliance-red); background: var(--color-alliance-red); }
+.alliance-option.blue.selected { border-color: var(--color-alliance-blue); background: var(--color-alliance-blue); }
+.section-title { display: block; margin-bottom: 20px; color: var(--color-text); font-size: var(--type-headline); font-weight: 700; letter-spacing: -.015em; }
 .section-title::after { content: ''; display: block; width: 42px; height: 2px; margin-top: 9px; background: var(--color-accent); }
-.subsection-title { display: block; margin: 26px 0 14px; color: var(--color-primary); font-size: calc(22px * var(--font-scale)); font-weight: 730; }
+.subsection-title { display: block; margin: 26px 0 14px; color: var(--color-primary); font-size: var(--type-title); font-weight: 700; }
 .two-col { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
 .two-col .field-row { min-width: 0; }
 .save-hint { display: block; margin: 20px auto 12px; color: var(--color-text-muted); font-size: calc(18px * var(--font-scale)); line-height: 1.5; text-align: center; }
@@ -31,6 +34,9 @@
 .submit-btn[disabled], .submit-btn.disabled { background: var(--color-disabled-bg); color: var(--color-text-faint); box-shadow: none; }
 .scout-identity { min-height: 50px; box-sizing: border-box; padding: 13px 15px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-surface-subtle); color: var(--color-text); font-size: calc(22px * var(--font-scale)); font-weight: 680; }
 .event-badge { display: inline-flex; margin-bottom: 18px; padding: 7px 10px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface-subtle); color: var(--color-text-muted); font-size: calc(18px * var(--font-scale)); }
+.event-context-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.event-context-row .event-badge { margin-bottom: 0; }
+.event-offline { flex: 0 0 auto; padding: 7px 10px; border: 1px solid var(--color-warning); border-radius: 8px; color: var(--color-warning); font-size: calc(16px * var(--font-scale)); }
 .counter-line { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 7px; align-items: stretch; width: 100%; }
 .counter-btn, .counter-value { display: flex; min-width: 0; min-height: 52px; align-items: center; justify-content: center; box-sizing: border-box; border-radius: 10px; font-variant-numeric: tabular-nums; }
 .counter-btn { border: 1px solid var(--color-primary); background: var(--color-primary-soft); color: var(--color-primary); font-size: calc(20px * var(--font-scale)); font-weight: 760; user-select: none; touch-action: manipulation; transition: background .12s ease-out, transform .12s ease-out; }

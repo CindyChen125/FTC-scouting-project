@@ -1,16 +1,19 @@
 # Database deployment
 
-The matching app requires batch-upgrade.sql. Do not deploy the app before applying it.
+The matching app requires `batch-upgrade.sql` and `event-management.sql`. Do not deploy the app before applying both migrations.
 
 1. Back up scout_entries, pit_entries, and profiles in Supabase.
 2. Confirm schema.sql, auth-schema.sql, and pit-schema.sql have already been applied. Do not rerun the original schema script: it contains legacy anonymous policies.
 3. Run batch-upgrade.sql in the SQL Editor as one transaction.
-4. Deploy the matching app build. Existing open tabs must reload before submitting.
-5. Sign in as two scouts, submit the same event/match/robot, and confirm both observations remain. Each scout can edit only their own record.
-6. Import an event on one device and reopen Start Scouting on the other. Confirm its schedule loads.
-7. Upload a JPG in Pit Scouting, submit, and open that profile on another device. Photos use private storage and temporary signed URLs.
+4. Run `event-management.sql` in the SQL Editor. It creates the central event list, admin-only creation/activation functions, RLS policies, realtime publication, and non-destructive seed rows for existing events.
+5. Confirm `competition_events` contains one active row. Do not edit `is_active` directly; use Event Management in the app.
+6. Deploy the matching app build. Existing open tabs must reload before submitting.
+7. Sign in as two scouts, submit the same event/match/robot, and confirm both observations remain. Each scout can edit only their own record.
+8. As an admin, create and activate a test event. Confirm a second signed-in device receives it and a regular scout cannot call either event RPC.
+9. Import an FTCScout-backed event from Event Management and confirm its roster is available to progress reporting. Importing must not activate it.
+10. Upload a JPG in Pit Scouting, submit, and open that profile on another device. Photos use private storage and temporary signed URLs.
 
-The migration preserves existing observation contents. It changes the match primary key to include an immutable observer identifier. Deleted accounts retain that identifier. Unidentified legacy observations remain viewable.
+The migrations preserve existing observation contents. `batch-upgrade.sql` changes the match primary key to include an immutable observer identifier. `event-management.sql` does not add foreign keys to historical submissions, so legacy and imported event codes remain readable. Deleted accounts retain their identifier. Unidentified legacy observations remain viewable.
 
 Separate organizations are not implemented: active accounts still belong to the existing team. Do not invite unrelated teams into this deployment. A separate Supabase project and app deployment per team is the current isolation option.
 

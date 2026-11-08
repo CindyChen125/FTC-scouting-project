@@ -42,7 +42,6 @@ export default function LoginScreen() {
     <View className='login-page'>
       <View className='login-card'>
         <Text className='login-title'>{t("FTC Scouting")}</Text>
-        <Text className='login-subtitle'>{t("请登录以继续 Sign in to continue")}</Text>
 
         <View className='login-field'>
           <Text className='login-label'>{t("用户名 Username")}</Text>
@@ -76,7 +75,7 @@ export default function LoginScreen() {
           {busy ? t("登录中… Signing in…") : t("登录 Sign In")}
         </View>
 
-        <Text className='login-hint'>{t("账号由管理员创建 Accounts are created by your team admin.")}</Text>
+        <Text className='login-hint'>{t('账号由管理员创建。 Accounts: team admin.')}</Text>
       </View>
     </View>
   )
