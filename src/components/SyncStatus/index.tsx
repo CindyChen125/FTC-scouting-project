@@ -18,6 +18,7 @@ const ERROR_LABELS: Record<SyncFailure['kind'], string> = {
   permission: '同步被权限阻止，数据仍在本机 / Permission blocked sync — data is still local',
   schema: '数据库需要更新，数据仍在本机 / Database update required — data is still local',
   validation: '服务器拒绝了数据，副本仍在本机 / Server rejected the data — local copy retained',
+  storage: '本机存储出错，表单仍保留 / Local storage error — form remains open',
   server: '服务器同步出错，数据仍在本机 / Server sync error — data is still local'
 }
 

@@ -2,7 +2,7 @@ import Taro from '@tarojs/taro'
 import { supabase } from './config'
 import { MatchScoutEntry, scoutEntryStorageKey, scoutEntryKeyPrefix } from '../types/scouting'
 import { entryEventCode } from '../data/events'
-import { withTimeout, classifySyncFailure, SyncFailure } from './timeout'
+import { withTimeout, classifySyncFailure, reportDevelopmentError, storageFailure, SyncFailure } from './timeout'
 import { enqueue, dequeue, pendingEntries, pendingCount } from './outbox'
 
 const TABLE = 'scout_entries'
@@ -84,13 +84,30 @@ export async function submitScoutEntry(entry: MatchScoutEntry): Promise<SubmitOu
   try {
     const { error } = await push(entry)
     if (error) throw error
-    dequeue(entry)
-    return { status: 'synced' }
   } catch (err) {
-    enqueue(entry)
+    reportDevelopmentError('match-scout:sync', err)
+    try {
+      enqueue(entry)
+    } catch (queueError) {
+      reportDevelopmentError('match-scout:queue', queueError)
+      return {
+        status: 'error',
+        failure: storageFailure(queueError, 'Could not add the local copy to the retry queue')
+      }
+    }
     const failure = classifySyncFailure(err)
     return { status: failure.kind === 'network' ? 'queued' : 'error', failure }
   }
+
+  // The server write is already confirmed at this point. A local cleanup
+  // problem must not turn that success into a false sync failure; leaving the
+  // item queued is safe because the upsert is idempotent.
+  try {
+    dequeue(entry)
+  } catch (cleanupError) {
+    reportDevelopmentError('match-scout:queue-cleanup', cleanupError)
+  }
+  return { status: 'synced' }
 }
 
 // Retries everything queued. Returns how many are still pending afterwards.
@@ -104,6 +121,7 @@ export async function flushOutbox(): Promise<FlushOutcome> {
     } catch (err) {
       // Schema, permission and validation failures are not "offline", but the
       // entry must still remain retryable after an admin fixes the cause.
+      reportDevelopmentError('match-scout:flush', err)
       failure = classifySyncFailure(err)
       break
     }

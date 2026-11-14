@@ -539,6 +539,22 @@
     "en": "Could not complete the action",
     "zh": "无法完成操作"
   },
+  "无法打开提交确认 Could not open submit confirmation": {
+    "en": "Could not open submit confirmation",
+    "zh": "无法打开提交确认"
+  },
+  "无法在本机保存；表单仍保留 Could not save locally — form remains open": {
+    "en": "Could not save locally — form remains open",
+    "zh": "无法在本机保存；表单仍保留"
+  },
+  "提交中断；本机副本已保留 Submission interrupted — local copy retained": {
+    "en": "Submission interrupted — local copy retained",
+    "zh": "提交中断；本机副本已保留"
+  },
+  "已同步，但无法返回首页 Synced, but could not return home": {
+    "en": "Synced, but could not return home",
+    "zh": "已同步，但无法返回首页"
+  },
   "开始侦查 Start Scouting": {
     "en": "Start Scouting",
     "zh": "开始侦查"

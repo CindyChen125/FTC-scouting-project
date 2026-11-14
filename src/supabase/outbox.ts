@@ -1,5 +1,6 @@
 import Taro from '@tarojs/taro'
 import { MatchScoutEntry } from '../types/scouting'
+import { reportDevelopmentError } from './timeout'
 
 // Submissions that haven't reached Supabase yet, keyed by entry identity so
 // re-submitting the same entry replaces the pending copy instead of queuing a
@@ -8,16 +9,27 @@ import { MatchScoutEntry } from '../types/scouting'
 // depend on this.
 export function createOutbox<T>(storageKey: string, keyOf: (item: T) => string) {
   const read = (): Record<string, T> => {
-    try {
-      const stored = (Taro.getStorageSync(storageKey) as Record<string, T>) || {}
-      return Object.fromEntries(Object.values(stored).map((item) => [keyOf(item), item]))
-    } catch {
-      return {}
+    const stored = Taro.getStorageSync(storageKey) as Record<string, T> | undefined
+    if (!stored) return {}
+    if (typeof stored !== 'object' || Array.isArray(stored)) {
+      throw new Error('Stored synchronization queue is unreadable')
     }
+    return Object.fromEntries(Object.values(stored).map((item) => [keyOf(item), item]))
   }
 
   const write = (outbox: Record<string, T>) => {
     Taro.setStorageSync(storageKey, outbox)
+  }
+
+  const inspect = (): Record<string, T> => {
+    try {
+      return read()
+    } catch (error) {
+      // Counts and status rendering must not crash the app. Mutations below
+      // still use strict read(), so unreadable queued data is never replaced.
+      reportDevelopmentError('sync-queue:read', error)
+      return {}
+    }
   }
 
   return {
@@ -31,8 +43,8 @@ export function createOutbox<T>(storageKey: string, keyOf: (item: T) => string) 
       delete outbox[keyOf(item)]
       write(outbox)
     },
-    pending: (): T[] => Object.values(read()),
-    count: (): number => Object.keys(read()).length
+    pending: (): T[] => Object.values(inspect()),
+    count: (): number => Object.keys(inspect()).length
   }
 }
 
