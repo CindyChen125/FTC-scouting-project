@@ -44,12 +44,12 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .scout-page .page-content .submit-btn:not([disabled]):hover {
+  .scout-page .page-content .submit-btn:not(.submit-btn-disabled):hover {
     background: var(--color-primary-active);
   }
 }
 
-.scout-page .page-content .submit-btn:not([disabled]):active,
+.scout-page .page-content .submit-btn:not(.submit-btn-disabled):active,
 .scout-page .page-content .submit-btn.submit-btn-pressed {
   background: var(--color-primary-active);
   color: var(--color-primary-contrast);
@@ -62,7 +62,8 @@
   outline-offset: 3px;
 }
 
-.scout-page .page-content .submit-btn[disabled] {
+// H5 can render disabled="false", which still matches [disabled].
+.scout-page .page-content .submit-btn.submit-btn-disabled {
   background: var(--color-disabled-bg);
   color: var(--color-text-muted);
   box-shadow: none;

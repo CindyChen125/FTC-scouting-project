@@ -59,6 +59,14 @@
   line-height: 1.35;
 }
 
+// Taro adds a top margin to adjacent buttons. Both grid cells should align.
+.confirm-dialog-actions .confirm-dialog-button {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .confirm-dialog-cancel {
   background: var(--color-surface-subtle);
   color: var(--color-text);

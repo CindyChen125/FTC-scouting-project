@@ -440,6 +440,8 @@ export default function Index() {
   const patchTeleop = (patch: Partial<TeleopData>) => setTeleop((prev) => ({ ...prev, ...patch }))
   const patchEndgame = (patch: Partial<EndgameData>) => setEndgame((prev) => ({ ...prev, ...patch }))
 
+  const submitDisabled = submitting || confirmationOpen || !matchId || !teamNumber
+
   return (
     <View className='scout-page'>
       <AppHeader title={t('开始侦查 Start Scouting')} showBack />
@@ -537,10 +539,10 @@ export default function Index() {
       )}
 
       <Button
-        className='submit-btn'
+        className={`submit-btn${submitDisabled ? ' submit-btn-disabled' : ''}`}
         type='default'
         hoverClass='submit-btn-pressed'
-        disabled={submitting || confirmationOpen || !matchId || !teamNumber}
+        disabled={submitDisabled}
         loading={submitting}
         onClick={handleSubmit}
       >
