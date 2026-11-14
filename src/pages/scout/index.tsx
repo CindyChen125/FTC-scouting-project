@@ -25,8 +25,14 @@ import {
   foulCategoryFor,
   foulCategoryLabel
 } from '../../types/scouting'
-import { submitScoutEntry, fetchScoutEntry, flushOutbox, pendingCount } from '../../supabase/scouting'
-import type { SyncFailure } from '../../supabase/timeout'
+import { submitScoutEntry, fetchScoutEntry, flushOutbox, pendingCount, type SubmitOutcome } from '../../supabase/scouting'
+import {
+  classifySyncFailure,
+  reportDevelopmentError,
+  safeErrorMessage,
+  storageFailure,
+  type SyncFailure
+} from '../../supabase/timeout'
 import { useAuth } from '../../auth/AuthContext'
 import { CURRENT_SEASON, findEvent, eventLabel } from '../../data/events'
 import { useActiveEvent } from '../../data/ActiveEventContext'
@@ -285,11 +291,18 @@ export default function Index() {
   // submitted entry appears in "My Scouting Data".
   useEffect(() => {
     if (!matchId || !teamNumber || !userId || loadedIdentity !== identity) return
-    Taro.setStorageSync(
-      scoutBackupKey(userId, eventCode, matchId, teamNumber),
-      currentEntry()
-    )
-    setSyncState('local')
+    try {
+      Taro.setStorageSync(
+        scoutBackupKey(userId, eventCode, matchId, teamNumber),
+        currentEntry()
+      )
+      setSyncFailure(undefined)
+      setSyncState('local')
+    } catch (error) {
+      reportDevelopmentError('match-scout:draft-save', error)
+      setSyncFailure(storageFailure(error, 'Could not save the draft on this device'))
+      setSyncState('error')
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventCode, matchId, teamNumber, userId, alliance, scoutName, auto, teleop, endgame, overallNotes, loadedIdentity, identity])
 
@@ -309,56 +322,96 @@ export default function Index() {
     }
     submitLock.current = true
     try {
-    const res = await Taro.showModal({
-      title: t("确认提交 Confirm submit"),
-      content: t('submitMatch', { match: matchId, team: teamNumber }),
-      confirmText: t("提交"),
-      cancelText: t("取消")
-    })
-        if (!res.confirm) return
-        setSubmitting(true)
+      let confirmation
+      try {
+        confirmation = await Taro.showModal({
+          title: t("确认提交 Confirm submit"),
+          content: t('submitMatch', { match: matchId, team: teamNumber }),
+          confirmText: t("提交"),
+          cancelText: t("取消")
+        })
+      } catch (error) {
+        reportDevelopmentError('match-scout:confirmation', error)
+        Taro.showToast({
+          title: `${t('无法打开提交确认 Could not open submit confirmation')}: ${safeErrorMessage(error)}`,
+          icon: 'none'
+        })
+        return
+      }
+      if (!confirmation.confirm) return
+      setSubmitting(true)
 
-        const entry = currentEntry()
-        // The local write always succeeds and keeps the data on this device.
+      let entry: BiobuzzEntry
+      try {
+        entry = currentEntry()
+        // Save the exact submitted snapshot before attempting the network.
+        // If storage is unavailable, the live form stays intact and no false
+        // claim is made that an offline-safe copy exists.
         Taro.setStorageSync(
           scoutEntryStorageKey(userId, eventCode, matchId, teamNumber),
           entry
         )
+        setSyncFailure(undefined)
         setSyncState('local')
-
-        // Report what actually happened. Announcing success before the write
-        // resolved meant a scout whose account had been removed saw "已提交
-        // Submitted ✓" for entries the server was rejecting.
-        const outcome = await submitScoutEntry(entry)
-        setSyncFailure(outcome.failure)
-        if (outcome.status === 'error') {
-          setSyncState('error')
-          Taro.showToast({
-            title: t('未能同步；数据仍在本机 Sync failed — data remains local'),
-            icon: 'none'
-          })
-          return
-        }
-
-        setSyncState(outcome.status === 'synced' ? 'synced' : 'queued')
-
+      } catch (error) {
+        reportDevelopmentError('match-scout:local-save', error)
+        setSyncFailure(storageFailure(error, 'Could not save the submitted copy on this device'))
+        setSyncState('error')
         Taro.showToast({
-          title:
-            outcome.status === 'synced'
-              ? t("已提交 Submitted ✓")
-              : t("已保存，联网后自动上传 Saved — uploads when back online"),
-          icon: outcome.status === 'synced' ? 'success' : 'none'
+          title: t('无法在本机保存；表单仍保留 Could not save locally — form remains open'),
+          icon: 'none'
         })
+        return
+      }
 
-        // Back to the home screen, ready for the next match. reLaunch rather
-        // than navigateBack because this page can be opened either from home
-        // or from an entry's Edit button, and "back" should mean home either
-        // way. The delay lets the toast be read first.
-        await new Promise((resolve) => setTimeout(resolve, 1200))
+      let outcome: SubmitOutcome
+      try {
+        outcome = await submitScoutEntry(entry)
+      } catch (error) {
+        // submitScoutEntry normally returns a classified outcome. This catch
+        // protects against unexpected synchronous/client-storage exceptions;
+        // the submitted snapshot above remains available for another attempt.
+        reportDevelopmentError('match-scout:submit', error)
+        setSyncFailure(classifySyncFailure(error))
+        setSyncState('error')
+        Taro.showToast({
+          title: t('提交中断；本机副本已保留 Submission interrupted — local copy retained'),
+          icon: 'none'
+        })
+        return
+      }
+      setSyncFailure(outcome.failure)
+      if (outcome.status === 'error') {
+        setSyncState('error')
+        Taro.showToast({
+          title: t('未能同步；数据仍在本机 Sync failed — data remains local'),
+          icon: 'none'
+        })
+        return
+      }
+
+      setSyncState(outcome.status === 'synced' ? 'synced' : 'queued')
+
+      Taro.showToast({
+        title:
+          outcome.status === 'synced'
+            ? t("已提交 Submitted ✓")
+            : t("已保存，联网后自动上传 Saved — uploads when back online"),
+        icon: outcome.status === 'synced' ? 'success' : 'none'
+      })
+
+      // Navigation happens after the write and has its own error boundary. A
+      // browser routing failure cannot downgrade a confirmed server sync.
+      await new Promise((resolve) => setTimeout(resolve, 1200))
+      try {
         await Taro.reLaunch({ url: '/pages/index/index' })
-    } catch {
-      setSyncState('error')
-      Taro.showToast({ title: t("无法完成操作 Could not complete the action"), icon: 'none' })
+      } catch (error) {
+        reportDevelopmentError('match-scout:navigation', error)
+        Taro.showToast({
+          title: t('已同步，但无法返回首页 Synced, but could not return home'),
+          icon: 'none'
+        })
+      }
     } finally {
       submitLock.current = false
       setSubmitting(false)
@@ -371,7 +424,9 @@ export default function Index() {
       const result = await flushOutbox()
       setSyncFailure(result.failure)
       setSyncState(result.pending === 0 ? 'synced' : result.failure?.kind === 'network' ? 'queued' : 'error')
-    } catch {
+    } catch (error) {
+      reportDevelopmentError('match-scout:retry', error)
+      setSyncFailure(classifySyncFailure(error))
       setSyncState('error')
     }
   }

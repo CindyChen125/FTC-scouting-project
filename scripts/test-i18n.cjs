@@ -20,14 +20,22 @@ let entries = []
 let pits = []
 let exportedRows
 let fetchScoutEntryCalls = 0
+let modalConfirm = false
+let reLaunchError
+let submitOutcome = { status: 'synced' }
+let submitScoutEntryCalls = 0
+let toastCalls = []
 const taro = {
   getStorageSync: (key) => storage.get(key),
   setStorageSync: (key, value) => storage.set(key, value),
   getStorageInfoSync: () => ({ keys: [...storage.keys()] }),
   removeStorageSync: (key) => storage.delete(key),
   setNavigationBarTitle: async () => {},
-  showToast: async () => {},
-  showModal: async () => ({ confirm: false }),
+  showToast: async (options) => { toastCalls.push(options) },
+  showModal: async () => ({ confirm: modalConfirm }),
+  reLaunch: async () => {
+    if (reLaunchError) throw reLaunchError
+  },
   useLoad: (fn) => React.useEffect(() => { fn(route) }, [])
 }
 const components = Object.fromEntries(['View', 'Text', 'Button', 'Input', 'Textarea', 'Image', 'Picker'].map((name) => [name,
@@ -59,6 +67,7 @@ const mocks = {
   'ftcScout': { readImportedEvents: () => [], syncImportedEvents: async () => [], STATIONS: ['Red 1', 'Red 2', 'Blue 1', 'Blue 2'] },
   'scouting': {
     fetchScoutEntry: async () => { fetchScoutEntryCalls += 1; return null },
+    submitScoutEntry: async () => { submitScoutEntryCalls += 1; return submitOutcome },
     subscribeScoutEntries: (_, done) => { done(entries); return () => {} },
     subscribeScoutEntry: (_, __, ___, ____, done) => { done(entries[0]); return () => {} },
     flushOutbox: async () => 0,
@@ -90,8 +99,8 @@ const { translate: t, setCurrentLanguage } = require('../src/i18n')
 const { LanguageProvider } = require('../src/i18n/LanguageContext')
 const { NOTE_OPTIONS, noteTagId, emptyAuto, emptyTeleop, emptyEndgame, scoutBackupKey, foulCategoryFor } = require('../src/types/scouting')
 const { pitBackupKey } = require('../src/types/pit')
-const { outboxKey } = require('../src/supabase/outbox')
-const { classifySyncFailure } = require('../src/supabase/timeout')
+const { createOutbox, outboxKey } = require('../src/supabase/outbox')
+const { classifySyncFailure, safeErrorMessage } = require('../src/supabase/timeout')
 const { formatNotes } = require('../src/games/common')
 const { exportEntriesToExcel, exportPitToExcel } = require('../src/utils/exportEntries')
 const { biobuzzRows } = require('../src/utils/ranking')
@@ -157,6 +166,19 @@ async function main() {
   assert.equal(classifySyncFailure({ code: '42703', message: 'column observation_key does not exist' }).kind, 'schema')
   assert.equal(classifySyncFailure({ code: '42501', message: 'row-level security' }).kind, 'permission')
   assert.equal(classifySyncFailure(new Error('Request timed out')).kind, 'network')
+  assert.equal(
+    safeErrorMessage(new Error('Authorization: Bearer eyJ12345678.abcdefgh.ijklmnop')),
+    'Authorization: [redacted]',
+    'Diagnostics redact credentials before display or logging'
+  )
+  const durableQueue = createOutbox('test-outbox', (item) => item.id)
+  const queuedBeforeReadFailure = { original: { id: 'original', value: 1 } }
+  storage.set('test-outbox', queuedBeforeReadFailure)
+  const workingGetStorage = taro.getStorageSync
+  taro.getStorageSync = () => { throw new Error('Storage unavailable') }
+  assert.throws(() => durableQueue.enqueue({ id: 'new', value: 2 }), /Storage unavailable/)
+  assert.deepEqual(storage.get('test-outbox'), queuedBeforeReadFailure, 'Unreadable queued data is never overwritten')
+  taro.getStorageSync = workingGetStorage
   assert.notEqual(
     scoutBackupKey(user.userId, 'EVENT-A', 'Q1', '417'),
     scoutBackupKey(user.userId, 'EVENT-B', 'Q1', '417'),
@@ -219,6 +241,42 @@ async function main() {
       })
       await flush(() => new Promise((resolve) => setTimeout(resolve, 500)))
       draft = JSON.stringify(storage.get(draftKey))
+
+      // A confirmed server write followed by failed browser navigation must
+      // remain synced. This was the source of the misleading generic popup.
+      modalConfirm = true
+      reLaunchError = new Error('History API unavailable')
+      submitOutcome = { status: 'synced' }
+      toastCalls = []
+      const developmentErrors = []
+      const workingConsoleError = console.error
+      console.error = (...args) => developmentErrors.push(args)
+      await flush(() => mountPoint.querySelector('.submit-btn').click())
+      assert(mountPoint.querySelector('.sync-status--synced'), 'Confirmed submission is immediately shown as synced')
+      await flush(() => new Promise((resolve) => setTimeout(resolve, 1250)))
+      console.error = workingConsoleError
+      assert(mountPoint.querySelector('.sync-status--synced'), 'Navigation failure cannot downgrade confirmed sync')
+      assert(toastCalls.some(({ title }) => title.includes('could not return home')), 'Navigation error is explained precisely')
+      assert(!toastCalls.some(({ title }) => title.includes('Could not complete the action')), 'Generic hidden-error popup is not used')
+      assert(developmentErrors.some(([scope]) => scope === '[match-scout:navigation]'), 'Development log identifies the failing phase')
+
+      // A synchronous local-storage failure happens before Supabase. Keep the
+      // form visible, expose the diagnostic, and do not pretend it was queued.
+      const workingSetStorage = taro.setStorageSync
+      const localSaveErrors = []
+      console.error = (...args) => localSaveErrors.push(args)
+      taro.setStorageSync = () => { throw new Error('Quota exceeded') }
+      submitScoutEntryCalls = 0
+      toastCalls = []
+      await flush(() => mountPoint.querySelector('.submit-btn').click())
+      taro.setStorageSync = workingSetStorage
+      console.error = workingConsoleError
+      assert.equal(submitScoutEntryCalls, 0, 'Supabase is not called when the submitted local snapshot cannot be saved')
+      assert(mountPoint.querySelector('.sync-status--error').textContent.includes('Quota exceeded'), 'Storage diagnostic is visible')
+      assert(toastCalls.some(({ title }) => title.includes('form remains open')), 'Storage failure explains that form data remains')
+      assert(localSaveErrors.some(([scope]) => scope === '[match-scout:local-save]'), 'Development log identifies local storage failure')
+      modalConfirm = false
+      reLaunchError = undefined
     }
     assert.equal(mountPoint.querySelector('.language-picker'), null, `No language picker on ${page}`)
     assert.equal(document.documentElement.lang, 'zh-CN')
@@ -278,4 +336,4 @@ async function main() {
   dom.window.close()
   console.log(`Passed: ${Object.keys(messages).length} bilingual message pairs, 7 pages, login validation, rankings, exports, legacy preference migration, stable tags and preserved user content.`)
 }
-main().catch((error) => { console.error(error); process.exitCode = 1 })
+main().then(() => process.exit(0)).catch((error) => { console.error(error); process.exit(1) })
