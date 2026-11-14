@@ -32,6 +32,7 @@ type ErrorShape = {
   status?: number
   message?: string
   details?: string
+  errMsg?: string
 }
 
 // Error messages are useful to scouts and developers, but Supabase/browser
@@ -40,7 +41,7 @@ type ErrorShape = {
 // console.
 export function safeErrorMessage(err: unknown, fallback = 'Unknown error'): string {
   const e = (err ?? {}) as ErrorShape
-  const source = [e.message, e.details].filter(Boolean).join(' — ') || fallback
+  const source = [e.message, e.details, e.errMsg].filter(Boolean).join(' — ') || fallback
   return source
     .replace(/((?:api[_-]?key|authorization|access_token|refresh_token)\s*[:=]\s*)(?:bearer\s+)?[^\s,;]+/gi, '$1[redacted]')
     .replace(/(bearer\s+)[^\s,;]+/gi, '$1[redacted]')

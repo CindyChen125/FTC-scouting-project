@@ -20,7 +20,7 @@ let entries = []
 let pits = []
 let exportedRows
 let fetchScoutEntryCalls = 0
-let modalConfirm = false
+let showModalCalls = 0
 let reLaunchError
 let submitOutcome = { status: 'synced' }
 let submitScoutEntryCalls = 0
@@ -32,7 +32,7 @@ const taro = {
   removeStorageSync: (key) => storage.delete(key),
   setNavigationBarTitle: async () => {},
   showToast: async (options) => { toastCalls.push(options) },
-  showModal: async () => ({ confirm: modalConfirm }),
+  showModal: async () => { showModalCalls += 1; throw new Error('Taro.showModal should not be used') },
   reLaunch: async () => {
     if (reLaunchError) throw reLaunchError
   },
@@ -40,7 +40,7 @@ const taro = {
 }
 const components = Object.fromEntries(['View', 'Text', 'Button', 'Input', 'Textarea', 'Image', 'Picker'].map((name) => [name,
   React.forwardRef(function MockComponent(props, ref) {
-    const { children, className, onClick, value, placeholder, disabled } = props
+    const { children, className, onClick, value, placeholder, disabled, id, role } = props
     if (name === 'Picker') return h('div', { className }, h('select', {
       value: value ?? 0,
       onChange: (e) => props.onChange?.({ detail: { value: e.target.value } })
@@ -49,7 +49,12 @@ const components = Object.fromEntries(['View', 'Text', 'Button', 'Input', 'Texta
       ref, className, value, placeholder, onChange: () => {},
       onInput: (e) => props.onInput?.({ detail: { value: e.target.value } })
     })
-    return h(name === 'Button' ? 'button' : name === 'Text' ? 'span' : 'div', { ref, className, onClick, disabled }, children)
+    return h(name === 'Button' ? 'button' : name === 'Text' ? 'span' : 'div', {
+      ref, className, onClick, disabled, id, role,
+      'aria-modal': props['aria-modal'],
+      'aria-labelledby': props['aria-labelledby'],
+      'aria-describedby': props['aria-describedby']
+    }, children)
   })
 ]))
 const mocks = {
@@ -171,6 +176,11 @@ async function main() {
     'Authorization: [redacted]',
     'Diagnostics redact credentials before display or logging'
   )
+  assert.equal(
+    safeErrorMessage({ errMsg: 'showModal:fail confirmText length should not larger then 4 Chinese characters' }),
+    'showModal:fail confirmText length should not larger then 4 Chinese characters',
+    'Taro callback errors retain their useful errMsg diagnostic'
+  )
   const durableQueue = createOutbox('test-outbox', (item) => item.id)
   const queuedBeforeReadFailure = { original: { id: 'original', value: 1 } }
   storage.set('test-outbox', queuedBeforeReadFailure)
@@ -242,9 +252,33 @@ async function main() {
       await flush(() => new Promise((resolve) => setTimeout(resolve, 500)))
       draft = JSON.stringify(storage.get(draftKey))
 
-      // A confirmed server write followed by failed browser navigation must
-      // remain synced. This was the source of the misleading generic popup.
-      modalConfirm = true
+      // The custom confirmation is bilingual and does not call Taro.showModal,
+      // whose H5 implementation rejects these longer button labels.
+      submitScoutEntryCalls = 0
+      showModalCalls = 0
+      const storageBeforeCancel = JSON.stringify([...storage.entries()])
+      await flush(() => mountPoint.querySelector('.submit-btn').click())
+      const dialog = mountPoint.querySelector('[role="dialog"]')
+      assert(dialog, 'Submit opens the custom confirmation dialog')
+      assert.equal(dialog.getAttribute('aria-modal'), 'true', 'Confirmation is exposed as a modal dialog')
+      assert(dialog.textContent.includes('提交场次 Q12、队伍 417 的侦查数据？'), 'Confirmation retains Chinese copy')
+      assert(dialog.textContent.includes('Submit scouting data for match Q12, team 417?'), 'Confirmation retains English copy')
+      await flush(() => new Promise((resolve) => setTimeout(resolve, 10)))
+      assert.equal(document.activeElement, mountPoint.querySelector('.confirm-dialog-cancel'), 'Cancel receives initial keyboard focus')
+      await flush(() => mountPoint.querySelector('.confirm-dialog-cancel').click())
+      assert.equal(mountPoint.querySelector('[role="dialog"]'), null, 'Cancel closes confirmation')
+      assert.equal(submitScoutEntryCalls, 0, 'Cancel does not upload an entry')
+      assert.equal(JSON.stringify([...storage.entries()]), storageBeforeCancel, 'Cancel does not save a submitted entry')
+      assert.equal(showModalCalls, 0, 'Confirmation does not use the failing Taro.showModal API')
+
+      // Escape is equivalent to Cancel in H5 and does not submit.
+      await flush(() => mountPoint.querySelector('.submit-btn').click())
+      await flush(() => document.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+      assert.equal(mountPoint.querySelector('[role="dialog"]'), null, 'Escape closes confirmation')
+      assert.equal(submitScoutEntryCalls, 0, 'Escape does not upload an entry')
+
+      // Confirm proceeds exactly once even if the control receives two rapid
+      // activation events, then preserves Synced across navigation failure.
       reLaunchError = new Error('History API unavailable')
       submitOutcome = { status: 'synced' }
       toastCalls = []
@@ -252,6 +286,9 @@ async function main() {
       const workingConsoleError = console.error
       console.error = (...args) => developmentErrors.push(args)
       await flush(() => mountPoint.querySelector('.submit-btn').click())
+      const confirmButton = mountPoint.querySelector('.confirm-dialog-confirm')
+      await flush(() => { confirmButton.click(); confirmButton.click() })
+      assert.equal(submitScoutEntryCalls, 1, 'Confirm starts the existing submission flow exactly once')
       assert(mountPoint.querySelector('.sync-status--synced'), 'Confirmed submission is immediately shown as synced')
       await flush(() => new Promise((resolve) => setTimeout(resolve, 1250)))
       console.error = workingConsoleError
@@ -269,13 +306,13 @@ async function main() {
       submitScoutEntryCalls = 0
       toastCalls = []
       await flush(() => mountPoint.querySelector('.submit-btn').click())
+      await flush(() => mountPoint.querySelector('.confirm-dialog-confirm').click())
       taro.setStorageSync = workingSetStorage
       console.error = workingConsoleError
       assert.equal(submitScoutEntryCalls, 0, 'Supabase is not called when the submitted local snapshot cannot be saved')
       assert(mountPoint.querySelector('.sync-status--error').textContent.includes('Quota exceeded'), 'Storage diagnostic is visible')
       assert(toastCalls.some(({ title }) => title.includes('form remains open')), 'Storage failure explains that form data remains')
       assert(localSaveErrors.some(([scope]) => scope === '[match-scout:local-save]'), 'Development log identifies local storage failure')
-      modalConfirm = false
       reLaunchError = undefined
     }
     assert.equal(mountPoint.querySelector('.language-picker'), null, `No language picker on ${page}`)

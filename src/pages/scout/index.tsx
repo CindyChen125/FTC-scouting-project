@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, View, Text, Input, Textarea } from '@tarojs/components'
 import Taro, { useLoad } from '@tarojs/taro'
 import { translate as t } from '../../i18n'
 import { useLanguage } from '../../i18n/LanguageContext'
 import AppHeader from '../../components/AppHeader'
+import ConfirmDialog from '../../components/ConfirmDialog'
 import SyncStatus, { SyncState } from '../../components/SyncStatus'
 import {
   Alliance,
@@ -29,7 +30,6 @@ import { submitScoutEntry, fetchScoutEntry, flushOutbox, pendingCount, type Subm
 import {
   classifySyncFailure,
   reportDevelopmentError,
-  safeErrorMessage,
   storageFailure,
   type SyncFailure
 } from '../../supabase/timeout'
@@ -164,9 +164,11 @@ function NoteMultiField({ tags, text, onChange }: { tags: string[], text: string
 export default function Index() {
   useLanguage()
   const submitLock = useRef(false)
+  const confirmationResolver = useRef<((confirmed: boolean) => void) | null>(null)
   const explicitEvent = useRef(false)
   const eventLocked = useRef(false)
   const [submitting, setSubmitting] = useState(false)
+  const [confirmationOpen, setConfirmationOpen] = useState(false)
   const { userId, profile } = useAuth()
   const { activeEvent, offline: activeEventOffline } = useActiveEvent()
   const scoutName = profile ? profileLabel(profile) : ''
@@ -216,6 +218,24 @@ export default function Index() {
   const [originalScoutName, setOriginalScoutName] = useState<string | null>(null)
   const [loadedIdentity, setLoadedIdentity] = useState('')
   const identity = `${userId}:${eventCode}:${matchId}:${teamNumber}`
+
+  const requestSubmitConfirmation = useCallback(() => new Promise<boolean>((resolve) => {
+    confirmationResolver.current = resolve
+    setConfirmationOpen(true)
+  }), [])
+
+  const settleSubmitConfirmation = useCallback((confirmed: boolean) => {
+    const resolve = confirmationResolver.current
+    if (!resolve) return
+    confirmationResolver.current = null
+    setConfirmationOpen(false)
+    resolve(confirmed)
+  }, [])
+
+  useEffect(() => () => {
+    confirmationResolver.current?.(false)
+    confirmationResolver.current = null
+  }, [])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const applyLoaded = (saved: any) => {
@@ -322,23 +342,8 @@ export default function Index() {
     }
     submitLock.current = true
     try {
-      let confirmation
-      try {
-        confirmation = await Taro.showModal({
-          title: t("确认提交 Confirm submit"),
-          content: t('submitMatch', { match: matchId, team: teamNumber }),
-          confirmText: t("提交"),
-          cancelText: t("取消")
-        })
-      } catch (error) {
-        reportDevelopmentError('match-scout:confirmation', error)
-        Taro.showToast({
-          title: `${t('无法打开提交确认 Could not open submit confirmation')}: ${safeErrorMessage(error)}`,
-          icon: 'none'
-        })
-        return
-      }
-      if (!confirmation.confirm) return
+      const confirmed = await requestSubmitConfirmation()
+      if (!confirmed) return
       setSubmitting(true)
 
       let entry: BiobuzzEntry
@@ -533,13 +538,23 @@ export default function Index() {
 
       <Button
         className='submit-btn'
-        disabled={submitting || !matchId || !teamNumber}
+        disabled={submitting || confirmationOpen || !matchId || !teamNumber}
         loading={submitting}
         onClick={handleSubmit}
       >
         {submitting ? t('提交中 Saving…') : t('提交 Submit')}
       </Button>
       </View>
+      {confirmationOpen && (
+        <ConfirmDialog
+          title={t('确认提交 Confirm submit')}
+          description={t('submitMatch', { match: matchId, team: teamNumber })}
+          cancelText={t('取消')}
+          confirmText={t('提交')}
+          onCancel={() => settleSubmitConfirmation(false)}
+          onConfirm={() => settleSubmitConfirmation(true)}
+        />
+      )}
     </View>
   )
 }
