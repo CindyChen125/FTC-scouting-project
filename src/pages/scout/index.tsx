@@ -538,6 +538,8 @@ export default function Index() {
 
       <Button
         className='submit-btn'
+        type='default'
+        hoverClass='submit-btn-pressed'
         disabled={submitting || confirmationOpen || !matchId || !teamNumber}
         loading={submitting}
         onClick={handleSubmit}
