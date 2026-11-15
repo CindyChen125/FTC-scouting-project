@@ -1,7 +1,7 @@
 import Taro from '@tarojs/taro'
 import { supabase } from './config'
 import { PitData, PitEntry, pitEntryKeyPrefix, pitEntryStorageKey } from '../types/pit'
-import { withTimeout, isPermanentRejection } from './timeout'
+import { withTimeout, classifySyncFailure } from './timeout'
 import { createOutbox } from './outbox'
 import type { SubmitOutcome } from './scouting'
 
@@ -55,14 +55,11 @@ export async function submitPitEntry(entry: PitEntry): Promise<SubmitOutcome> {
     const { error } = await push(entry)
     if (error) throw error
     outbox.dequeue(entry)
-    return 'synced'
+    return { status: 'synced' }
   } catch (err) {
-    if (isPermanentRejection(err)) {
-      outbox.dequeue(entry)
-      return 'rejected'
-    }
     outbox.enqueue(entry)
-    return 'queued'
+    const failure = classifySyncFailure(err)
+    return { status: failure.kind === 'network' ? 'queued' : 'error', failure }
   }
 }
 
@@ -73,10 +70,8 @@ async function flushPitOutbox(): Promise<number> {
       if (error) throw error
       outbox.dequeue(entry)
     } catch (err) {
-      if (isPermanentRejection(err)) {
-        outbox.dequeue(entry)
-        continue
-      }
+      // Preserve every unacknowledged profile for a later retry, including
+      // server-side failures that an owner can repair.
       break
     }
   }

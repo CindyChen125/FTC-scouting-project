@@ -37,6 +37,7 @@ export const noteTagLabel = (tag: string): string => {
 }
 
 export type UserRole = 'admin' | 'scout'
+export type FoulCategory = 'none' | 'few' | 'many'
 
 export interface Profile {
   userId: string
@@ -119,6 +120,9 @@ export interface AutoData {
 }
 
 export interface TeleopData {
+  // New BIOBUZZ observations store one stable category. The numeric fields
+  // remain optional so historical entries continue to deserialize and export.
+  foulCategory?: FoulCategory
   minorFouls?: number
   majorFouls?: number
   cellPollen: number
@@ -152,12 +156,26 @@ export const emptyAuto = (): AutoData => ({
 })
 
 export const emptyTeleop = (): TeleopData => ({
+  foulCategory: 'none',
   cellPollen: 0,
   cellNectar: 0,
   allianceTips: 0,
   noteTags: [],
   noteText: ''
 })
+
+export const foulCategoryFor = (teleop: Pick<TeleopData, 'foulCategory' | 'minorFouls' | 'majorFouls'>): FoulCategory => {
+  if (teleop.foulCategory) return teleop.foulCategory
+  const historicalTotal = Math.max(0, teleop.minorFouls ?? 0) + Math.max(0, teleop.majorFouls ?? 0)
+  if (historicalTotal === 0) return 'none'
+  return historicalTotal <= 3 ? 'few' : 'many'
+}
+
+export const foulCategoryLabel = (category: FoulCategory) => ({
+  none: '无犯规 No Fouls',
+  few: '少量犯规 Few Fouls (1–3)',
+  many: '多次犯规 Many Fouls (>3)'
+}[category])
 
 export const emptyEndgame = (): EndgameData => ({
   flowerPollen: 0,

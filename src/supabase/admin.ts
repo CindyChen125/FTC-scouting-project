@@ -30,7 +30,6 @@ export const createScout = (args: {
   username: string
   displayName: string
   password: string
-  role: UserRole
 }) => callAdminFunction('createUser', args)
 
 export const resetScoutPassword = (userId: string, password: string) =>
@@ -63,9 +62,6 @@ async function updateProfile(userId: string, patch: Record<string, unknown>) {
 
 export const setProfileActive = (userId: string, isActive: boolean) =>
   updateProfile(userId, { is_active: isActive })
-
-export const setProfileRole = (userId: string, role: UserRole) =>
-  updateProfile(userId, { role })
 
 export const setProfileDisplayName = (userId: string, displayName: string) =>
   updateProfile(userId, { display_name: displayName })

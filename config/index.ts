@@ -24,6 +24,7 @@ export default defineConfig<'webpack5'>(async (merge, { command, mode }) => {
     },
     copy: {
       patterns: [
+        { from: 'src/static/brand', to: 'dist/static/brand' }
       ],
       options: {
       }

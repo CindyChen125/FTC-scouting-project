@@ -39,11 +39,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useLanguage()
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [isOwner, setIsOwner] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const loadProfile = async (userId: string | undefined) => {
     if (!userId) {
       setProfile(null)
+      setIsOwner(false)
       return
     }
 
@@ -56,20 +58,25 @@ export function AuthProvider({ children }: PropsWithChildren) {
     // scout with no signal must stay signed in — being logged out at a venue
     // would be far worse than the problem this solves.
     try {
-      const { data, error } = await withTimeout(
-        supabase
-          .from('profiles')
-          .select('user_id, username, display_name, role, is_active')
-          .eq('user_id', userId)
-          .maybeSingle()
-      )
+      const [{ data, error }, { data: owner, error: ownerError }] = await Promise.all([
+        withTimeout(
+          supabase
+            .from('profiles')
+            .select('user_id, username, display_name, role, is_active')
+            .eq('user_id', userId)
+            .maybeSingle()
+        ),
+        withTimeout(supabase.rpc('is_owner'))
+      ])
       if (error) throw error
+      if (ownerError) throw ownerError
 
       if (!data || !data.is_active) {
         // No row (account deleted) or deactivated — note that a deactivated
         // user also can't read profiles at all, so both land here.
         await supabase.auth.signOut()
         setProfile(null)
+        setIsOwner(false)
         return
       }
 
@@ -80,6 +87,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         role: (data.role as UserRole) ?? 'scout',
         isActive: !!data.is_active
       })
+      setIsOwner(owner === true)
     } catch {
       // Couldn't reach the server. Keep whatever profile we already have and
       // stay signed in — this is the offline case, not a revoked account.
@@ -120,6 +128,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const signOut = async () => {
     await supabase.auth.signOut()
     setProfile(null)
+    setIsOwner(false)
   }
 
   const changePassword = async (password: string) => {
@@ -133,7 +142,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         session,
         profile,
         loading,
-        isAdmin: profile?.role === 'admin' && profile.isActive,
+        isAdmin: isOwner && !!profile?.isActive,
         userId: session?.user?.id ?? null,
         signIn,
         signOut,

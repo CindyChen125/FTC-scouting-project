@@ -215,7 +215,7 @@ Blue carries primary action and selection, navy anchors the mission panel, and n
 
 Page content uses 22px padding by default, narrows to 14–16px on small screens, and centers within a 980px content column from 900px upward. Home expands to 1060px; the scouting form narrows to 860px. Repeated panel gaps cluster around 18–22px, with 8–14px used inside compact control groups.
 
-Desktop grids collapse deliberately: the home mission panel moves from a split layout to one column at 680px, two-column form fields collapse at 620px, and navigation cards become a single stack. The five-part scoring control remains one horizontal row—−1, current value, +1, +2, +4—even at narrow widths, reducing gaps and type size rather than changing the interaction model.
+Desktop grids collapse deliberately: the home mission panel moves from a split layout to one column at 680px, two-column form fields collapse at 620px, and navigation cards become a single stack. Pollen, Nectar, and ball scoring controls remain one five-part horizontal row—−1, current value, +1, +2, +4—even at narrow widths. Hive Tips intentionally uses the calmer three-part row—−1, value, +1—because larger shortcuts are not valid for that observation.
 
 The compact Event Management surface uses a three-column name/season/code grid and inline active status above a divided event list. At 520px it becomes a single-column form; event rows and their activation action stack without reducing the 44px target.
 
@@ -282,7 +282,15 @@ Synchronization uses a bordered subtle-surface container, explicit bilingual sta
 
 ### Scoring Counter
 
-Each scoring field is one five-column row: −1, value, +1, +2, +4. Action cells use soft blue with blue borders; the value cell uses a neutral panel and tabular numeric type. Disabled decrement uses disabled fill and faint text while preserving the row geometry.
+Pollen, Nectar, and ball scoring fields use one five-column row: −1, value, +1, +2, +4. Hive Tips uses the same visual component with only −1, value, and +1. Action cells use soft blue with blue borders; the value cell uses a neutral panel and tabular numeric type. Disabled decrement uses disabled fill and faint text while preserving the row geometry.
+
+### Foul Category
+
+Match fouls use one compact three-choice segmented field: No Fouls, Few Fouls (1–3), and Many Fouls (>3). The selected category uses the standard soft-blue selected treatment, remains readable without color, and wraps bilingual labels rather than shrinking them. Historical numeric data maps into these same categories when displayed.
+
+### Browser Identity
+
+The favicon is a chamfered action-blue field with an angular lightning cut derived from the supplied geometric wordmark language. It stays team-neutral, ships as a theme-aware SVG plus 16px, 32px, and Apple-touch PNG fallbacks, and uses relative asset URLs so GitHub Pages subpath hosting remains valid.
 
 ## Do's and Don'ts
 
@@ -292,7 +300,7 @@ Each scoring field is one five-column row: −1, value, +1, +2, +4. Action cells
 - **Do** distinguish the central active event from a user's remembered viewed event with explicit bilingual context labels.
 - **Do** keep Chinese and English visible together and allow labels to wrap safely.
 - **Do** use the 14px panel, 10px control, 8px compact, and 999px chip roles intentionally.
-- **Do** preserve the single-row five-part scoring counter and minimum 44px canonical touch target.
+- **Do** preserve single-row counter geometry: five parts for Pollen/Nectar/balls and three parts for Hive Tips, with a minimum 44px canonical touch target.
 - **Do** use borders, short rules, tabular numbers, and status geometry for the subtle control-desk character.
 
 ### Don't:

@@ -1,6 +1,6 @@
 # Database deployment
 
-The matching app requires `batch-upgrade.sql` and `event-management.sql`. Do not deploy the app before applying both migrations.
+The matching app requires the existing event migration plus the dedicated synchronization and owner migrations. Do not deploy the new app before applying them.
 
 1. Back up scout_entries, pit_entries, and profiles in Supabase.
 2. Confirm schema.sql, auth-schema.sql, and pit-schema.sql have already been applied. Do not rerun the original schema script: it contains legacy anonymous policies.
@@ -12,6 +12,8 @@ The matching app requires `batch-upgrade.sql` and `event-management.sql`. Do not
 8. As an admin, create and activate a test event. Confirm a second signed-in device receives it and a regular scout cannot call either event RPC.
 9. Import an FTCScout-backed event from Event Management and confirm its roster is available to progress reporting. Importing must not activate it.
 10. Upload a JPG in Pit Scouting, submit, and open that profile on another device. Photos use private storage and temporary signed URLs.
+
+For the next update, follow `NEXT-UPDATE-SETUP.md`. It supersedes the observation-key portion of `batch-upgrade.sql` with a standalone repeatable migration and adds permanent-owner authorization. The event-management migration does not need to be reapplied.
 
 The migrations preserve existing observation contents. `batch-upgrade.sql` changes the match primary key to include an immutable observer identifier. `event-management.sql` does not add foreign keys to historical submissions, so legacy and imported event codes remain readable. Deleted accounts retain their identifier. Unidentified legacy observations remain viewable.
 

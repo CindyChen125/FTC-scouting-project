@@ -74,12 +74,16 @@ export default function Settings() {
             <Text className='settings-label'>{t("账号 Account")}</Text>
             <Text className='settings-value'>
               {profile ? `${profileLabel(profile)} (${profile.username})` : '—'}
-              {profile?.role === 'admin' ? t(" · 管理员 Admin") : ''}
+              {isAdmin
+                ? t(' · 所有者 Owner')
+                : profile?.role === 'admin'
+                  ? t(' · 受限旧管理员 Restricted legacy admin')
+                  : ''}
             </Text>
           </View>
           {/*
-            Only the admin changes their own password here. Scouts' passwords
-            are set by the admin from the Admin page, so self-service would
+            Only the owner changes their own password here. Scouts' passwords
+            are set by the owner from the Admin page, so self-service would
             put a scout's login out of the admin's control.
           */}
           {isAdmin ? (

@@ -1,12 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, View, Text, Input, Textarea } from '@tarojs/components'
 import Taro, { useLoad } from '@tarojs/taro'
 import { translate as t } from '../../i18n'
 import { useLanguage } from '../../i18n/LanguageContext'
 import AppHeader from '../../components/AppHeader'
+import ConfirmDialog from '../../components/ConfirmDialog'
 import SyncStatus, { SyncState } from '../../components/SyncStatus'
 import {
   Alliance,
+  FoulCategory,
   AutoData,
   TeleopData,
   EndgameData,
@@ -20,16 +22,29 @@ import {
   NOTE_OPTIONS,
   NOTE_OTHER,
   noteTagId,
-  noteTagLabel
+  noteTagLabel,
+  foulCategoryFor,
+  foulCategoryLabel
 } from '../../types/scouting'
-import { submitScoutEntry, fetchScoutEntry, flushOutbox, pendingCount } from '../../supabase/scouting'
+import { submitScoutEntry, fetchScoutEntry, flushOutbox, pendingCount, type SubmitOutcome } from '../../supabase/scouting'
+import {
+  classifySyncFailure,
+  reportDevelopmentError,
+  storageFailure,
+  type SyncFailure
+} from '../../supabase/timeout'
 import { useAuth } from '../../auth/AuthContext'
 import { CURRENT_SEASON, findEvent, eventLabel } from '../../data/events'
 import { useActiveEvent } from '../../data/ActiveEventContext'
 import './index.scss'
 
 // Tap-to-count, so a scout can keep their eyes on the robot instead of typing.
-function CounterField({ label, value, onChange }: { label: string, value: number, onChange: (n: number) => void }) {
+function CounterField({ label, value, onChange, steps = [1, 2, 4] }: {
+  label: string
+  value: number
+  onChange: (n: number) => void
+  steps?: number[]
+}) {
   useLanguage()
   return (
     <View className='field-row'>
@@ -42,11 +57,32 @@ function CounterField({ label, value, onChange }: { label: string, value: number
           −1
         </View>
         <Text className='counter-value'>{value}</Text>
-        <View className='counter-btn' onClick={() => onChange(value + 1)}>
-          +1
-        </View>
-        {[2, 4].map((step) => (
+        {steps.map((step) => (
           <View key={step} className='counter-btn' onClick={() => onChange(value + step)}>+{step}</View>
+        ))}
+      </View>
+    </View>
+  )
+}
+
+const FOUL_OPTIONS: FoulCategory[] = ['none', 'few', 'many']
+
+function FoulCategoryField({ value, onChange }: { value: FoulCategory, onChange: (v: FoulCategory) => void }) {
+  useLanguage()
+  return (
+    <View className='field-row'>
+      <Text className='field-label'>{t('裁判判罚（全场） Referee-called fouls (whole match)')}</Text>
+      <View className='foul-choice-row'>
+        {FOUL_OPTIONS.map((option) => (
+          <View
+            key={option}
+            className={`foul-choice ${value === option ? 'active' : ''}`}
+            role='button'
+            aria-pressed={value === option}
+            onClick={() => onChange(option)}
+          >
+            {t(foulCategoryLabel(option))}
+          </View>
         ))}
       </View>
     </View>
@@ -128,9 +164,11 @@ function NoteMultiField({ tags, text, onChange }: { tags: string[], text: string
 export default function Index() {
   useLanguage()
   const submitLock = useRef(false)
+  const confirmationResolver = useRef<((confirmed: boolean) => void) | null>(null)
   const explicitEvent = useRef(false)
   const eventLocked = useRef(false)
   const [submitting, setSubmitting] = useState(false)
+  const [confirmationOpen, setConfirmationOpen] = useState(false)
   const { userId, profile } = useAuth()
   const { activeEvent, offline: activeEventOffline } = useActiveEvent()
   const scoutName = profile ? profileLabel(profile) : ''
@@ -145,11 +183,12 @@ export default function Index() {
   const [endgame, setEndgame] = useState<EndgameData>(emptyEndgame())
   const [overallNotes, setOverallNotes] = useState('')
   const [syncState, setSyncState] = useState<SyncState | null>(null)
+  const [syncFailure, setSyncFailure] = useState<SyncFailure | undefined>()
 
   const formStarted = !!matchId || !!teamNumber || !!overallNotes ||
     auto.leave || auto.cellBalls > 0 || auto.allianceTips > 0 || auto.park || auto.noteTags.length > 0 || !!auto.noteText ||
     teleop.cellPollen > 0 || teleop.cellNectar > 0 || teleop.allianceTips > 0 || teleop.noteTags.length > 0 || !!teleop.noteText ||
-    (teleop.minorFouls ?? 0) > 0 || (teleop.majorFouls ?? 0) > 0 ||
+    foulCategoryFor(teleop) !== 'none' ||
     endgame.flowerPollen > 0 || endgame.flowerNectar > 0 || endgame.park
 
   useEffect(() => {
@@ -180,13 +219,36 @@ export default function Index() {
   const [loadedIdentity, setLoadedIdentity] = useState('')
   const identity = `${userId}:${eventCode}:${matchId}:${teamNumber}`
 
+  const requestSubmitConfirmation = useCallback(() => new Promise<boolean>((resolve) => {
+    confirmationResolver.current = resolve
+    setConfirmationOpen(true)
+  }), [])
+
+  const settleSubmitConfirmation = useCallback((confirmed: boolean) => {
+    const resolve = confirmationResolver.current
+    if (!resolve) return
+    confirmationResolver.current = null
+    setConfirmationOpen(false)
+    resolve(confirmed)
+  }, [])
+
+  useEffect(() => () => {
+    confirmationResolver.current?.(false)
+    confirmationResolver.current = null
+  }, [])
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const applyLoaded = (saved: any) => {
     setAlliance((saved.alliance as Alliance) ?? 'red')
     setScoutedBy((saved.scoutedBy as string) ?? null)
     setOriginalScoutName((saved.scoutName as string) ?? null)
     setAuto({ ...emptyAuto(), ...(saved.auto as Partial<AutoData>), noteTags: (saved.auto?.noteTags ?? []).map(noteTagLabel) })
-    setTeleop({ ...emptyTeleop(), ...(saved.teleop as Partial<TeleopData>), noteTags: (saved.teleop?.noteTags ?? []).map(noteTagLabel) })
+    setTeleop({
+      ...emptyTeleop(),
+      ...(saved.teleop as Partial<TeleopData>),
+      foulCategory: foulCategoryFor(saved.teleop ?? {}),
+      noteTags: (saved.teleop?.noteTags ?? []).map(noteTagLabel)
+    })
     setEndgame({ ...emptyEndgame(), ...(saved.endgame as Partial<EndgameData>) })
     setOverallNotes((saved.overallNotes as string) ?? '')
   }
@@ -197,7 +259,10 @@ export default function Index() {
   // the shared Supabase copy. Merge onto empty defaults so older saves
   // (or fields added since) still fill in.
   useEffect(() => {
-    if (!matchId || !teamNumber || !userId) return
+    if (!matchId || !teamNumber || !userId) {
+      setLoadedIdentity('')
+      return
+    }
     const local =
       Taro.getStorageSync(scoutBackupKey(userId, eventCode, matchId, teamNumber)) ||
       Taro.getStorageSync(scoutEntryStorageKey(userId, eventCode, matchId, teamNumber))
@@ -207,14 +272,17 @@ export default function Index() {
       return
     }
     let cancelled = false
-    fetchScoutEntry(userId, eventCode, matchId, teamNumber).then((remote) => {
-      if (!cancelled) {
-        applyLoaded(remote ?? { alliance })
-        setLoadedIdentity(identity)
-      }
-    })
+    const timer = setTimeout(() => {
+      fetchScoutEntry(userId, eventCode, matchId, teamNumber).then((remote) => {
+        if (!cancelled) {
+          applyLoaded(remote ?? { alliance })
+          setLoadedIdentity(identity)
+        }
+      })
+    }, 450)
     return () => {
       cancelled = true
+      clearTimeout(timer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventCode, matchId, teamNumber, userId])
@@ -243,11 +311,18 @@ export default function Index() {
   // submitted entry appears in "My Scouting Data".
   useEffect(() => {
     if (!matchId || !teamNumber || !userId || loadedIdentity !== identity) return
-    Taro.setStorageSync(
-      scoutBackupKey(userId, eventCode, matchId, teamNumber),
-      currentEntry()
-    )
-    setSyncState('local')
+    try {
+      Taro.setStorageSync(
+        scoutBackupKey(userId, eventCode, matchId, teamNumber),
+        currentEntry()
+      )
+      setSyncFailure(undefined)
+      setSyncState('local')
+    } catch (error) {
+      reportDevelopmentError('match-scout:draft-save', error)
+      setSyncFailure(storageFailure(error, 'Could not save the draft on this device'))
+      setSyncState('error')
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventCode, matchId, teamNumber, userId, alliance, scoutName, auto, teleop, endgame, overallNotes, loadedIdentity, identity])
 
@@ -267,56 +342,81 @@ export default function Index() {
     }
     submitLock.current = true
     try {
-    const res = await Taro.showModal({
-      title: t("确认提交 Confirm submit"),
-      content: t('submitMatch', { match: matchId, team: teamNumber }),
-      confirmText: t("提交"),
-      cancelText: t("取消")
-    })
-        if (!res.confirm) return
-        setSubmitting(true)
+      const confirmed = await requestSubmitConfirmation()
+      if (!confirmed) return
+      setSubmitting(true)
 
-        const entry = currentEntry()
-        // The local write always succeeds and keeps the data on this device.
+      let entry: BiobuzzEntry
+      try {
+        entry = currentEntry()
+        // Save the exact submitted snapshot before attempting the network.
+        // If storage is unavailable, the live form stays intact and no false
+        // claim is made that an offline-safe copy exists.
         Taro.setStorageSync(
           scoutEntryStorageKey(userId, eventCode, matchId, teamNumber),
           entry
         )
+        setSyncFailure(undefined)
         setSyncState('local')
-
-        // Report what actually happened. Announcing success before the write
-        // resolved meant a scout whose account had been removed saw "已提交
-        // Submitted ✓" for entries the server was rejecting.
-        const outcome = await submitScoutEntry(entry)
-        if (outcome === 'rejected') {
-          setSyncState('error')
-          // Stay on the form so the scout actually sees why it failed.
-          Taro.showToast({
-            title: t("未能提交：账号无权限，请重新登录 Rejected — sign in again"),
-            icon: 'none'
-          })
-          return
-        }
-
-        setSyncState(outcome === 'synced' ? 'synced' : 'queued')
-
+      } catch (error) {
+        reportDevelopmentError('match-scout:local-save', error)
+        setSyncFailure(storageFailure(error, 'Could not save the submitted copy on this device'))
+        setSyncState('error')
         Taro.showToast({
-          title:
-            outcome === 'synced'
-              ? t("已提交 Submitted ✓")
-              : t("已保存，联网后自动上传 Saved — uploads when back online"),
-          icon: outcome === 'synced' ? 'success' : 'none'
+          title: t('无法在本机保存；表单仍保留 Could not save locally — form remains open'),
+          icon: 'none'
         })
+        return
+      }
 
-        // Back to the home screen, ready for the next match. reLaunch rather
-        // than navigateBack because this page can be opened either from home
-        // or from an entry's Edit button, and "back" should mean home either
-        // way. The delay lets the toast be read first.
-        await new Promise((resolve) => setTimeout(resolve, 1200))
+      let outcome: SubmitOutcome
+      try {
+        outcome = await submitScoutEntry(entry)
+      } catch (error) {
+        // submitScoutEntry normally returns a classified outcome. This catch
+        // protects against unexpected synchronous/client-storage exceptions;
+        // the submitted snapshot above remains available for another attempt.
+        reportDevelopmentError('match-scout:submit', error)
+        setSyncFailure(classifySyncFailure(error))
+        setSyncState('error')
+        Taro.showToast({
+          title: t('提交中断；本机副本已保留 Submission interrupted — local copy retained'),
+          icon: 'none'
+        })
+        return
+      }
+      setSyncFailure(outcome.failure)
+      if (outcome.status === 'error') {
+        setSyncState('error')
+        Taro.showToast({
+          title: t('未能同步；数据仍在本机 Sync failed — data remains local'),
+          icon: 'none'
+        })
+        return
+      }
+
+      setSyncState(outcome.status === 'synced' ? 'synced' : 'queued')
+
+      Taro.showToast({
+        title:
+          outcome.status === 'synced'
+            ? t("已提交 Submitted ✓")
+            : t("已保存，联网后自动上传 Saved — uploads when back online"),
+        icon: outcome.status === 'synced' ? 'success' : 'none'
+      })
+
+      // Navigation happens after the write and has its own error boundary. A
+      // browser routing failure cannot downgrade a confirmed server sync.
+      await new Promise((resolve) => setTimeout(resolve, 1200))
+      try {
         await Taro.reLaunch({ url: '/pages/index/index' })
-    } catch {
-      setSyncState('error')
-      Taro.showToast({ title: t("无法完成操作 Could not complete the action"), icon: 'none' })
+      } catch (error) {
+        reportDevelopmentError('match-scout:navigation', error)
+        Taro.showToast({
+          title: t('已同步，但无法返回首页 Synced, but could not return home'),
+          icon: 'none'
+        })
+      }
     } finally {
       submitLock.current = false
       setSubmitting(false)
@@ -326,9 +426,12 @@ export default function Index() {
   const retrySync = async () => {
     setSyncState('queued')
     try {
-      const remaining = await flushOutbox()
-      setSyncState(remaining === 0 ? 'synced' : 'error')
-    } catch {
+      const result = await flushOutbox()
+      setSyncFailure(result.failure)
+      setSyncState(result.pending === 0 ? 'synced' : result.failure?.kind === 'network' ? 'queued' : 'error')
+    } catch (error) {
+      reportDevelopmentError('match-scout:retry', error)
+      setSyncFailure(classifySyncFailure(error))
       setSyncState('error')
     }
   }
@@ -336,6 +439,8 @@ export default function Index() {
   const patchAuto = (patch: Partial<AutoData>) => setAuto((prev) => ({ ...prev, ...patch }))
   const patchTeleop = (patch: Partial<TeleopData>) => setTeleop((prev) => ({ ...prev, ...patch }))
   const patchEndgame = (patch: Partial<EndgameData>) => setEndgame((prev) => ({ ...prev, ...patch }))
+
+  const submitDisabled = submitting || confirmationOpen || !matchId || !teamNumber
 
   return (
     <View className='scout-page'>
@@ -358,7 +463,13 @@ export default function Index() {
             placeholder='12'
             numeric
           />
-          <TextField label={t("队号 Team #")} value={teamNumber} onChange={setTeamNumber} placeholder='417' />
+          <TextField
+            label={t("队号 Team #")}
+            value={teamNumber}
+            onChange={(value) => setTeamNumber(value.replace(/\D/g, ''))}
+            placeholder='417'
+            numeric
+          />
         </View>
         <View className='field-row'>
           <Text className='field-label'>{t("联盟 Alliance")}</Text>
@@ -382,7 +493,7 @@ export default function Index() {
 
         <YesNoField label={t("远离 Leave (离开场地边墙 off the wall)")} value={auto.leave} onChange={(v) => patchAuto({ leave: v })} />
         <CounterField label={t("射入蜂房 Balls into hive")} value={auto.cellBalls} onChange={(n) => patchAuto({ cellBalls: n })} />
-        <CounterField label={t("联盟蜂巢翻转 Alliance hive tips (整个联盟 whole alliance)")} value={auto.allianceTips} onChange={(n) => patchAuto({ allianceTips: n })} />
+        <CounterField label={t("联盟蜂巢翻转 Alliance hive tips (整个联盟 whole alliance)")} value={auto.allianceTips} onChange={(n) => patchAuto({ allianceTips: n })} steps={[1]} />
         <YesNoField label={t("自动停泊装载区 Auto park in loading zone")} value={auto.park} onChange={(v) => patchAuto({ park: v })} />
 
         <NoteMultiField tags={auto.noteTags} text={auto.noteText} onChange={patchAuto} />
@@ -396,7 +507,7 @@ export default function Index() {
           <CounterField label={t("花粉 Pollen")} value={teleop.cellPollen} onChange={(n) => patchTeleop({ cellPollen: n })} />
           <CounterField label={t("花蜜 Nectar")} value={teleop.cellNectar} onChange={(n) => patchTeleop({ cellNectar: n })} />
         </View>
-        <CounterField label={t("联盟蜂巢翻转 Alliance hive tips (整个联盟 whole alliance)")} value={teleop.allianceTips} onChange={(n) => patchTeleop({ allianceTips: n })} />
+        <CounterField label={t("联盟蜂巢翻转 Alliance hive tips (整个联盟 whole alliance)")} value={teleop.allianceTips} onChange={(n) => patchTeleop({ allianceTips: n })} steps={[1]} />
 
         <Text className='subsection-title'>{t('放入花朵 Balls into flowers')}</Text>
         <View className='two-col'>
@@ -406,9 +517,7 @@ export default function Index() {
         <YesNoField label={t("停泊装载区 Park in loading zone")} value={endgame.park} onChange={(v) => patchEndgame({ park: v })} />
 
         <NoteMultiField tags={teleop.noteTags} text={teleop.noteText} onChange={patchTeleop} />
-        <Text className='subsection-title'>{t('裁判判罚（全场） Referee-called fouls (whole match)')}</Text>
-        <CounterField label={t("小犯规 Minor fouls")} value={teleop.minorFouls ?? 0} onChange={(n) => patchTeleop({ minorFouls: n })} />
-        <CounterField label={t("大犯规 Major fouls")} value={teleop.majorFouls ?? 0} onChange={(n) => patchTeleop({ majorFouls: n })} />
+        <FoulCategoryField value={foulCategoryFor(teleop)} onChange={(foulCategory) => patchTeleop({ foulCategory })} />
       </View>
 
       <View className='section-card'>
@@ -426,18 +535,30 @@ export default function Index() {
       {matchId && teamNumber && <Text className='save-hint'>{t('已自动备份 Auto-saved ✓')}</Text>}
 
       {matchId && teamNumber && syncState && (
-        <SyncStatus state={syncState} onRetry={syncState === 'error' && pendingCount() > 0 ? retrySync : undefined} />
+        <SyncStatus state={syncState} failure={syncFailure} onRetry={syncState === 'error' && pendingCount() > 0 ? retrySync : undefined} />
       )}
 
       <Button
-        className='submit-btn'
-        disabled={submitting || !matchId || !teamNumber}
+        className={`submit-btn${submitDisabled ? ' submit-btn-disabled' : ''}`}
+        type='default'
+        hoverClass='submit-btn-pressed'
+        disabled={submitDisabled}
         loading={submitting}
         onClick={handleSubmit}
       >
         {submitting ? t('提交中 Saving…') : t('提交 Submit')}
       </Button>
       </View>
+      {confirmationOpen && (
+        <ConfirmDialog
+          title={t('确认提交 Confirm submit')}
+          description={t('submitMatch', { match: matchId, team: teamNumber })}
+          cancelText={t('取消')}
+          confirmText={t('提交')}
+          onCancel={() => settleSubmitConfirmation(false)}
+          onConfirm={() => settleSubmitConfirmation(true)}
+        />
+      )}
     </View>
   )
 }
