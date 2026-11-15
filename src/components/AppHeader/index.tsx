@@ -1,7 +1,6 @@
 import { View, Text } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { useEffect } from 'react'
-import { translate as t } from '../../i18n'
 import { useLanguage } from '../../i18n/LanguageContext'
 import './index.scss'
 
@@ -12,7 +11,7 @@ interface AppHeaderProps {
 }
 
 export default function AppHeader({ title, showBack = false, onSearch }: AppHeaderProps) {
-  useLanguage()
+  const { language, toggleLanguage, t } = useLanguage()
   useEffect(() => { Taro.setNavigationBarTitle({ title }).catch(() => {}) }, [title])
   const handleBack = () => {
     Taro.navigateBack().catch(() => {
@@ -34,7 +33,7 @@ export default function AppHeader({ title, showBack = false, onSearch }: AppHead
         {showBack && (
           <View className='app-header-back' onClick={handleBack}>
             <View className='app-header-back-arrow' aria-hidden='true' />
-            <Text className='app-header-back-label'>{t("返回 Back")}</Text>
+            <Text className='app-header-back-label'>{t('返回 Back')}</Text>
           </View>
         )}
       </View>
@@ -44,6 +43,14 @@ export default function AppHeader({ title, showBack = false, onSearch }: AppHead
       <View className='app-header-side app-header-side-right'>
         <View className='app-header-icon-btn' onClick={handleSearch}>
           <Text className='app-header-back-label'>{t("Search")}</Text>
+        </View>
+        <View
+          className='app-header-language-btn'
+          onClick={toggleLanguage}
+          aria-label={language === 'zh' ? 'Switch to English' : '切换到中文'}
+          role='button'
+        >
+          <Text>{language === 'zh' ? 'EN' : '中文'}</Text>
         </View>
       </View>
     </View>

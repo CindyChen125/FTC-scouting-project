@@ -6,7 +6,7 @@ import { useAuth } from './AuthContext'
 import './LoginScreen.scss'
 
 export default function LoginScreen() {
-  useLanguage()
+  const { language, toggleLanguage } = useLanguage()
   const { signIn } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -40,6 +40,14 @@ export default function LoginScreen() {
 
   return (
     <View className='login-page'>
+      <View
+        className='login-language-btn'
+        onClick={toggleLanguage}
+        aria-label={language === 'zh' ? 'Switch to English' : '切换到中文'}
+        role='button'
+      >
+        <Text>{language === 'zh' ? 'EN' : '中文'}</Text>
+      </View>
       <View className='login-card'>
         <Text className='login-title'>{t("FTC Scouting")}</Text>
 

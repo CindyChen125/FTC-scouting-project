@@ -137,7 +137,7 @@ async function main() {
     const placeholders = (value) => [...value.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort()
     assert.deepEqual(placeholders(message.en), placeholders(message.zh), `Placeholder mismatch: ${key}`)
   }
-  setCurrentLanguage('both')
+  setCurrentLanguage('en')
   const before = JSON.stringify(entry)
   assert(formatNotes(entry.auto.noteTags, rawNote).includes(rawNote))
   assert.equal(t('teamNumber', { number: rawNote }).includes(rawNote), true)
@@ -165,10 +165,14 @@ async function main() {
   storage.set('scoutLanguage', 'English')
   await mount(require('../src/pages/index/index').default)
   assert(mountPoint.textContent.includes('Start Scouting'))
+  assert(!mountPoint.textContent.includes('开始侦查'), 'English mode does not render Chinese UI copy')
+  assert.equal(document.documentElement.lang, 'en')
+  assert.equal(storage.get('settings:language'), 'en', 'Legacy preference is migrated')
+  assert(mountPoint.querySelector('.app-header-language-btn'), 'Language switching is available in the header')
+  await flush(() => mountPoint.querySelector('.app-header-language-btn').click())
   assert(mountPoint.textContent.includes('开始侦查'))
+  assert(!mountPoint.textContent.includes('Start Scouting'), 'Chinese mode does not render English UI copy')
   assert.equal(document.documentElement.lang, 'zh-CN')
-  assert.equal(storage.get('settings:language'), 'both', 'Legacy preference is replaced by bilingual mode')
-  assert.equal(mountPoint.querySelector('.language-picker'), null, 'Language switching is removed')
   for (const page of ['index', 'scout', 'pit', 'data', 'entry', 'settings', 'admin']) {
     await mount(require(`../src/pages/${page}/index`).default)
     let draft
@@ -180,7 +184,7 @@ async function main() {
       assert.equal(storage.get(draftKey).auto.cellBalls, 1)
       assert.deepEqual(storage.get(draftKey).auto.noteTags, ['disconnected'])
     }
-    assert.equal(mountPoint.querySelector('.language-picker'), null, `No language picker on ${page}`)
+    assert(mountPoint.querySelector('.app-header-language-btn'), `Language picker is available on ${page}`)
     assert.equal(document.documentElement.lang, 'zh-CN')
     if (page === 'scout' || page === 'pit') {
       assert([...mountPoint.querySelectorAll('input')].some((input) => input.value === '417'), 'Bilingual rendering retains team number')
@@ -189,7 +193,7 @@ async function main() {
     if (draft) assert.equal(JSON.stringify(storage.get(draftKey)), draft, 'Bilingual rendering must not rewrite a draft')
     if (page === 'data') {
       await flush(() => mountPoint.querySelectorAll('.tab-item')[1].click())
-      assert(mountPoint.textContent.includes('reported breakdowns'))
+      assert(!mountPoint.textContent.includes('reported breakdowns'))
       assert(mountPoint.textContent.includes('场报告故障'))
       await flush(() => mountPoint.querySelectorAll('.tab-item')[2].click())
       assert(mountPoint.textContent.includes(rawNote), 'Pit notes remain untouched')
@@ -197,9 +201,9 @@ async function main() {
   }
   await mount(require('../src/auth/LoginScreen').default)
   await flush(() => mountPoint.querySelector('.login-btn').click())
-  assert(mountPoint.textContent.includes('Enter your username and password'))
+  assert(!mountPoint.textContent.includes('Enter your username and password'))
   assert(mountPoint.textContent.includes('请输入用户名和密码'))
-  assert.equal(mountPoint.querySelector('.language-picker'), null)
+  assert(mountPoint.querySelector('.login-language-btn'), 'Login also supports language switching')
   await mount(require('../src/pages/settings/index').default)
   assert.equal(document.documentElement.lang, 'zh-CN', 'Preference survives remount')
   await mount(require('../src/pages/admin/index').default)
@@ -216,6 +220,6 @@ async function main() {
   assert(!/delete from public\.scout_entries|delete from public\.pit_entries/i.test(eventSql), 'Event migration is non-destructive')
   await flush(() => root.unmount())
   dom.window.close()
-  console.log(`Passed: ${Object.keys(messages).length} bilingual message pairs, 7 pages, login validation, rankings, exports, legacy preference migration, stable tags and preserved user content.`)
+  console.log(`Passed: ${Object.keys(messages).length} translation pairs, language switching, 7 pages, login validation, rankings, exports, preference migration, stable tags and preserved user content.`)
 }
 main().catch((error) => { console.error(error); process.exitCode = 1 })
