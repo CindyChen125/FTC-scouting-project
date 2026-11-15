@@ -1,2 +1,124 @@
 // Same field, chip and button styles as the match form.
 @use '../scout/index.scss';
+
+.photo-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 14px 0 30px;
+}
+
+.photo-tile {
+  width: 148px;
+  height: 148px;
+  position: relative;
+  flex: 0 0 148px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 12px;
+  background: var(--color-surface-subtle);
+
+  &__image { width: 100%; height: 100%; display: block; }
+}
+
+.photo-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  background: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+
+  &::after { border: 0; }
+
+  &__mark {
+    width: 12px;
+    height: 12px;
+    position: relative;
+
+    &::before, &::after {
+      content: '';
+      position: absolute;
+      left: 5px;
+      top: 0;
+      width: 2px;
+      height: 12px;
+      border-radius: 1px;
+      background: currentColor;
+    }
+
+    &::before { transform: rotate(45deg); }
+    &::after { transform: rotate(-45deg); }
+  }
+}
+
+.photo-upload {
+  width: min(100%, 220px);
+  aspect-ratio: 1;
+  flex: 0 0 220px;
+  margin: 0;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  white-space: normal;
+  line-height: 1.4;
+  color: var(--color-primary);
+  background: var(--color-surface-subtle);
+  border: 2px dashed var(--color-border-strong);
+  border-radius: 14px;
+  box-sizing: border-box;
+  overflow: hidden;
+
+  &::after { border: 0; }
+  &[disabled] { opacity: 1; color: var(--color-primary) !important; }
+
+  &__icon-wrap {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  &__camera {
+    width: 62px;
+    height: 48px;
+    display: block;
+    margin: 0;
+    flex: 0 0 auto;
+    background: url('../../static/brand/camera-outline.svg') center / contain no-repeat;
+  }
+
+  &__preview {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    inset: 0;
+  }
+
+  &__title, &__hint { position: relative; z-index: 1; color: var(--color-text-muted) !important; background: var(--color-panel); }
+  &__title { font-size: calc(17px * var(--font-scale)); font-weight: 700; }
+  &__hint { font-size: calc(13px * var(--font-scale)); }
+}
+
+.photo-upload--compact {
+  width: min(100%, 148px);
+  flex-basis: 148px;
+  padding: 10px;
+  gap: 5px;
+
+  .photo-upload__camera { width: 44px; height: 34px; }
+  .photo-upload__title { font-size: calc(12px * var(--font-scale)); }
+  .photo-upload__hint { font-size: calc(10px * var(--font-scale)); }
+}

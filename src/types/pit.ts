@@ -11,6 +11,8 @@ export type PitRole = 'hive' | 'flowers' | 'defense' | 'flexible'
 
 // '' / null = not answered yet, which is different from answering "none".
 export interface PitData {
+  photoPaths?: string[]
+  /** Legacy single-photo field, read when loading profiles saved by older builds. */
   photoPath?: string
   drivetrain: Drivetrain | ''
   hiveBalls: BallCapability | ''

@@ -62,17 +62,18 @@ export default function PitScouting() {
   const [eventCode, setEventCode] = useState(activeEvent.code)
   const [teamNumber, setTeamNumber] = useState('')
   const [data, setData] = useState<PitData>(emptyPitData())
-  const [photoUrl, setPhotoUrl] = useState('')
+  const [photoUrls, setPhotoUrls] = useState<string[]>([])
   const [photoBusy, setPhotoBusy] = useState(false)
   const [photoError, setPhotoError] = useState('')
   useEffect(() => {
     let active = true
-    setPhotoUrl('')
-    if (data.photoPath) robotPhotoUrl(data.photoPath).then((url) => {
-      if (active) setPhotoUrl(url)
+    setPhotoUrls([])
+    const paths = data.photoPaths ?? (data.photoPath ? [data.photoPath] : [])
+    Promise.all(paths.map((path) => robotPhotoUrl(path))).then((urls) => {
+      if (active) setPhotoUrls(urls)
     }).catch(() => { if (active) setPhotoError('Photo unavailable. Check your connection.') })
     return () => { active = false }
-  }, [data.photoPath])
+  }, [data.photoPaths, data.photoPath])
   const [scoutedBy, setScoutedBy] = useState<string | null>(null)
   const [originalScoutName, setOriginalScoutName] = useState<string | null>(null)
 
@@ -234,20 +235,32 @@ export default function PitScouting() {
 
         <View className='section-card'>
           <Text className='section-title'>{t("机器人 Robot")}</Text>
-          {photoUrl && <Image src={photoUrl} mode='aspectFit' style={{ width: '100%', height: '240px' }} />}
-          <Button size='mini' disabled={!userId || photoBusy} loading={photoBusy} onClick={async () => {
-            if (!userId || photoBusy) return
-            setPhotoBusy(true)
-            setPhotoError('')
-            try {
-              const photoPath = await uploadRobotPhoto(userId)
-              patch({ photoPath })
-            } catch (error) {
-              setPhotoError(error instanceof Error ? error.message : 'Photo upload cancelled or unavailable.')
-            } finally { setPhotoBusy(false) }
-          }}
-          >{t("机器人照片 Add / replace robot photo")}</Button>
-          {data.photoPath && <Button size='mini' onClick={() => patch({ photoPath: undefined })}>{t("移除照片 Remove photo")}</Button>}
+          <View className='photo-row'>
+            {photoUrls.map((url, index) => <View className='photo-tile' key={`${index}-${url}`}>
+                <Image className='photo-tile__image' src={url} mode='aspectFill' />
+                <Button className='photo-remove' aria-label='Remove photo' onClick={(event) => {
+                  event.stopPropagation()
+                  const paths = data.photoPaths ?? (data.photoPath ? [data.photoPath] : [])
+                  patch({ photoPaths: paths.filter((_, pathIndex) => pathIndex !== index), photoPath: undefined })
+                }}><View className='photo-remove__mark' /></Button>
+            </View>)}
+            <Button className={`photo-upload ${photoUrls.length ? 'photo-upload--compact' : ''}`} disabled={!userId || photoBusy} loading={photoBusy} onClick={async () => {
+              if (!userId || photoBusy) return
+              setPhotoBusy(true)
+              setPhotoError('')
+              try {
+                const photoPath = await uploadRobotPhoto(userId)
+                const paths = data.photoPaths ?? (data.photoPath ? [data.photoPath] : [])
+                patch({ photoPaths: [...paths, photoPath], photoPath: undefined })
+              } catch (error) {
+                setPhotoError(error instanceof Error ? error.message : 'Photo upload cancelled or unavailable.')
+              } finally { setPhotoBusy(false) }
+            }}>
+              <View className='photo-upload__icon-wrap'><View className='photo-upload__camera' /></View>
+              <Text className='photo-upload__title'>{t('上传机器人照片 Upload a robot photo')}</Text>
+              <Text className='photo-upload__hint'>{t('点击此处上传 Click here to upload')}</Text>
+            </Button>
+          </View>
           {!!photoError && <Text>{t(photoError)}</Text>}
           <ChoiceField
             label={t("底盘 Drivetrain")}
