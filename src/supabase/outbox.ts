@@ -50,8 +50,10 @@ export function createOutbox<T>(storageKey: string, keyOf: (item: T) => string) 
 
 // The key deliberately keeps '' for entries without an eventCode: changing it
 // would strand anything already queued under the old key.
-export const outboxKey = (entry: MatchScoutEntry) =>
-  `${entry.eventCode ?? ''}:${entry.matchId}:${entry.teamNumber}:${entry.observationKey ?? entry.scoutedBy ?? 'legacy'}`
+export const outboxKey = (entry: MatchScoutEntry) => {
+  const target = entry.pendingSyncOperation === 'update' ? entry.editTarget : undefined
+  return `${target?.eventCode ?? entry.eventCode ?? ''}:${target?.matchId ?? entry.matchId}:${target?.teamNumber ?? entry.teamNumber}:${target?.observationKey ?? entry.observationKey ?? entry.scoutedBy ?? 'legacy'}`
+}
 
 const matchOutbox = createOutbox<MatchScoutEntry>('outbox', outboxKey)
 

@@ -334,6 +334,9 @@ export default function CurrentData() {
                     : ''}
                 </Text>
                 <Text className='entry-meta'>{t("Updated:")} {dateTime(entry.updatedAt)}</Text>
+                {entry.pendingSyncOperation && (
+                  <Text className='entry-meta entry-sync-pending'>{t('sync.queued')}</Text>
+                )}
 
                 <View className='entry-stats'>
                   {gameForEntry(entry).cardStats(entry).map((stat) => (

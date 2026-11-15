@@ -1,9 +1,9 @@
 import Taro from '@tarojs/taro'
 import { supabase } from './config'
-import { MatchScoutEntry, scoutEntryStorageKey, scoutEntryKeyPrefix } from '../types/scouting'
+import { MatchScoutEntry, scoutEntryStorageKey, scoutBackupKey, scoutEntryKeyPrefix } from '../types/scouting'
 import { entryEventCode } from '../data/events'
 import { withTimeout, classifySyncFailure, reportDevelopmentError, storageFailure, SyncFailure } from './timeout'
-import { enqueue, dequeue, pendingEntries, pendingCount } from './outbox'
+import { enqueue, dequeue, outboxKey, pendingEntries, pendingCount } from './outbox'
 
 const TABLE = 'scout_entries'
 
@@ -56,6 +56,27 @@ const toEntry = (row: Row): MatchScoutEntry => ({
   updatedAt: Number(row.updated_at)
 }) as MatchScoutEntry
 
+const identityKey = (identity: { eventCode?: string; matchId: string; teamNumber: string; observationKey?: string; scoutedBy?: string | null }) =>
+  `${identity.eventCode ?? ''}:${identity.matchId}:${identity.teamNumber}:${identity.observationKey ?? identity.scoutedBy ?? 'legacy'}`
+
+// An edit reopened from a locally moved row can itself be moved again before
+// the first correction syncs. Follow queued moves back to the server's actual
+// row, so a chain A→B→C is retried as one update A→C.
+function originalQueuedTarget(entry: MatchScoutEntry, queued: MatchScoutEntry[]): MatchScoutEntry {
+  if (!entry.editTarget) return entry
+  let target = entry.editTarget
+  const seen = new Set<string>()
+  while (!seen.has(identityKey(target))) {
+    seen.add(identityKey(target))
+    const previous = queued.find((candidate) => candidate.pendingSyncOperation === 'update' &&
+      candidate.editTarget && identityKey(candidate) === identityKey(target) &&
+      identityKey(candidate.editTarget) !== identityKey(target))
+    if (!previous?.editTarget) break
+    target = previous.editTarget
+  }
+  return identityKey(target) === identityKey(entry.editTarget) ? entry : { ...entry, editTarget: target }
+}
+
 let channelSeq = 0
 
 const push = (entry: MatchScoutEntry) =>
@@ -63,9 +84,64 @@ const push = (entry: MatchScoutEntry) =>
     supabase.from(TABLE).upsert(toRow(entry), { onConflict: 'event_code,match_id,team_number,observation_key' })
   )
 
+type SubmitOperation = 'upsert' | 'update'
+
+class EditTargetMissingError extends Error {
+  code = 'EDIT_TARGET_MISSING'
+
+  constructor() {
+    super('The selected scouting observation no longer exists')
+    this.name = 'EditTargetMissingError'
+  }
+}
+
+const updateExisting = async (entry: MatchScoutEntry) => {
+  const row = toRow(entry)
+  const target = entry.editTarget ?? {
+    eventCode: row.event_code, matchId: row.match_id,
+    teamNumber: row.team_number, observationKey: row.observation_key
+  }
+  const { data, error } = await withTimeout(
+    supabase.from(TABLE)
+      .update(row)
+      .eq('event_code', target.eventCode)
+      .eq('match_id', target.matchId)
+      .eq('team_number', target.teamNumber)
+      .eq('observation_key', target.observationKey)
+      .select('event_code')
+  )
+  if (error) throw error
+  if (data?.length) return
+
+  // RLS can hide an update by returning zero rows. Distinguish that from a
+  // genuinely deleted edit target so the scout gets the right recovery path.
+  const { data: existing, error: lookupError } = await withTimeout(
+    supabase.from(TABLE).select('event_code')
+      .eq('event_code', target.eventCode)
+      .eq('match_id', target.matchId)
+      .eq('team_number', target.teamNumber)
+      .eq('observation_key', target.observationKey)
+      .maybeSingle()
+  )
+  if (!lookupError && existing) {
+    const permissionError = new Error('Permission denied while updating this scouting observation') as Error & { code: string }
+    permissionError.code = '42501'
+    throw permissionError
+  }
+  throw new EditTargetMissingError()
+}
+
+const withoutPendingOperation = (entry: MatchScoutEntry): MatchScoutEntry => {
+  const cleanEntry = { ...entry }
+  delete cleanEntry.pendingSyncOperation
+  return cleanEntry
+}
+
 export interface SubmitOutcome {
   status: 'synced' | 'queued' | 'error'
   failure?: SyncFailure
+  editTargetMissing?: boolean
+  editConflict?: boolean
 }
 
 export interface FlushOutcome {
@@ -80,14 +156,34 @@ export interface FlushOutcome {
 //   queued — no signal; saved and retried automatically (the venue case)
 //   error  — the server responded with a schema, permission or data problem;
 //            the local/outbox copy is deliberately retained for later retry.
-export async function submitScoutEntry(entry: MatchScoutEntry): Promise<SubmitOutcome> {
+export async function submitScoutEntry(entry: MatchScoutEntry, operation: SubmitOperation = 'upsert'): Promise<SubmitOutcome> {
+  const queuedBefore = operation === 'update' ? pendingEntries() : []
+  const saveEntry = operation === 'update' ? originalQueuedTarget(entry, queuedBefore) : entry
+  const originalQueueKey = outboxKey({ ...saveEntry, pendingSyncOperation: 'update' })
+  const staleMoves = queuedBefore.filter((candidate) => candidate.pendingSyncOperation === 'update' &&
+    outboxKey(candidate) !== originalQueueKey &&
+    outboxKey(originalQueuedTarget(candidate, queuedBefore)) === originalQueueKey)
   try {
-    const { error } = await push(entry)
-    if (error) throw error
+    if (operation === 'update') await updateExisting(saveEntry)
+    else {
+      const { error } = await push(saveEntry)
+      if (error) throw error
+    }
   } catch (err) {
     reportDevelopmentError('match-scout:sync', err)
+    if (err instanceof EditTargetMissingError) {
+      return {
+        status: 'error',
+        editTargetMissing: true,
+        failure: { kind: 'missing', message: err.message }
+      }
+    }
+    if (operation === 'update' && (err as { code?: string })?.code === '23505') {
+      return { status: 'error', editConflict: true, failure: classifySyncFailure(err) }
+    }
     try {
-      enqueue(entry)
+      enqueue({ ...saveEntry, pendingSyncOperation: operation })
+      for (const stale of staleMoves) dequeue(stale)
     } catch (queueError) {
       reportDevelopmentError('match-scout:queue', queueError)
       return {
@@ -103,7 +199,8 @@ export async function submitScoutEntry(entry: MatchScoutEntry): Promise<SubmitOu
   // problem must not turn that success into a false sync failure; leaving the
   // item queued is safe because the upsert is idempotent.
   try {
-    dequeue(entry)
+    dequeue({ ...saveEntry, pendingSyncOperation: operation })
+    for (const stale of staleMoves) dequeue(stale)
   } catch (cleanupError) {
     reportDevelopmentError('match-scout:queue-cleanup', cleanupError)
   }
@@ -113,11 +210,27 @@ export async function submitScoutEntry(entry: MatchScoutEntry): Promise<SubmitOu
 // Retries everything queued. Returns how many are still pending afterwards.
 export async function flushOutbox(): Promise<FlushOutcome> {
   let failure: SyncFailure | undefined
-  for (const entry of pendingEntries()) {
+  const queued = pendingEntries()
+  const latestByTarget = new Map<string, MatchScoutEntry>()
+  for (const raw of queued) {
+    const normalized = raw.pendingSyncOperation === 'update' ? originalQueuedTarget(raw, queued) : raw
+    const key = outboxKey(normalized)
+    const previous = latestByTarget.get(key)
+    if (!previous || normalized.updatedAt >= previous.updatedAt) latestByTarget.set(key, normalized)
+  }
+  for (const [key, queuedEntry] of latestByTarget) {
     try {
-      const { error } = await push(entry)
-      if (error) throw error
-      dequeue(entry)
+      const operation = queuedEntry.pendingSyncOperation ?? 'upsert'
+      const entry = withoutPendingOperation(queuedEntry)
+      if (operation === 'update') await updateExisting(entry)
+      else {
+        const { error } = await push(entry)
+        if (error) throw error
+      }
+      for (const raw of queued) {
+        const normalized = raw.pendingSyncOperation === 'update' ? originalQueuedTarget(raw, queued) : raw
+        if (outboxKey(normalized) === key) dequeue(raw)
+      }
     } catch (err) {
       // Schema, permission and validation failures are not "offline", but the
       // entry must still remain retryable after an admin fixes the cause.
@@ -148,16 +261,36 @@ function localEntries(userId: string | null): MatchScoutEntry[] {
 // edited it), except while an entry is still queued — then ours is newer.
 function mergeEntries(remote: MatchScoutEntry[], userId: string | null): MatchScoutEntry[] {
   const byKey = new Map<string, MatchScoutEntry>()
-  const keyOf = (entry: MatchScoutEntry) =>
-    `${entryEventCode(entry)}:${entry.matchId}:${entry.teamNumber}:${entry.observationKey ?? entry.scoutedBy ?? 'legacy'}`
+  const keyOf = (entry: MatchScoutEntry) => identityKey({ ...entry, eventCode: entryEventCode(entry) })
+  const queued = pendingEntries().filter((entry) => Boolean(userId) &&
+    (entry.scoutedBy === userId || entry.lastEditedBy === userId))
+  const latestByTarget = new Map<string, MatchScoutEntry>()
+  const pendingMoves = new Set<string>()
+  for (const raw of queued) {
+    const entry = raw.pendingSyncOperation === 'update' ? originalQueuedTarget(raw, queued) : raw
+    const targetKey = entry.pendingSyncOperation === 'update' && entry.editTarget
+      ? identityKey(entry.editTarget) : keyOf(entry)
+    const previous = latestByTarget.get(targetKey)
+    if (!previous || entry.updatedAt >= previous.updatedAt) latestByTarget.set(targetKey, entry)
+    if (entry.pendingSyncOperation === 'update' && entry.editTarget && targetKey !== keyOf(entry)) {
+      pendingMoves.add(targetKey)
+      pendingMoves.add(keyOf(entry))
+    }
+  }
+  for (const entry of latestByTarget.values()) pendingMoves.delete(keyOf(entry))
   for (const entry of localEntries(userId)) {
+    if (pendingMoves.has(keyOf(entry))) continue
     byKey.set(keyOf(entry), entry)
   }
   for (const entry of remote) {
     const key = keyOf(entry)
+    if (pendingMoves.has(key)) continue
     const local = byKey.get(key)
     if (!local || entry.updatedAt >= local.updatedAt) byKey.set(key, entry)
   }
+  // A correction in the retry queue remains the newest view of that
+  // observation. Keep its original server target for the Edit action.
+  for (const entry of latestByTarget.values()) byKey.set(keyOf(entry), entry)
   return [...byKey.values()].sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
@@ -251,12 +384,43 @@ export async function fetchScoutEntry(
   userId: string | null,
   eventCode: string,
   matchId: string,
-  teamNumber: string
+  teamNumber: string,
+  observationKey = userId ?? 'legacy'
 ): Promise<MatchScoutEntry | null> {
-  if (userId) {
-    const local = Taro.getStorageSync(scoutEntryStorageKey(userId, eventCode, matchId, teamNumber))
-    if (local && (!local.scoutedBy || local.scoutedBy === userId)) return local as MatchScoutEntry
-  }
+  const queued = pendingEntries()
+  // The latest backup may be under an intermediate match/team identity from
+  // an older build. Search this user's backups, then match their resolved
+  // original target instead of losing the latest unsynced correction.
+  const backups = userId
+    ? Taro.getStorageInfoSync().keys
+      .filter((key) => key.startsWith(`backup:${userId}:`))
+      .map((key) => Taro.getStorageSync(key) as MatchScoutEntry)
+      .filter(Boolean)
+    : []
+  const local = userId
+    ? [
+      ...queued.filter((candidate) => candidate.pendingSyncOperation === 'update'),
+      ...backups,
+      Taro.getStorageSync(scoutBackupKey(userId, eventCode, matchId, teamNumber, observationKey)),
+      Taro.getStorageSync(scoutEntryStorageKey(userId, eventCode, matchId, teamNumber, observationKey)),
+      // Read through pre-identity local records without ever applying them to
+      // a different observation.
+      Taro.getStorageSync(scoutBackupKey(userId, eventCode, matchId, teamNumber)),
+      Taro.getStorageSync(scoutEntryStorageKey(userId, eventCode, matchId, teamNumber))
+    ]
+      .filter((candidate): candidate is MatchScoutEntry => Boolean(candidate))
+      .filter((candidate) => {
+        const target = originalQueuedTarget(candidate, queued).editTarget
+        const currentMatches = entryEventCode(candidate) === eventCode && candidate.matchId === matchId &&
+          candidate.teamNumber === teamNumber &&
+          (candidate.observationKey ?? candidate.scoutedBy ?? 'legacy') === observationKey
+        return currentMatches || Boolean(target && target.eventCode === eventCode &&
+          target.matchId === matchId && target.teamNumber === teamNumber &&
+          target.observationKey === observationKey)
+      })
+      .sort((a, b) => b.updatedAt - a.updatedAt)[0]
+    : undefined
+  const resolvedLocal = local ? originalQueuedTarget(local, queued) : undefined
 
   try {
     const { data, error } = await withTimeout(
@@ -266,14 +430,15 @@ export async function fetchScoutEntry(
         .eq('event_code', eventCode)
         .eq('match_id', matchId)
         .eq('team_number', teamNumber)
-        .eq('observation_key', userId ?? 'legacy')
+        .eq('observation_key', observationKey)
         .order('updated_at', { ascending: false })
         .limit(1)
     )
-    if (error || !data || data.length === 0) return null
-    return toEntry(data[0] as Row)
+    if (error || !data || data.length === 0) return resolvedLocal ?? null
+    const remote = toEntry(data[0] as Row)
+    return resolvedLocal && resolvedLocal.updatedAt > remote.updatedAt ? resolvedLocal : remote
   } catch {
-    // Offline with no local copy — the form just opens blank.
-    return null
+    // Offline edits can resume only from a cache with the exact same identity.
+    return resolvedLocal ?? null
   }
 }

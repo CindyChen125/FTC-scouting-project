@@ -50,6 +50,13 @@ export interface Profile {
 export const profileLabel = (p: Pick<Profile, 'displayName' | 'username'>) =>
   p.displayName || p.username
 
+export interface ObservationIdentity {
+  eventCode: string
+  matchId: string
+  teamNumber: string
+  observationKey: string
+}
+
 interface EntryBase {
   observationKey?: string
   // Entries submitted before this field existed have no eventCode — treat
@@ -67,6 +74,10 @@ interface EntryBase {
   scoutedBy?: string | null
   // Set whenever anyone edits the entry, which may not be the author.
   lastEditedBy?: string | null
+  // Internal retry metadata. This is never written to Supabase.
+  pendingSyncOperation?: 'upsert' | 'update'
+  // Original row identity when correcting a match or team number.
+  editTarget?: ObservationIdentity
   overallNotes: string
   updatedAt: number
 }
@@ -191,24 +202,27 @@ const localKey = (
   userId: string,
   eventCode: string,
   matchId: string,
-  teamNumber: string
-) => `${prefix}:${userId}:${eventCode}:${matchId}:${teamNumber}`
+  teamNumber: string,
+  observationKey?: string
+) => `${prefix}:${userId}:${eventCode}:${matchId}:${teamNumber}${observationKey ? `:${observationKey}` : ''}`
 
 // Submitted entries (shown in "My Scouting Data") use the `scout:` prefix.
 export const scoutEntryStorageKey = (
   userId: string,
   eventCode: string,
   matchId: string,
-  teamNumber: string
-) => localKey('scout', userId, eventCode, matchId, teamNumber)
+  teamNumber: string,
+  observationKey?: string
+) => localKey('scout', userId, eventCode, matchId, teamNumber, observationKey)
 
 // Auto-saved backups (offline-first safety net, never uploaded) use `backup:`.
 export const scoutBackupKey = (
   userId: string,
   eventCode: string,
   matchId: string,
-  teamNumber: string
-) => localKey('backup', userId, eventCode, matchId, teamNumber)
+  teamNumber: string,
+  observationKey?: string
+) => localKey('backup', userId, eventCode, matchId, teamNumber, observationKey)
 
 // Matches every locally submitted entry belonging to one user.
 export const scoutEntryKeyPrefix = (userId: string) => `scout:${userId}:`

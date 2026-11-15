@@ -135,6 +135,8 @@
   margin-bottom: 4px;
 }
 
+.entry-sync-pending { color: var(--color-warning); font-weight: 700; }
+
 .entry-stats {
   display: flex;
   gap: 20px;

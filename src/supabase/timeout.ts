@@ -19,7 +19,7 @@ export function withTimeout<T>(work: PromiseLike<T>, ms = REQUEST_TIMEOUT_MS): P
   })
 }
 
-export type SyncFailureKind = 'network' | 'authentication' | 'permission' | 'schema' | 'validation' | 'storage' | 'server'
+export type SyncFailureKind = 'network' | 'authentication' | 'permission' | 'schema' | 'validation' | 'missing' | 'storage' | 'server'
 
 export interface SyncFailure {
   kind: SyncFailureKind
@@ -81,9 +81,12 @@ export function classifySyncFailure(err: unknown): SyncFailure {
   if (e.status === 403 || code === '42501' || /row-level security|permission denied|not authorized|unauthorized/i.test(rawMessage)) {
     return { kind: 'permission', message }
   }
+  if (code === 'EDIT_TARGET_MISSING') {
+    return { kind: 'missing', message }
+  }
   if (
     code === '42703' || code === '42P10' || code === 'PGRST204' ||
-    /column .* does not exist|schema cache|no unique or exclusion constraint|observation_key/i.test(rawMessage)
+    /column .* does not exist|schema cache|no unique or exclusion constraint|observation_key|Observation identity cannot change/i.test(rawMessage)
   ) {
     return { kind: 'schema', message }
   }

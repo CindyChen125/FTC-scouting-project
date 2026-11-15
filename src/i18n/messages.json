@@ -1642,5 +1642,41 @@
   " · 受限旧管理员 Restricted legacy admin": {
     "en": " · Restricted legacy admin",
     "zh": " · 受限旧管理员"
-  }
+  },
+  "Could not identify the observation to edit. Reopen it from Match Details.": {
+    "en": "Could not identify the observation to edit. Reopen it from Match Details.",
+    "zh": "无法确认要编辑的记录，请从比赛详情重新打开。"
+  },
+  "This observation no longer exists. Reload it before saving.": {
+    "en": "This observation no longer exists. Reload it before saving.",
+    "zh": "此记录已不存在，请重新载入后再保存。"
+  },
+  "You are not authorized to edit this scouting observation.": {
+    "en": "You are not authorized to edit this scouting observation.",
+    "zh": "你没有权限编辑这条侦查记录。"
+  },
+  "You already have an observation for that match and team.": {
+    "en": "You already have an observation for that match and team.",
+    "zh": "你已为该场次和队伍提交过侦查记录。"
+  },
+  "sync.local": { "en": "Saved on this device", "zh": "已保存到本机" },
+  "sync.queued": { "en": "Waiting to sync", "zh": "等待同步" },
+  "sync.synced": { "en": "Synced", "zh": "已同步" },
+  "sync.error": { "en": "Sync failed — changes remain on this device", "zh": "同步失败，修改仍保存在本机" },
+  "sync.error.network": { "en": "Offline — waiting to sync", "zh": "网络不可用，等待同步" },
+  "sync.error.authentication": { "en": "Sign-in expired — changes remain on this device", "zh": "登录已失效，修改仍保存在本机" },
+  "sync.error.permission": { "en": "Access blocked sync — changes remain on this device", "zh": "权限不足，修改仍保存在本机" },
+  "sync.error.schema": { "en": "Database update required — changes remain on this device", "zh": "数据库需要更新，修改仍保存在本机" },
+  "sync.error.validation": { "en": "Server rejected the changes — copy retained", "zh": "服务器拒绝修改，副本仍在本机" },
+  "sync.error.missing": { "en": "Original observation not found — copy retained", "zh": "找不到原始侦查记录，副本仍在本机" },
+  "sync.error.storage": { "en": "Device storage failed — form remains open", "zh": "本机存储失败，表单仍保留" },
+  "sync.error.server": { "en": "Server sync failed — changes remain on this device", "zh": "服务器同步失败，修改仍保存在本机" },
+  "sync.detail.network": { "en": "Your changes will retry when the connection returns.", "zh": "网络恢复后会自动重试同步。" },
+  "sync.detail.authentication": { "en": "Sign in again, then retry.", "zh": "请重新登录，然后重试。" },
+  "sync.detail.permission": { "en": "Ask an admin to check your access, then retry.", "zh": "请管理员检查你的权限，然后重试。" },
+  "sync.detail.schema": { "en": "Ask an admin to apply the latest scouting database migration, then retry.", "zh": "请管理员运行最新的侦查数据库迁移脚本，然后重试。" },
+  "sync.detail.validation": { "en": "Check the match and team numbers, then retry.", "zh": "请检查场次和队号，然后重试。" },
+  "sync.detail.missing": { "en": "Reopen the latest observation from My Scouting Data before editing.", "zh": "请从“我的侦查数据”重新打开最新记录后再编辑。" },
+  "sync.detail.storage": { "en": "Free device space and try saving again.", "zh": "请清理本机存储空间后重新保存。" },
+  "sync.detail.server": { "en": "Try again later. Your changes remain on this device.", "zh": "请稍后重试，修改仍保存在本机。" }
 }

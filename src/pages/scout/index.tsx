@@ -13,6 +13,7 @@ import {
   TeleopData,
   EndgameData,
   BiobuzzEntry,
+  ObservationIdentity,
   emptyAuto,
   emptyTeleop,
   emptyEndgame,
@@ -34,7 +35,7 @@ import {
   type SyncFailure
 } from '../../supabase/timeout'
 import { useAuth } from '../../auth/AuthContext'
-import { CURRENT_SEASON, findEvent, eventLabel } from '../../data/events'
+import { CURRENT_SEASON, findEvent, eventLabel, entryEventCode } from '../../data/events'
 import { useActiveEvent } from '../../data/ActiveEventContext'
 import './index.scss'
 
@@ -106,7 +107,7 @@ function YesNoField({ label, value, onChange }: { label: string, value: boolean,
   )
 }
 
-function TextField({ label, value, onChange, placeholder, numeric = false }: { label: string, value: string, onChange: (s: string) => void, placeholder?: string, numeric?: boolean }) {
+function TextField({ label, value, onChange, placeholder, numeric = false, disabled = false }: { label: string, value: string, onChange: (s: string) => void, placeholder?: string, numeric?: boolean, disabled?: boolean }) {
   useLanguage()
   return (
     <View className='field-row'>
@@ -116,6 +117,7 @@ function TextField({ label, value, onChange, placeholder, numeric = false }: { l
         type={numeric ? 'number' : 'text'}
         value={value}
         placeholder={placeholder}
+        disabled={disabled}
         // @ts-expect-error h5-only DOM attribute, prevents browser autofill from injecting saved values
         autoComplete='off'
         onInput={(e) => onChange(e.detail.value)}
@@ -176,6 +178,8 @@ export default function Index() {
   const [eventCode, setEventCode] = useState(activeEvent.code)
   const [matchId, setMatchId] = useState('')
   const [teamNumber, setTeamNumber] = useState('')
+  const [editMode, setEditMode] = useState(false)
+  const [editTarget, setEditTarget] = useState<ObservationIdentity | null>(null)
   const [alliance, setAlliance] = useState<Alliance>('red')
 
   const [auto, setAuto] = useState<AutoData>(emptyAuto())
@@ -210,6 +214,17 @@ export default function Index() {
     }
     if (options?.matchId) setMatchId(decodeURIComponent(options.matchId))
     if (options?.teamNumber) setTeamNumber(decodeURIComponent(options.teamNumber))
+    if (options?.mode === 'edit') {
+      setEditMode(true)
+      if (options.eventCode && options.matchId && options.teamNumber && options.observationKey) {
+        setEditTarget({
+          eventCode: decodeURIComponent(options.eventCode),
+          matchId: decodeURIComponent(options.matchId),
+          teamNumber: decodeURIComponent(options.teamNumber),
+          observationKey: decodeURIComponent(options.observationKey)
+        })
+      }
+    }
   })
 
   // The author of a loaded entry, preserved so editing someone else's work
@@ -217,7 +232,12 @@ export default function Index() {
   const [scoutedBy, setScoutedBy] = useState<string | null>(null)
   const [originalScoutName, setOriginalScoutName] = useState<string | null>(null)
   const [loadedIdentity, setLoadedIdentity] = useState('')
-  const identity = `${userId}:${eventCode}:${matchId}:${teamNumber}`
+  const [loadError, setLoadError] = useState('')
+  const targetObservationKey = editMode ? (editTarget?.observationKey ?? '') : (userId ?? '')
+  const loadEventCode = editMode ? (editTarget?.eventCode ?? '') : eventCode
+  const loadMatchId = editMode ? (editTarget?.matchId ?? '') : matchId
+  const loadTeamNumber = editMode ? (editTarget?.teamNumber ?? '') : teamNumber
+  const identity = `${userId}:${loadEventCode}:${loadMatchId}:${loadTeamNumber}:${editMode ? 'edit' : 'new'}:${targetObservationKey}`
 
   const requestSubmitConfirmation = useCallback(() => new Promise<boolean>((resolve) => {
     confirmationResolver.current = resolve
@@ -239,6 +259,17 @@ export default function Index() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const applyLoaded = (saved: any) => {
+    if (editMode && saved.matchId && saved.teamNumber) {
+      setMatchId(saved.matchId)
+      setTeamNumber(saved.teamNumber)
+      if (saved.editTarget && (!editTarget ||
+        saved.editTarget.eventCode !== editTarget.eventCode ||
+        saved.editTarget.matchId !== editTarget.matchId ||
+        saved.editTarget.teamNumber !== editTarget.teamNumber ||
+        saved.editTarget.observationKey !== editTarget.observationKey)) {
+        setEditTarget(saved.editTarget)
+      }
+    }
     setAlliance((saved.alliance as Alliance) ?? 'red')
     setScoutedBy((saved.scoutedBy as string) ?? null)
     setOriginalScoutName((saved.scoutName as string) ?? null)
@@ -253,52 +284,66 @@ export default function Index() {
     setOverallNotes((saved.overallNotes as string) ?? '')
   }
 
-  // Resume from the auto-saved backup (latest working copy) or a previously
-  // submitted entry on THIS device. If neither exists locally — e.g. editing
-  // an entry another scout submitted from their own device — fall back to
-  // the shared Supabase copy. Merge onto empty defaults so older saves
-  // (or fields added since) still fill in.
+  // Edit mode loads only the selected observation key. New mode resumes only
+  // a matching draft; it never silently turns an old submitted row into the
+  // current form's edit target.
   useEffect(() => {
-    if (!matchId || !teamNumber || !userId) {
-      setLoadedIdentity('')
+    setLoadedIdentity('')
+    setLoadError('')
+    if (!userId || (!editMode && (!matchId || !teamNumber || !eventCode))) {
       return
     }
-    const local =
-      Taro.getStorageSync(scoutBackupKey(userId, eventCode, matchId, teamNumber)) ||
-      Taro.getStorageSync(scoutEntryStorageKey(userId, eventCode, matchId, teamNumber))
-    if (local && (!local.scoutedBy || local.scoutedBy === userId)) {
-      applyLoaded(local)
-      setLoadedIdentity(identity)
+    if (editMode && !editTarget) {
+      setLoadError('Could not identify the observation to edit. Reopen it from Match Details.')
       return
     }
+    const observationKey = editMode ? editTarget!.observationKey : userId
     let cancelled = false
-    const timer = setTimeout(() => {
-      fetchScoutEntry(userId, eventCode, matchId, teamNumber).then((remote) => {
-        if (!cancelled) {
-          applyLoaded(remote ?? { alliance })
-          setLoadedIdentity(identity)
-        }
-      })
-    }, 450)
-    return () => {
-      cancelled = true
-      clearTimeout(timer)
+
+    const finishLoading = (saved: any) => {
+      if (cancelled) return
+      if (!saved) {
+        if (editMode) setLoadError('This observation no longer exists. Reload it before saving.')
+        else applyLoaded({ alliance: 'red' })
+      } else {
+        applyLoaded(saved)
+      }
+      setLoadedIdentity(identity)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventCode, matchId, teamNumber, userId])
+
+    if (editMode) {
+      const timer = setTimeout(() => {
+        fetchScoutEntry(userId, loadEventCode, loadMatchId, loadTeamNumber, observationKey)
+          .then(finishLoading)
+          .catch(() => finishLoading(null))
+      }, 450)
+      return () => {
+        cancelled = true
+        clearTimeout(timer)
+      }
+    }
+
+    const backup =
+      Taro.getStorageSync(scoutBackupKey(userId, eventCode, matchId, teamNumber, observationKey)) ||
+      Taro.getStorageSync(scoutBackupKey(userId, eventCode, matchId, teamNumber))
+    const isMatchingDraft = backup &&
+      entryEventCode(backup) === eventCode && backup.matchId === matchId && backup.teamNumber === teamNumber &&
+      (backup.observationKey ?? backup.scoutedBy ?? userId) === observationKey
+    finishLoading(isMatchingDraft ? backup : null)
+    return () => { cancelled = true }
+  }, [loadEventCode, loadMatchId, loadTeamNumber, userId, editMode, editTarget, identity])
 
   const currentEntry = (): BiobuzzEntry => ({
-    observationKey: userId ?? undefined,
+    observationKey: targetObservationKey || undefined,
     eventCode,
     matchId,
     teamNumber,
     alliance,
-    // On a new entry this scout is the author; when editing an existing one the
-    // original author is kept. The database enforces this too — the client's
-    // value is ignored on update — but keeping it right here means the local
-    // copy and the outbox agree with what the server will store.
-    scoutName: originalScoutName ?? scoutName,
-    scoutedBy: scoutedBy ?? userId,
+    // Keep the author identity stable while recording the signed-in editor.
+    scoutName: editMode ? originalScoutName ?? scoutName : scoutName,
+    scoutedBy: editMode ? scoutedBy : userId,
+    lastEditedBy: editMode ? userId : null,
+    editTarget: editMode ? editTarget ?? undefined : undefined,
     auto: { ...auto, noteTags: auto.noteTags.map(noteTagId) },
     teleop: { ...teleop, noteTags: teleop.noteTags.map(noteTagId) },
     endgame,
@@ -313,7 +358,7 @@ export default function Index() {
     if (!matchId || !teamNumber || !userId || loadedIdentity !== identity) return
     try {
       Taro.setStorageSync(
-        scoutBackupKey(userId, eventCode, matchId, teamNumber),
+        scoutBackupKey(userId, loadEventCode, loadMatchId, loadTeamNumber, targetObservationKey),
         currentEntry()
       )
       setSyncFailure(undefined)
@@ -324,12 +369,16 @@ export default function Index() {
       setSyncState('error')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventCode, matchId, teamNumber, userId, alliance, scoutName, auto, teleop, endgame, overallNotes, loadedIdentity, identity])
+  }, [eventCode, matchId, teamNumber, loadEventCode, loadMatchId, loadTeamNumber, userId, targetObservationKey, alliance, scoutName, auto, teleop, endgame, overallNotes, loadedIdentity, identity])
 
   const handleSubmit = async () => {
     if (submitLock.current) return
     if (loadedIdentity !== identity) {
       Taro.showToast({ title: t("Loading this match…"), icon: 'none' })
+      return
+    }
+    if (loadError) {
+      Taro.showToast({ title: t(loadError), icon: 'none' })
       return
     }
     if (!matchId || !teamNumber) {
@@ -349,13 +398,13 @@ export default function Index() {
       let entry: BiobuzzEntry
       try {
         entry = currentEntry()
-        // Save the exact submitted snapshot before attempting the network.
-        // If storage is unavailable, the live form stays intact and no false
-        // claim is made that an offline-safe copy exists.
-        Taro.setStorageSync(
-          scoutEntryStorageKey(userId, eventCode, matchId, teamNumber),
-          entry
-        )
+        // Preserve the working copy before any network request. New rows also
+        // get a submitted cache entry so a disconnected scout still sees it.
+        const observationKey = entry.observationKey ?? userId
+        Taro.setStorageSync(scoutBackupKey(userId, loadEventCode, loadMatchId, loadTeamNumber, observationKey), entry)
+        if (!editMode) {
+          Taro.setStorageSync(scoutEntryStorageKey(userId, eventCode, matchId, teamNumber, observationKey), entry)
+        }
         setSyncFailure(undefined)
         setSyncState('local')
       } catch (error) {
@@ -371,7 +420,7 @@ export default function Index() {
 
       let outcome: SubmitOutcome
       try {
-        outcome = await submitScoutEntry(entry)
+        outcome = await submitScoutEntry(entry, editMode ? 'update' : 'upsert')
       } catch (error) {
         // submitScoutEntry normally returns a classified outcome. This catch
         // protects against unexpected synchronous/client-storage exceptions;
@@ -386,12 +435,46 @@ export default function Index() {
         return
       }
       setSyncFailure(outcome.failure)
+      if (outcome.editTargetMissing) {
+        setSyncState('error')
+        Taro.showToast({ title: t('This observation no longer exists. Reload it before saving.'), icon: 'none' })
+        return
+      }
+      if (outcome.editConflict) {
+        setSyncState('error')
+        Taro.showToast({ title: t('You already have an observation for that match and team.'), icon: 'none' })
+        return
+      }
+      try {
+        const observationKey = entry.observationKey ?? userId
+        const submittedKey = scoutEntryStorageKey(userId, eventCode, matchId, teamNumber, observationKey)
+        const submittedCopy = { ...entry }
+        if (outcome.status === 'synced') {
+          delete submittedCopy.editTarget
+        } else {
+          submittedCopy.pendingSyncOperation = editMode ? 'update' : 'upsert'
+        }
+        Taro.setStorageSync(submittedKey, submittedCopy)
+        if (editMode && editTarget && (editTarget.matchId !== matchId || editTarget.teamNumber !== teamNumber)) {
+          for (const oldKey of [
+            scoutEntryStorageKey(userId, editTarget.eventCode, editTarget.matchId, editTarget.teamNumber, observationKey),
+            scoutEntryStorageKey(userId, editTarget.eventCode, editTarget.matchId, editTarget.teamNumber)
+          ]) {
+            if (oldKey === submittedKey) continue
+            const oldCopy = Taro.getStorageSync(oldKey) as BiobuzzEntry | undefined
+            if (oldCopy && (oldCopy.observationKey ?? oldCopy.scoutedBy ?? 'legacy') === observationKey) {
+              Taro.removeStorageSync(oldKey)
+            }
+          }
+        }
+      } catch (error) {
+        reportDevelopmentError('match-scout:submitted-cache', error)
+      }
       if (outcome.status === 'error') {
         setSyncState('error')
-        Taro.showToast({
-          title: t('未能同步；数据仍在本机 Sync failed — data remains local'),
-          icon: 'none'
-        })
+        Taro.showToast({ title: outcome.failure?.kind === 'permission'
+          ? t('You are not authorized to edit this scouting observation.')
+          : t('未能同步；数据仍在本机 Sync failed — data remains local'), icon: 'none' })
         return
       }
 
@@ -440,7 +523,7 @@ export default function Index() {
   const patchTeleop = (patch: Partial<TeleopData>) => setTeleop((prev) => ({ ...prev, ...patch }))
   const patchEndgame = (patch: Partial<EndgameData>) => setEndgame((prev) => ({ ...prev, ...patch }))
 
-  const submitDisabled = submitting || confirmationOpen || !matchId || !teamNumber
+  const submitDisabled = submitting || confirmationOpen || !matchId || !teamNumber || loadedIdentity !== identity || !!loadError
 
   return (
     <View className='scout-page'>
@@ -448,6 +531,7 @@ export default function Index() {
 
       <View className='page-content'>
       <View className='header-card'>
+        {!!loadError && <Text className='sync-error'>{t(loadError)}</Text>}
         <View className='event-context-row'>
           <Text className='event-badge'>{t('当前赛事 Active event')}: {eventLabel(findEvent(eventCode))}</Text>
           {activeEventOffline && <Text className='event-offline'>{t('离线缓存 Offline cache')}</Text>}
@@ -532,10 +616,8 @@ export default function Index() {
         </View>
       </View>
 
-      {matchId && teamNumber && <Text className='save-hint'>{t('已自动备份 Auto-saved ✓')}</Text>}
-
       {matchId && teamNumber && syncState && (
-        <SyncStatus state={syncState} failure={syncFailure} onRetry={syncState === 'error' && pendingCount() > 0 ? retrySync : undefined} />
+        <SyncStatus state={syncState} failure={syncFailure} onRetry={syncState === 'error' && syncFailure?.kind !== 'missing' && pendingCount() > 0 ? retrySync : undefined} />
       )}
 
       <Button

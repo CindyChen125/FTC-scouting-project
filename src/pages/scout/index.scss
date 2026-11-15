@@ -25,8 +25,7 @@
 .subsection-title { display: block; margin: 26px 0 14px; color: var(--color-primary); font-size: var(--type-title); font-weight: 700; }
 .two-col { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
 .two-col .field-row { min-width: 0; }
-.save-hint { display: block; margin: 20px auto 12px; color: var(--color-text-muted); font-size: calc(18px * var(--font-scale)); line-height: 1.5; text-align: center; }
-.scout-page .sync-status { margin: 0 auto 14px; }
+.scout-page .sync-status { margin: 20px auto 14px; }
 // Scope these rules above Taro's H5 button defaults, including its pressed state.
 .scout-page .page-content .submit-btn {
   display: flex;

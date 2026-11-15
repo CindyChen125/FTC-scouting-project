@@ -65,8 +65,14 @@ export default function EntryDetail() {
   }, [userId])
 
   const goEdit = () => {
+    // A locally queued correction is shown under its new numbers, but the
+    // server row still has the original identity until synchronization wins.
+    const target = entry.editTarget ?? {
+      eventCode, matchId, teamNumber,
+      observationKey: observationKey || entry.observationKey || entry.scoutedBy || 'legacy'
+    }
     Taro.navigateTo({
-      url: `/pages/scout/index?eventCode=${encodeURIComponent(eventCode)}&matchId=${encodeURIComponent(matchId)}&teamNumber=${encodeURIComponent(teamNumber)}`
+      url: `/pages/scout/index?mode=edit&eventCode=${encodeURIComponent(target.eventCode)}&matchId=${encodeURIComponent(target.matchId)}&teamNumber=${encodeURIComponent(target.teamNumber)}&observationKey=${encodeURIComponent(target.observationKey)}`
     })
   }
 

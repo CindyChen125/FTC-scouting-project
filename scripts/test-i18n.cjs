@@ -20,10 +20,15 @@ let entries = []
 let pits = []
 let exportedRows
 let fetchScoutEntryCalls = 0
+let fetchScoutEntryArgs
+let fetchScoutEntryResult = null
 let showModalCalls = 0
 let reLaunchError
 let submitOutcome = { status: 'synced' }
 let submitScoutEntryCalls = 0
+let submittedEntry
+let submittedOperation
+let lastNavigateUrl
 let toastCalls = []
 const taro = {
   getStorageSync: (key) => storage.get(key),
@@ -31,6 +36,7 @@ const taro = {
   getStorageInfoSync: () => ({ keys: [...storage.keys()] }),
   removeStorageSync: (key) => storage.delete(key),
   setNavigationBarTitle: async () => {},
+  navigateTo: async ({ url }) => { lastNavigateUrl = url },
   showToast: async (options) => { toastCalls.push(options) },
   showModal: async () => { showModalCalls += 1; throw new Error('Taro.showModal should not be used') },
   reLaunch: async () => {
@@ -46,7 +52,7 @@ const components = Object.fromEntries(['View', 'Text', 'Button', 'Input', 'Texta
       onChange: (e) => props.onChange?.({ detail: { value: e.target.value } })
     }, props.range.map((label, index) => h('option', { key: index, value: index }, label))), children)
     if (name === 'Input' || name === 'Textarea') return h(name === 'Input' ? 'input' : 'textarea', {
-      ref, className, value, placeholder, onChange: () => {},
+      ref, className, value, placeholder, disabled, onChange: () => {},
       onInput: (e) => props.onInput?.({ detail: { value: e.target.value } })
     })
     return h(name === 'Button' ? 'button' : name === 'Text' ? 'span' : 'div', {
@@ -71,8 +77,8 @@ const mocks = {
   }) },
   'ftcScout': { readImportedEvents: () => [], syncImportedEvents: async () => [], STATIONS: ['Red 1', 'Red 2', 'Blue 1', 'Blue 2'] },
   'scouting': {
-    fetchScoutEntry: async () => { fetchScoutEntryCalls += 1; return null },
-    submitScoutEntry: async () => { submitScoutEntryCalls += 1; return submitOutcome },
+    fetchScoutEntry: async (...args) => { fetchScoutEntryCalls += 1; fetchScoutEntryArgs = args; return fetchScoutEntryResult },
+    submitScoutEntry: async (entry, operation) => { submitScoutEntryCalls += 1; submittedEntry = entry; submittedOperation = operation; return submitOutcome },
     subscribeScoutEntries: (_, done) => { done(entries); return () => {} },
     subscribeScoutEntry: (_, __, ___, ____, done) => { done(entries[0]); return () => {} },
     flushOutbox: async () => 0,
@@ -101,7 +107,8 @@ for (const extension of ['.ts', '.tsx']) require.extensions[extension] = (module
 }
 require.extensions['.scss'] = () => {}
 const { translate: t, setCurrentLanguage } = require('../src/i18n')
-const { LanguageProvider } = require('../src/i18n/LanguageContext')
+const { LanguageProvider, useLanguage } = require('../src/i18n/LanguageContext')
+const SyncStatus = require('../src/components/SyncStatus').default
 const { NOTE_OPTIONS, noteTagId, emptyAuto, emptyTeleop, emptyEndgame, scoutBackupKey, foulCategoryFor } = require('../src/types/scouting')
 const { pitBackupKey } = require('../src/types/pit')
 const { createOutbox, outboxKey } = require('../src/supabase/outbox')
@@ -155,6 +162,7 @@ async function main() {
     assert.deepEqual(placeholders(message.en), placeholders(message.zh), `Placeholder mismatch: ${key}`)
   }
   setCurrentLanguage('en')
+  assert.equal(classifySyncFailure({ message: 'Observation identity cannot change' }).kind, 'schema', 'Old database trigger is classified as a migration issue')
   const before = JSON.stringify(entry)
   assert(formatNotes(entry.auto.noteTags, rawNote).includes(rawNote))
   assert.equal(t('teamNumber', { number: rawNote }).includes(rawNote), true)
@@ -218,13 +226,28 @@ async function main() {
   assert.equal(document.documentElement.lang, 'zh-CN')
   await flush(() => mountPoint.querySelector('.app-header-language-btn').click())
   assert.equal(document.documentElement.lang, 'en')
+  function SyncStatusHarness() {
+    const { toggleLanguage } = useLanguage()
+    return h('div', null,
+      h('button', { className: 'toggle-language', onClick: toggleLanguage }, 'toggle'),
+      h(SyncStatus, { state: 'error', failure: { kind: 'schema', message: 'Observation identity cannot change' } })
+    )
+  }
+  await mount(SyncStatusHarness)
+  assert(mountPoint.textContent.includes('Database update required'), 'Sync error is English when English is selected')
+  assert(!mountPoint.textContent.includes('Observation identity cannot change'), 'Raw server text is not shown to scouts')
+  assert(!/\p{Script=Han}/u.test(mountPoint.querySelector('.sync-status').textContent), 'English sync status has no Chinese')
+  await flush(() => mountPoint.querySelector('.toggle-language').click())
+  assert(mountPoint.textContent.includes('数据库需要更新'), 'Sync error follows the Chinese selection')
+  assert(!/[A-Za-z]/.test(mountPoint.querySelector('.sync-status').textContent), 'Chinese sync status has no English')
+  await flush(() => mountPoint.querySelector('.toggle-language').click())
   for (const page of ['index', 'scout', 'pit', 'data', 'entry', 'settings', 'admin']) {
     await mount(require(`../src/pages/${page}/index`).default)
     let draft
-    const draftKey = `backup:${user.userId}:${entry.eventCode}:${entry.matchId}:${entry.teamNumber}`
+    const draftKey = `backup:${user.userId}:${entry.eventCode}:${entry.matchId}:${entry.teamNumber}:${user.userId}`
     if (page === 'scout') {
       await flush(() => new Promise((resolve) => setTimeout(resolve, 500)))
-      assert.equal(fetchScoutEntryCalls, 1, 'Initial complete identity performs one remote lookup')
+      assert.equal(fetchScoutEntryCalls, 0, 'New observation mode does not load an existing submitted row')
       const counterLines = mountPoint.querySelectorAll('.counter-line')
       assert.equal(counterLines[0].children.length, 5, 'Balls into hive keeps −1, value, +1, +2, +4')
       assert.equal(counterLines[1].children.length, 3, 'Hive tips has only −1, value, +1')
@@ -246,7 +269,7 @@ async function main() {
         }
       })
       await flush(() => new Promise((resolve) => setTimeout(resolve, 500)))
-      assert.equal(fetchScoutEntryCalls - callsBeforeTyping, 1, 'Rapid team typing is debounced to one remote lookup')
+      assert.equal(fetchScoutEntryCalls - callsBeforeTyping, 0, 'Changing a new observation identity never loads an arbitrary remote row')
       await flush(() => {
         setValue.call(teamInput, '417')
         teamInput.dispatchEvent(new dom.window.Event('input', { bubbles: true }))
@@ -311,7 +334,8 @@ async function main() {
       taro.setStorageSync = workingSetStorage
       console.error = workingConsoleError
       assert.equal(submitScoutEntryCalls, 0, 'Supabase is not called when the submitted local snapshot cannot be saved')
-      assert(mountPoint.querySelector('.sync-status--error').textContent.includes('Quota exceeded'), 'Storage diagnostic is visible')
+      assert(mountPoint.querySelector('.sync-status--error').textContent.includes('Device storage failed'), 'Storage failure has a localized recovery message')
+      assert(!mountPoint.querySelector('.sync-status--error').textContent.includes('Quota exceeded'), 'Raw storage diagnostic stays out of the interface')
       assert(toastCalls.some(({ title }) => title.includes('form remains open')), 'Storage failure explains that form data remains')
       assert(localSaveErrors.some(([scope]) => scope === '[match-scout:local-save]'), 'Development log identifies local storage failure')
       reLaunchError = undefined
@@ -322,14 +346,115 @@ async function main() {
       assert([...mountPoint.querySelectorAll('input')].some((input) => input.value === '417'), 'Bilingual rendering retains team number')
       assert(mountPoint.querySelector('.scout-identity').textContent.includes('Red'), 'Scout names remain unchanged')
     }
-    if (draft) assert.equal(JSON.stringify(storage.get(draftKey)), draft, 'Bilingual rendering must not rewrite a draft')
+    if (draft) {
+      const withoutTimestamp = (value) => {
+        const parsed = JSON.parse(value)
+        delete parsed.updatedAt
+        return JSON.stringify(parsed)
+      }
+      assert.equal(withoutTimestamp(JSON.stringify(storage.get(draftKey))), withoutTimestamp(draft), 'UI rerenders must not change the saved scouting values')
+    }
     if (page === 'data') {
       await flush(() => mountPoint.querySelectorAll('.tab-item')[1].click())
       assert(mountPoint.textContent.includes('reported breakdowns'))
       await flush(() => mountPoint.querySelectorAll('.tab-item')[2].click())
       assert(mountPoint.textContent.includes(rawNote), 'Pit notes remain untouched')
     }
+    if (page === 'entry') {
+      await flush(() => mountPoint.querySelector('.edit-btn').click())
+      assert(lastNavigateUrl.includes('mode=edit'), 'Entry details opens the form in explicit edit mode')
+      assert(lastNavigateUrl.includes('observationKey=test-user'), 'Entry details passes the selected observation identity')
+    }
   }
+  // Editing a selected row carries its complete identity through navigation,
+  // loads that exact observation, and submits an update that preserves author.
+  fetchScoutEntryResult = {
+    ...entry,
+    observationKey: 'test-user',
+    scoutedBy: 'test-user',
+    scoutName: 'Original Scout',
+    auto: { ...emptyAuto(), cellBalls: 4 },
+    teleop: emptyTeleop(),
+    endgame: emptyEndgame()
+  }
+  route = {
+    mode: 'edit', eventCode: entry.eventCode, matchId: entry.matchId,
+    teamNumber: entry.teamNumber, observationKey: 'test-user'
+  }
+  const callsBeforeEdit = fetchScoutEntryCalls
+  await mount(require('../src/pages/scout/index').default)
+  await flush(() => new Promise((resolve) => setTimeout(resolve, 500)))
+  assert.equal(fetchScoutEntryCalls - callsBeforeEdit, 1, 'Edit mode loads one selected observation')
+  assert.equal(fetchScoutEntryArgs[4], 'test-user', 'Edit lookup uses the selected observation key')
+  assert(mountPoint.querySelector('.scout-identity').textContent.startsWith('Original Scout'), 'Edit retains the original scout identity')
+  const matchInput = [...mountPoint.querySelectorAll('input')].find((input) => input.value === '12')
+  const teamInput = [...mountPoint.querySelectorAll('input')].find((input) => input.value === '417')
+  assert(matchInput && teamInput && !matchInput.disabled && !teamInput.disabled, 'Match and team numbers can be corrected during editing')
+  const setInputValue = Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, 'value').set
+  await flush(() => {
+    setInputValue.call(matchInput, '13')
+    matchInput.dispatchEvent(new dom.window.Event('input', { bubbles: true }))
+    setInputValue.call(teamInput, '418')
+    teamInput.dispatchEvent(new dom.window.Event('input', { bubbles: true }))
+  })
+  assert.equal(fetchScoutEntryCalls - callsBeforeEdit, 1, 'Changing match and team does not lose or refetch the edit target')
+  submitScoutEntryCalls = 0
+  await flush(() => mountPoint.querySelector('.submit-btn').click())
+  await flush(() => mountPoint.querySelector('.confirm-dialog-confirm').click())
+  assert.equal(submitScoutEntryCalls, 1)
+  assert.equal(submittedOperation, 'update', 'Editing never uses the new-observation upsert path')
+  assert.equal(submittedEntry.observationKey, 'test-user', 'Edit preserves the selected database identity')
+  assert.equal(submittedEntry.matchId, 'Q13', 'Corrected match number is submitted')
+  assert.equal(submittedEntry.teamNumber, '418', 'Corrected team number is submitted')
+  assert.deepEqual(submittedEntry.editTarget, {
+    eventCode: entry.eventCode, matchId: entry.matchId,
+    teamNumber: entry.teamNumber, observationKey: 'test-user'
+  }, 'The update still targets the original row')
+  assert.equal(submittedEntry.scoutedBy, 'test-user', 'Edit preserves original authorship')
+  assert.equal(submittedEntry.lastEditedBy, 'test-user', 'Edit records the current editor')
+  assert.equal(storage.has(`scout:${user.userId}:${entry.eventCode}:Q12:417:${user.userId}`), false, 'The old local cache key is removed after a correction')
+  assert(storage.has(`scout:${user.userId}:${entry.eventCode}:Q13:418:${user.userId}`), 'The corrected observation uses its new local cache key')
+
+  // A pending correction appears under its new numbers in the list. Its Edit
+  // link and a direct link must still target the original database row.
+  const queuedCorrection = {
+    ...entry, matchId: 'Q13', teamNumber: '418', pendingSyncOperation: 'update',
+    editTarget: { eventCode: entry.eventCode, matchId: entry.matchId,
+      teamNumber: entry.teamNumber, observationKey: 'test-user' }
+  }
+  entries = [queuedCorrection]
+  route = { eventCode: entry.eventCode, matchId: 'Q13', teamNumber: '418', observationKey: 'test-user' }
+  await mount(require('../src/pages/data/index').default)
+  assert(mountPoint.querySelector('.entry-sync-pending').textContent.includes('Waiting to sync'), 'Pending correction is visibly marked in the data list')
+  await mount(require('../src/pages/entry/index').default)
+  await flush(() => mountPoint.querySelector('.edit-btn').click())
+  assert(lastNavigateUrl.includes('matchId=Q12') && lastNavigateUrl.includes('teamNumber=417'), 'Pending correction Edit uses the original server identity')
+
+  fetchScoutEntryResult = queuedCorrection
+  route = { mode: 'edit', eventCode: entry.eventCode, matchId: 'Q13', teamNumber: '418', observationKey: 'test-user' }
+  const callsBeforePendingEdit = fetchScoutEntryCalls
+  await mount(require('../src/pages/scout/index').default)
+  await flush(() => new Promise((resolve) => setTimeout(resolve, 500)))
+  await flush(() => new Promise((resolve) => setTimeout(resolve, 500)))
+  assert(fetchScoutEntryCalls - callsBeforePendingEdit >= 2, 'Direct pending-correction link recovers the original target')
+  assert.equal(fetchScoutEntryArgs[2], 'Q12', 'Recovered edit reloads by the original match number')
+  await flush(() => mountPoint.querySelector('.submit-btn').click())
+  await flush(() => mountPoint.querySelector('.confirm-dialog-confirm').click())
+  assert.deepEqual(submittedEntry.editTarget, queuedCorrection.editTarget, 'Resubmitting a pending correction updates its original row')
+  entries = [entry, { ...entry, teamNumber: '418' }]
+
+  fetchScoutEntryResult = null
+  route = {
+    mode: 'edit', eventCode: entry.eventCode, matchId: entry.matchId,
+    teamNumber: entry.teamNumber, observationKey: 'missing-observation'
+  }
+  const submitCallsBeforeMissingEdit = submitScoutEntryCalls
+  await mount(require('../src/pages/scout/index').default)
+  await flush(() => new Promise((resolve) => setTimeout(resolve, 500)))
+  assert(mountPoint.textContent.includes('This observation no longer exists.'), 'Missing edit target is explained')
+  await flush(() => mountPoint.querySelector('.submit-btn').click())
+  assert.equal(submitScoutEntryCalls, submitCallsBeforeMissingEdit, 'Missing edit target is never submitted as a new row')
+
   await mount(require('../src/auth/LoginScreen').default)
   await flush(() => mountPoint.querySelector('.login-btn').click())
   assert(mountPoint.textContent.includes('Enter your username and password'))
@@ -372,6 +497,6 @@ async function main() {
   }
   await flush(() => root.unmount())
   dom.window.close()
-  console.log(`Passed: ${Object.keys(messages).length} bilingual message pairs, 7 pages, login validation, rankings, exports, legacy preference migration, stable tags and preserved user content.`)
+  console.log(`Passed: ${Object.keys(messages).length} bilingual message pairs, seven pages, language switching, exact-observation edit navigation, author preservation, missing-target protection, and existing scouting regressions.`)
 }
 main().then(() => process.exit(0)).catch((error) => { console.error(error); process.exit(1) })

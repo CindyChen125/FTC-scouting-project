@@ -30,6 +30,12 @@ from public.scout_entries;
 
 `invalid_keys` must be `0`. This migration does not delete or recreate any entry and does not replace RLS policies.
 
+To allow corrections to a saved match or team number, run
+`supabase/scout-match-correction-migration.sql` after the observation-key
+migration. It permits those two fields to change on the original row while
+keeping the event, observation key, author, RLS policies, and primary-key
+collision protection in place.
+
 ## 3. Configure the permanent owner
 
 Copy the complete contents of `supabase/owner-admin-migration.sql` into a second SQL Editor query and select **Run**.
