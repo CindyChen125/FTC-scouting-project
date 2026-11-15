@@ -1,21 +1,49 @@
-import { createContext, PropsWithChildren, useContext, useEffect } from 'react'
+import { createContext, PropsWithChildren, useCallback, useContext, useEffect, useState } from 'react'
 import Taro from '@tarojs/taro'
 import { Language, setCurrentLanguage, translate } from './index'
 
 const storageKey = 'settings:language'
-const BILINGUAL: Language = 'both'
-const LanguageContext = createContext({ language: BILINGUAL })
+interface LanguageContextValue {
+  language: Language
+  setLanguage: (language: Language) => void
+  toggleLanguage: () => void
+}
+
+function storedLanguage(): Language {
+  try {
+    const value = Taro.getStorageSync(storageKey) || Taro.getStorageSync('scoutLanguage')
+    if (['en', 'English', 'english'].includes(value)) return 'en'
+  } catch { /* Use the default language when storage is unavailable. */ }
+  return 'zh'
+}
+
+const LanguageContext = createContext<LanguageContextValue>({
+  language: 'zh',
+  setLanguage: () => {},
+  toggleLanguage: () => {}
+})
 
 export function LanguageProvider({ children }: PropsWithChildren) {
-  setCurrentLanguage(BILINGUAL)
+  const [language, setLanguageState] = useState<Language>(storedLanguage)
+
+  const setLanguage = useCallback((nextLanguage: Language) => {
+    setCurrentLanguage(nextLanguage)
+    setLanguageState(nextLanguage)
+  }, [])
+  const toggleLanguage = useCallback(() => {
+    setLanguage(language === 'zh' ? 'en' : 'zh')
+  }, [language, setLanguage])
+
+  setCurrentLanguage(language)
   useEffect(() => {
     try {
-      Taro.setStorageSync(storageKey, BILINGUAL)
+      Taro.setStorageSync(storageKey, language)
       Taro.removeStorageSync('scoutLanguage')
-    } catch { /* Bilingual rendering does not depend on storage. */ }
-    if (typeof document !== 'undefined') document.documentElement.lang = 'zh-CN'
-  }, [])
-  return <LanguageContext.Provider value={{ language: BILINGUAL }}>{children}</LanguageContext.Provider>
+    } catch { /* Language switching still works for this session. */ }
+    if (typeof document !== 'undefined') document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en'
+  }, [language])
+
+  return <LanguageContext.Provider value={{ language, setLanguage, toggleLanguage }}>{children}</LanguageContext.Provider>
 }
 
 export function useLanguage() {

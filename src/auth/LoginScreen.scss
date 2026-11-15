@@ -1,4 +1,5 @@
 .login-page {
+  position: relative;
   min-height: 100vh;
   background: var(--color-bg);
   display: flex;
@@ -6,6 +7,26 @@
   justify-content: center;
   padding: 40px 24px;
 }
+
+.login-language-btn {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  right: 18px;
+  display: flex;
+  min-width: 52px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-card-bg);
+  color: var(--color-primary);
+  font-size: var(--type-compact);
+  font-weight: 750;
+  touch-action: manipulation;
+}
+.login-language-btn:active { background: var(--color-primary-soft); }
 
 .login-card {
   width: 100%;

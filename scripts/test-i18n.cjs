@@ -154,7 +154,7 @@ async function main() {
     const placeholders = (value) => [...value.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort()
     assert.deepEqual(placeholders(message.en), placeholders(message.zh), `Placeholder mismatch: ${key}`)
   }
-  setCurrentLanguage('both')
+  setCurrentLanguage('en')
   const before = JSON.stringify(entry)
   assert(formatNotes(entry.auto.noteTags, rawNote).includes(rawNote))
   assert.equal(t('teamNumber', { number: rawNote }).includes(rawNote), true)
@@ -212,10 +212,12 @@ async function main() {
   storage.set('scoutLanguage', 'English')
   await mount(require('../src/pages/index/index').default)
   assert(mountPoint.textContent.includes('Start Scouting'))
+  assert.equal(storage.get('settings:language'), 'en', 'Legacy English preference is migrated')
+  await flush(() => mountPoint.querySelector('.app-header-language-btn').click())
   assert(mountPoint.textContent.includes('开始侦查'))
   assert.equal(document.documentElement.lang, 'zh-CN')
-  assert.equal(storage.get('settings:language'), 'both', 'Legacy preference is replaced by bilingual mode')
-  assert.equal(mountPoint.querySelector('.language-picker'), null, 'Language switching is removed')
+  await flush(() => mountPoint.querySelector('.app-header-language-btn').click())
+  assert.equal(document.documentElement.lang, 'en')
   for (const page of ['index', 'scout', 'pit', 'data', 'entry', 'settings', 'admin']) {
     await mount(require(`../src/pages/${page}/index`).default)
     let draft
@@ -261,7 +263,6 @@ async function main() {
       const dialog = mountPoint.querySelector('[role="dialog"]')
       assert(dialog, 'Submit opens the custom confirmation dialog')
       assert.equal(dialog.getAttribute('aria-modal'), 'true', 'Confirmation is exposed as a modal dialog')
-      assert(dialog.textContent.includes('提交场次 Q12、队伍 417 的侦查数据？'), 'Confirmation retains Chinese copy')
       assert(dialog.textContent.includes('Submit scouting data for match Q12, team 417?'), 'Confirmation retains English copy')
       await flush(() => new Promise((resolve) => setTimeout(resolve, 10)))
       assert.equal(document.activeElement, mountPoint.querySelector('.confirm-dialog-cancel'), 'Cancel receives initial keyboard focus')
@@ -315,8 +316,8 @@ async function main() {
       assert(localSaveErrors.some(([scope]) => scope === '[match-scout:local-save]'), 'Development log identifies local storage failure')
       reLaunchError = undefined
     }
-    assert.equal(mountPoint.querySelector('.language-picker'), null, `No language picker on ${page}`)
-    assert.equal(document.documentElement.lang, 'zh-CN')
+    assert(mountPoint.querySelector('.app-header-language-btn'), `Language switch is available on ${page}`)
+    assert.equal(document.documentElement.lang, 'en')
     if (page === 'scout' || page === 'pit') {
       assert([...mountPoint.querySelectorAll('input')].some((input) => input.value === '417'), 'Bilingual rendering retains team number')
       assert(mountPoint.querySelector('.scout-identity').textContent.includes('Red'), 'Scout names remain unchanged')
@@ -325,7 +326,6 @@ async function main() {
     if (page === 'data') {
       await flush(() => mountPoint.querySelectorAll('.tab-item')[1].click())
       assert(mountPoint.textContent.includes('reported breakdowns'))
-      assert(mountPoint.textContent.includes('场报告故障'))
       await flush(() => mountPoint.querySelectorAll('.tab-item')[2].click())
       assert(mountPoint.textContent.includes(rawNote), 'Pit notes remain untouched')
     }
@@ -333,10 +333,11 @@ async function main() {
   await mount(require('../src/auth/LoginScreen').default)
   await flush(() => mountPoint.querySelector('.login-btn').click())
   assert(mountPoint.textContent.includes('Enter your username and password'))
+  await flush(() => mountPoint.querySelector('.login-language-btn').click())
   assert(mountPoint.textContent.includes('请输入用户名和密码'))
-  assert.equal(mountPoint.querySelector('.language-picker'), null)
+  await flush(() => mountPoint.querySelector('.login-language-btn').click())
   await mount(require('../src/pages/settings/index').default)
-  assert.equal(document.documentElement.lang, 'zh-CN', 'Preference survives remount')
+  assert.equal(document.documentElement.lang, 'en', 'Preference survives remount')
   await mount(require('../src/pages/admin/index').default)
   assert(mountPoint.textContent.includes('Event Management'), 'Admins can access Event Management')
   user.role = 'scout'
