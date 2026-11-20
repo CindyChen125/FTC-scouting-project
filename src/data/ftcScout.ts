@@ -61,7 +61,7 @@ export async function importEvent(input: string, season = 2026): Promise<Importe
     throw new Error('Could not load this event. Check the code and your connection.')
   }
   const matches: ScheduledMatch[] = []
-  for (const match of (schedule.statusCode === 200 && Array.isArray(schedule.data) ? schedule.data : [])) {
+  for (const match of (schedule?.statusCode === 200 && Array.isArray(schedule.data) ? schedule.data : [])) {
     if (match?.tournamentLevel !== 'Quals' || !Number.isSafeInteger(match.id) || !Array.isArray(match.teams)) continue
     const teams: ScheduledMatch['teams'] = {}
     for (const team of match.teams) {

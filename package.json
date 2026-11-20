@@ -15,7 +15,18 @@
     "dev:weapp": "npm run build:weapp -- --watch",
     "dev:h5": "npm run build:h5 -- --watch",
     "test:i18n": "node scripts/test-i18n.cjs",
-    "test:scouting-identity": "node scripts/test-scout-persistence.cjs"
+    "test:scouting-identity": "node scripts/test-scout-persistence.cjs",
+    "test:strategy-geometry": "node scripts/test-strategy-geometry.cjs",
+    "test:strategy-interactions": "node scripts/test-strategy-interactions.cjs",
+    "test:strategy-annotations": "node scripts/test-strategy-annotations.cjs",
+    "test:strategy-persistence": "node scripts/test-strategy-persistence.cjs",
+    "test:strategy-collaboration": "node scripts/test-strategy-collaboration.cjs",
+    "test:strategy-offline": "node scripts/test-strategy-offline.cjs",
+    "test:strategy-export": "node scripts/test-strategy-export.cjs",
+    "test:strategy-scenarios": "node scripts/test-strategy-scenarios.cjs",
+    "test:strategy-timeline": "node scripts/test-strategy-timeline.cjs",
+    "test:strategy-scouting": "node scripts/test-strategy-scouting.cjs",
+    "test:strategy-scouting-panel": "node scripts/test-strategy-scouting-panel.cjs"
   },
   "browserslist": [
     "defaults and fully supports es6-module",

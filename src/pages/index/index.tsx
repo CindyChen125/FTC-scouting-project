@@ -127,6 +127,9 @@ export default function Home() {
         </View>
 
         <View className='home-nav-grid'>
+          <View className='home-nav-item' onClick={() => goTo('/pages/strategy/index')}>
+            <Text className='home-nav-title'>{t('策略沙盘 Strategy Sandbox')}</Text>
+          </View>
           <View className='home-nav-item' onClick={() => goTo('/pages/pit/index')}>
             <Text className='home-nav-title'>{t('赛前侦查 Pit Scouting')}</Text>
           </View>

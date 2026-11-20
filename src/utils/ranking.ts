@@ -128,7 +128,7 @@ const stdDev = (values: number[]) => {
 
 const round1 = (n: number) => Math.round(n * 10) / 10
 
-export function biobuzzRows(entries: BiobuzzEntry[]): RankRow[] {
+export function latestBiobuzzObservations(entries: BiobuzzEntry[]): BiobuzzEntry[] {
   // Use the latest observation per match for rankings; keep every raw record
   // in the data list and export so disagreements remain reviewable.
   const perMatch = new Map<string, BiobuzzEntry>()
@@ -137,7 +137,11 @@ export function biobuzzRows(entries: BiobuzzEntry[]): RankRow[] {
     const previous = perMatch.get(key)
     if (!previous || entry.updatedAt > previous.updatedAt) perMatch.set(key, entry)
   }
-  entries = [...perMatch.values()]
+  return [...perMatch.values()]
+}
+
+export function biobuzzRows(entries: BiobuzzEntry[]): RankRow[] {
+  entries = latestBiobuzzObservations(entries)
   const byTeam = new Map<string, BiobuzzEntry[]>()
   for (const e of entries) {
     const team = e.teamNumber.trim()

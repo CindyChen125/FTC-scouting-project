@@ -65,6 +65,7 @@ export default function EntryDetail() {
   }, [userId])
 
   const goEdit = () => {
+    if (!entry) return
     // A locally queued correction is shown under its new numbers, but the
     // server row still has the original identity until synchronization wins.
     const target = entry.editTarget ?? {
