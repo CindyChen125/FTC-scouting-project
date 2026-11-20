@@ -284,10 +284,6 @@ Synchronization uses a bordered subtle-surface container, explicit bilingual sta
 
 Pollen, Nectar, and ball scoring fields use one five-column row: −1, value, +1, +2, +4. Hive Tips uses the same visual component with only −1, value, and +1. Action cells use soft blue with blue borders; the value cell uses a neutral panel and tabular numeric type. Disabled decrement uses disabled fill and faint text while preserving the row geometry.
 
-### Foul Category
-
-Match fouls use one compact three-choice segmented field: No Fouls, Few Fouls (1–3), and Many Fouls (>3). The selected category uses the standard soft-blue selected treatment, remains readable without color, and wraps bilingual labels rather than shrinking them. Historical numeric data maps into these same categories when displayed.
-
 ### Browser Identity
 
 The favicon is a chamfered action-blue field with an angular lightning cut derived from the supplied geometric wordmark language. It stays team-neutral, ships as a theme-aware SVG plus 16px, 32px, and Apple-touch PNG fallbacks, and uses relative asset URLs so GitHub Pages subpath hosting remains valid.

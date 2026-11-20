@@ -8,7 +8,6 @@ import ConfirmDialog from '../../components/ConfirmDialog'
 import SyncStatus, { SyncState } from '../../components/SyncStatus'
 import {
   Alliance,
-  FoulCategory,
   AutoData,
   TeleopData,
   EndgameData,
@@ -24,8 +23,7 @@ import {
   NOTE_OTHER,
   noteTagId,
   noteTagLabel,
-  foulCategoryFor,
-  foulCategoryLabel
+  foulCategoryFor
 } from '../../types/scouting'
 import { submitScoutEntry, fetchScoutEntry, flushOutbox, pendingCount, type SubmitOutcome } from '../../supabase/scouting'
 import {
@@ -60,30 +58,6 @@ function CounterField({ label, value, onChange, steps = [1, 2, 4] }: {
         <Text className='counter-value'>{value}</Text>
         {steps.map((step) => (
           <View key={step} className='counter-btn' onClick={() => onChange(value + step)}>+{step}</View>
-        ))}
-      </View>
-    </View>
-  )
-}
-
-const FOUL_OPTIONS: FoulCategory[] = ['none', 'few', 'many']
-
-function FoulCategoryField({ value, onChange }: { value: FoulCategory, onChange: (v: FoulCategory) => void }) {
-  useLanguage()
-  return (
-    <View className='field-row'>
-      <Text className='field-label'>{t('裁判判罚（全场） Referee-called fouls (whole match)')}</Text>
-      <View className='foul-choice-row'>
-        {FOUL_OPTIONS.map((option) => (
-          <View
-            key={option}
-            className={`foul-choice ${value === option ? 'active' : ''}`}
-            role='button'
-            aria-pressed={value === option}
-            onClick={() => onChange(option)}
-          >
-            {t(foulCategoryLabel(option))}
-          </View>
         ))}
       </View>
     </View>
@@ -192,8 +166,7 @@ export default function Index() {
   const formStarted = !!matchId || !!teamNumber || !!overallNotes ||
     auto.leave || auto.cellBalls > 0 || auto.allianceTips > 0 || auto.park || auto.noteTags.length > 0 || !!auto.noteText ||
     teleop.cellPollen > 0 || teleop.cellNectar > 0 || teleop.allianceTips > 0 || teleop.noteTags.length > 0 || !!teleop.noteText ||
-    foulCategoryFor(teleop) !== 'none' ||
-    endgame.flowerPollen > 0 || endgame.flowerNectar > 0 || endgame.park
+    endgame.flowerPollen > 0 || endgame.flowerNectar > 0
 
   useEffect(() => {
     if (formStarted) eventLocked.current = true
@@ -598,10 +571,7 @@ export default function Index() {
           <CounterField label={t("花粉 Pollen")} value={endgame.flowerPollen} onChange={(n) => patchEndgame({ flowerPollen: n })} />
           <CounterField label={t("花蜜 Nectar")} value={endgame.flowerNectar} onChange={(n) => patchEndgame({ flowerNectar: n })} />
         </View>
-        <YesNoField label={t("停泊装载区 Park in loading zone")} value={endgame.park} onChange={(v) => patchEndgame({ park: v })} />
-
         <NoteMultiField tags={teleop.noteTags} text={teleop.noteText} onChange={patchTeleop} />
-        <FoulCategoryField value={foulCategoryFor(teleop)} onChange={(foulCategory) => patchTeleop({ foulCategory })} />
       </View>
 
       <View className='section-card'>

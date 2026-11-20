@@ -83,18 +83,12 @@
 .counter-btn:active { transform: translateY(1px); background: var(--color-primary); color: var(--color-primary-contrast); }
 .counter-btn.disabled { border-color: var(--color-border); background: var(--color-disabled-bg); color: var(--color-text-faint); }
 .counter-value { border: 1px solid var(--color-border); background: var(--color-card-bg); color: var(--color-text); font-size: calc(27px * var(--font-scale)); font-weight: 790; }
-.foul-choice-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.foul-choice { display: flex; min-width: 0; min-height: 52px; align-items: center; justify-content: center; box-sizing: border-box; padding: 9px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-control); background: var(--color-surface-subtle); color: var(--color-text-muted); font-size: var(--type-compact); font-weight: 650; line-height: 1.3; text-align: center; overflow-wrap: anywhere; touch-action: manipulation; transition: border-color .12s ease-out, background .12s ease-out, color .12s ease-out, transform .12s ease-out; }
-.foul-choice:active { transform: translateY(1px); }
-.foul-choice.active { border-color: var(--color-primary); background: var(--color-primary-soft); color: var(--color-primary); font-weight: 760; }
 @media (max-width: 620px) {
   .scout-page .page-content { padding-inline: 14px; }
   .header-card, .section-card { padding: 18px 16px; }
   .two-col { grid-template-columns: 1fr; gap: 0; }
   .counter-line { gap: 5px; }
   .counter-btn { font-size: calc(18px * var(--font-scale)); }
-  .foul-choice-row { gap: 6px; }
-  .foul-choice { padding-inline: 6px; }
 }
 @media (max-width: 360px) {
   .scout-page .page-content { padding-inline: 10px; }
