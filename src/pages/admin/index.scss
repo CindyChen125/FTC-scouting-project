@@ -166,7 +166,7 @@
 
 .section-heading-inline { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 16px; }
 .section-heading-inline .section-title { margin-bottom: 0; }
-.event-form-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(120px, .45fr) minmax(0, .8fr); gap: 14px; }
+.event-form-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(120px, .45fr); gap: 14px; }
 .picker-field { display: flex; align-items: center; }
 .active-event-chip { display: inline-flex; max-width: 420px; align-items: center; padding: 7px 10px; border: 1px solid var(--color-success); border-radius: 8px; background: var(--color-surface-subtle); color: var(--color-success); font-size: var(--type-compact); line-height: 1.35; }
 .admin-error { display: block; margin-top: 10px; color: var(--color-danger); font-size: var(--type-compact); }

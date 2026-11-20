@@ -9,7 +9,7 @@ import { Profile, profileLabel } from '../../types/scouting'
 import { CURRENT_SEASON } from '../../data/events'
 import { useActiveEvent } from '../../data/ActiveEventContext'
 import { createCompetitionEvent, activateCompetitionEvent } from '../../supabase/events'
-import { importEvent } from '../../data/ftcScout'
+import { findFtcScoutEvent, importEvent } from '../../data/ftcScout'
 import {
   fetchProfiles,
   fetchScoutCounts,
@@ -37,7 +37,6 @@ export default function Admin() {
   const [newPassword, setNewPassword] = useState('')
   const [eventName, setEventName] = useState('')
   const [eventSeason, setEventSeason] = useState(CURRENT_SEASON)
-  const [ftcScoutCode, setFtcScoutCode] = useState('')
   const [eventBusy, setEventBusy] = useState(false)
 
   // Taro's H5 showModal has no `editable` support, so anything needing typed
@@ -111,27 +110,24 @@ export default function Admin() {
 
   const createEvent = async () => {
     const name = eventName.trim()
-    const code = ftcScoutCode.trim().toUpperCase()
     if (!name) {
       toast('赛事名称必填 Event name required')
-      return
-    }
-    if (code && !/^[A-Z0-9]{2,24}$/.test(code)) {
-      toast('FTCScout 代码格式无效 Invalid FTCScout code')
       return
     }
 
     setEventBusy(true)
     try {
-      await createCompetitionEvent({ name, season: eventSeason, ftcScoutCode: code || undefined })
-      let importWarning = false
-      if (code) {
-        try { await importEvent(code, eventSeason) } catch { importWarning = true }
+      let ftcScoutEvent: { code: string; name: string } | null = null
+      let lookupFailed = false
+      try { ftcScoutEvent = await findFtcScoutEvent(name, eventSeason) } catch { lookupFailed = true }
+      await createCompetitionEvent({ name, season: eventSeason, ftcScoutCode: ftcScoutEvent?.code })
+      let importWarning = lookupFailed || !ftcScoutEvent
+      if (ftcScoutEvent) {
+        try { await importEvent(ftcScoutEvent.code, eventSeason) } catch { importWarning = true }
       }
       await refreshEvents()
       setEventName('')
-      setFtcScoutCode('')
-      toast(importWarning ? '赛事已创建；赛程导入失败 Event created; schedule import failed' : '赛事已创建 Event created', importWarning ? 'none' : 'success')
+      toast(importWarning ? '赛事已创建；FTCScout 暂不可用或未找到唯一赛事 Event created; FTCScout unavailable or no unique match found' : '赛事已创建 Event created', importWarning ? 'none' : 'success')
     } catch (error) {
       toast((error as Error).message)
     } finally {
@@ -239,15 +235,6 @@ export default function Admin() {
               >
                 <View className='field-input picker-field'>{eventSeason}</View>
               </Picker>
-            </View>
-            <View className='field-row'>
-              <Text className='field-label'>{t('FTCScout 代码（可选） FTCScout code (optional)')}</Text>
-              <Input
-                className='field-input'
-                value={ftcScoutCode}
-                placeholder='CNSHOS'
-                onInput={(event) => setFtcScoutCode(event.detail.value.toUpperCase())}
-              />
             </View>
           </View>
           <View className={`admin-btn ${eventBusy ? 'busy' : ''}`} onClick={eventBusy ? undefined : createEvent}>

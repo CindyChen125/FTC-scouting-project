@@ -85,7 +85,8 @@ export default function CurrentData() {
     ...entries.map(entryEventCode),
     ...pitEntries.map((entry) => entry.eventCode)
   ])].map(findEvent)
-  const schedule = importedEvents.find((event) => event.code === eventCode)?.matches
+  const scheduleCode = findEvent(eventCode).ftcScoutCode ?? eventCode
+  const schedule = importedEvents.find((event) => event.code === scheduleCode)?.matches
   const opr = useMemo(() => officialOpr(schedule ?? []), [schedule])
   const [comparison, setComparison] = useState({ eventCode: '', left: '', right: '' })
   const [partnerTeam, setPartnerTeam] = useState({ eventCode: '', number: '' })
@@ -393,7 +394,7 @@ export default function CurrentData() {
                     <Text>{t('allianceScore', { red: match.redScore!, blue: match.blueScore! })}</Text>
                   </View>
                 ))}
-                {!schedule.some((match) => match.redScore !== undefined) && <Text>{t("No posted scores yet. Refresh the import in Start Scouting.")}</Text>}
+                {!schedule.some((match) => match.redScore !== undefined) && <Text>{t('No posted scores yet. FTCScout schedules refresh automatically.')}</Text>}
               </View>
             )}
             <View className='rankings-header'>

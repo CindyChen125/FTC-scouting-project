@@ -1,7 +1,8 @@
 import { createContext, PropsWithChildren, useCallback, useContext, useEffect, useState } from 'react'
-import { CompetitionEvent, registerManagedEvents } from './events'
+import { CompetitionEvent, CURRENT_SEASON, registerManagedEvents } from './events'
 import { cacheActiveEvent, readCachedActiveEvent } from './selectedEvent'
 import { fetchCompetitionEvents, subscribeCompetitionEvents } from '../supabase/events'
+import { refreshEventImportIfStale } from './ftcScout'
 import { useAuth } from '../auth/AuthContext'
 import Taro from '@tarojs/taro'
 
@@ -77,6 +78,17 @@ export function ActiveEventProvider({ children }: PropsWithChildren) {
     Taro.onNetworkStatusChange(handleNetwork)
     return () => Taro.offNetworkStatusChange?.(handleNetwork)
   }, [refresh, userId])
+
+  useEffect(() => {
+    const refreshStaleImports = () => {
+      events
+        .filter((event) => event.season === CURRENT_SEASON && event.ftcScoutCode)
+        .forEach((event) => { refreshEventImportIfStale(event.ftcScoutCode!, event.season).catch(() => {}) })
+    }
+    refreshStaleImports()
+    const timer = setInterval(refreshStaleImports, 12 * 60 * 60 * 1000)
+    return () => clearInterval(timer)
+  }, [events])
 
   return (
     <ActiveEventContext.Provider value={{ activeEvent, events, loading, offline, refresh }}>

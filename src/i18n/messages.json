@@ -895,9 +895,9 @@
     "en": "No clear complementary match from current scouting.",
     "zh": "根据目前的侦查数据，暂无明显互补的队伍。"
   },
-  "No posted scores yet. Refresh the import in Start Scouting.": {
-    "en": "No posted scores yet. Refresh the import in Start Scouting.",
-    "zh": "暂无官方比分。请在“开始侦查”页面刷新赛事导入。"
+  "No posted scores yet. FTCScout schedules refresh automatically.": {
+    "en": "No posted scores yet. FTCScout schedules refresh automatically.",
+    "zh": "暂无官方比分。赛程会自动从 FTCScout 刷新。"
   },
   "No scouting data for this event yet — rankings appear once matches are submitted.": {
     "en": "No scouting data for this event yet — rankings appear once matches are submitted.",
@@ -1527,17 +1527,13 @@
     "en": "Event name required",
     "zh": "赛事名称必填"
   },
-  "FTCScout 代码格式无效 Invalid FTCScout code": {
-    "en": "Invalid FTCScout code",
-    "zh": "FTCScout 代码格式无效"
-  },
   "赛事已创建 Event created": {
     "en": "Event created",
     "zh": "赛事已创建"
   },
-  "赛事已创建；赛程导入失败 Event created; schedule import failed": {
-    "en": "Event created; schedule import failed",
-    "zh": "赛事已创建；赛程导入失败"
+  "赛事已创建；FTCScout 暂不可用或未找到唯一赛事 Event created; FTCScout unavailable or no unique match found": {
+    "en": "Event created; FTCScout unavailable or no unique match found",
+    "zh": "赛事已创建；FTCScout 暂不可用或未找到唯一赛事"
   },
   "已启用赛事 Event activated": {
     "en": "Event activated",
