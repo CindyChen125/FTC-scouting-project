@@ -13,7 +13,6 @@ import {
   optionLabel,
   formatPitAuto,
   formatColorSort,
-  DRIVETRAIN_OPTIONS,
   BALL_OPTIONS,
   ROLE_OPTIONS
 } from '../../types/pit'
@@ -559,7 +558,6 @@ export default function CurrentData() {
                   >
                     <View className='entry-header'>
                       <Text className='entry-title'>{t('teamNumber', { number: p.teamNumber })}</Text>
-                      <Text className='entry-meta'>{optionLabel(DRIVETRAIN_OPTIONS, p.data.drivetrain)}</Text>
                     </View>
                     <Text className='entry-meta'>{t("Scout:")} {(p.scoutedBy && names[p.scoutedBy]) || p.scoutName || '—'}
                       {p.lastEditedBy && p.lastEditedBy !== p.scoutedBy

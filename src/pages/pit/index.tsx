@@ -12,7 +12,6 @@ import {
   emptyPitData,
   pitEntryStorageKey,
   pitBackupKey,
-  DRIVETRAIN_OPTIONS,
   BALL_OPTIONS,
   AUTO_OPTIONS,
   ROLE_OPTIONS
@@ -262,12 +261,6 @@ export default function PitScouting() {
             </Button>
           </View>
           {!!photoError && <Text>{t(photoError)}</Text>}
-          <ChoiceField
-            label={t("底盘 Drivetrain")}
-            options={DRIVETRAIN_OPTIONS}
-            value={data.drivetrain}
-            onChange={(v) => patch({ drivetrain: v })}
-          />
           <ChoiceField
             label={t("射入蜂巢 Shoots into hive")}
             options={BALL_OPTIONS}
